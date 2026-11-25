@@ -120,12 +120,13 @@ export function startReplay() {
     banner: G.banner
   };
   G.state = 'replay';
-  G.rp = 0;
+  G.rp = G.frames.length ? Math.min(0, G.frames[0].t) : 0;
   G.rk = 0;
   G.manual = false;
   push();
 }
-export function endReplay() {
+// keepRec: 저장 중 리플레이에서 시상식으로 넘어갈 때 녹화를 이어 감
+export function endReplay(keepRec) {
   ({
     racers: G.racers,
     fin: G.fin,
@@ -141,7 +142,11 @@ export function endReplay() {
   G.state = 'podium';
   G.pt = 0;
   G.conf = [];
-  if (G.rec && G.rec.state === 'recording') G.rec.stop();
+  if (!keepRec) {
+    G.fullRec = false;
+    G.recPod = false;
+    if (G.rec && G.rec.state === 'recording') G.rec.stop();
+  }
   push();
 }
 export function toggleReplay() {

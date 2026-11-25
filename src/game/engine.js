@@ -3,7 +3,7 @@
 import { camDown, camMove, camUp, seek, updateCam } from "./camera.js";
 import { COLORS, HINT, MAXN, NAMES } from "./constants.js";
 import { exportGif, exportVideo, saveReady } from "./export.js";
-import { podiumStep } from "./render/podium.js";
+import { podiumStep, podiumEnd } from "./render/podium.js";
 import { draw } from "./render/race.js";
 import { applyFrame, endReplay, record, toggleReplay } from "./replay.js";
 import { setup, update } from "./sim/race.js";
@@ -47,6 +47,9 @@ export function loop(ts) {
   if (G.banner) G.banner.t -= dt;
   if (G.state === 'count') {
     G.cd -= dt;
+    // 카운트다운도 리플레이·녹화에 들어가도록 음수 시간(-3초 → 0초)으로 기록
+    G.rt = -Math.max(0, G.cd);
+    record();
     if (G.cd <= 0) {
       G.state = 'run';
       G.clock = 0;
@@ -59,14 +62,29 @@ export function loop(ts) {
     update(dt * sc);
     if (G.state === 'run') record();
   } else if (G.state === 'podium') {
-    G.pt += dt;
-    podiumStep(dt);
+    // GIF를 만드는 동안에는 export.js가 시상식 시간을 직접 진행
+    if (!G.exporting) {
+      G.pt += dt;
+      podiumStep(dt);
+    }
+    // MP4 녹화: 시상식 조명이 끝나고 2초 뒤에 멈춤
+    if (G.recPod && G.pt >= podiumEnd()) {
+      G.recPod = false;
+      G.fullRec = false;
+      if (G.rec && G.rec.state === 'recording') G.rec.stop();
+    }
   } else if (G.state === 'replay') {
     if (!G.exporting) {
       G.rp += dt;
       while (G.rk < G.frames.length - 1 && G.frames[G.rk + 1].t <= G.rp) G.rk++;
       applyFrame(G.frames[G.rk]);
-      if (G.rp > G.frames[G.frames.length - 1].t + .5) endReplay();
+      if (G.rp > G.frames[G.frames.length - 1].t + .5) {
+        // 저장 중이면 녹화를 멈추지 않고 시상식으로 이어 감
+        if (G.fullRec) {
+          endReplay(true);
+          G.recPod = true;
+        } else endReplay();
+      }
     }
   }
   G.fdt = dt * (G.state === 'run' ? sc : 1);

@@ -10,6 +10,11 @@ import { drawBattery } from "./robot.js";
 import { hx, liveRank } from "../sim/race.js";
 import { G } from "../state.js";
 import { R, ink, rr } from "../util.js";
+// 카운트다운 중인지(실제 경기, 또는 리플레이의 음수 시간 구간)와 남은 초
+export function counting() {
+  return G.state === 'count' || G.state === 'replay' && G.rp < 0;
+}
+const cdLeft = () => G.state === 'count' ? G.cd : -G.rp;
 export function draw() {
   if (G.state === 'podium') {
     drawPodium();
@@ -290,7 +295,7 @@ export function drawRace() {
       run: r.stun <= 0 && !stop,
       veh: r.veh && r.veh.k,
       t: G.clock,
-      ready: G.state === 'count',
+      ready: counting(),
       h: r.h,
       spr: r.spr,
       spr0: r.spr0,
@@ -456,13 +461,13 @@ export function drawRace() {
     G.ctx.strokeText(G.banner.s, G.W / 2, G.H / 2);
     G.ctx.fillText(G.banner.s, G.W / 2, G.H / 2);
   }
-  if (G.state === 'count') {
+  if (counting()) {
     G.ctx.fillStyle = 'rgba(30,43,51,.5)';
     G.ctx.fillRect(0, 0, G.W, G.H);
     G.ctx.fillStyle = '#fff';
     G.ctx.textAlign = 'center';
     G.ctx.font = '120px Jua,sans-serif';
-    G.ctx.fillText(String(Math.max(1, Math.ceil(G.cd))), G.W / 2, G.H / 2 + 40);
+    G.ctx.fillText(String(Math.max(1, Math.ceil(cdLeft()))), G.W / 2, G.H / 2 + 40);
   }
 }
 // 허들 한 칸(레인 하나). down이면 앞으로 넘어간 모습(ft: 0→1 넘어가는 진행도)
@@ -512,7 +517,7 @@ export function hurdle(x, y, down, ft) {
 // 중요한 순서(1위 → 꼴찌 → 카메라가 따라가는 캐릭터 → 나머지 순위순)로 그리면서
 // 이미 그린 이름표와 겹치면 건너뛰고, 대신 머리 위에 옷 색 점만 남김(흩어지면 다시 보임)
 export function drawLabels(list) {
-  if (G.state === 'count') return;
+  if (counting()) return;
   const tn = G.state === 'replay' ? G.rp : G.rt,
     alpha = Math.max(0, Math.min(1, tn / .5));
   if (alpha <= 0) return;

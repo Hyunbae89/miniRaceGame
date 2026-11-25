@@ -1,5 +1,6 @@
 // 리플레이를 GIF(직접 인코딩)·MP4/WebM으로 만들고 저장 버튼 제공.
 import { push } from "./engine.js";
+import { podiumEnd, podiumStep } from "./render/podium.js";
 import { draw } from "./render/race.js";
 import { applyFrame, endReplay, startReplay } from "./replay.js";
 import { G } from "./state.js";
@@ -89,6 +90,8 @@ export function saveReady() {
   G.msg = '저장했어요!';
   push();
 }
+// GIF 저장: 카운트다운(3·2·1)부터 레이스 끝까지 리플레이 프레임을, 이어서 시상식을 결과산출 조명이 끝나고 2초 뒤까지
+// 0.1초 간격으로 직접 그려 담는다(폭 400px). 만드는 동안 G.exporting이 켜져 있어 메인 루프는 시간을 진행하지 않음
 export async function exportGif() {
   if (G.state !== 'podium' || G.frames.length < 2) return;
   G.ready = null;
@@ -103,11 +106,27 @@ export async function exportGif() {
   const o = oc.getContext('2d', {
     willReadFrequently: true
   });
-  const dur = G.frames[G.frames.length - 1].t + .3,
+  const t0 = Math.min(0, G.frames[0].t),
+    dur = G.frames[G.frames.length - 1].t + .3,
+    pend = podiumEnd(),
+    total = dur - t0 + pend,
     parts = [gifHeader(GW, GH)];
   let k = 0,
     cnt = 0;
-  for (let t = 0; t <= dur; t += .1) {
+  const shot = async done => {
+    o.drawImage(G.cv, 0, 0, GW, GH);
+    const d = o.getImageData(0, 0, GW, GH).data,
+      ix = new Uint8Array(GW * GH);
+    for (let i = 0, j = 0; j < ix.length; i += 4, j++) ix[j] = d[i] >> 5 << 5 | d[i + 1] >> 5 << 2 | d[i + 2] >> 6;
+    parts.push(gifFrame(ix, GW, GH, 10));
+    if (++cnt % 4 === 0) {
+      G.msg = 'GIF 만드는 중… ' + Math.round(done / total * 100) + '%';
+      push();
+      await new Promise(r => setTimeout(r));
+    }
+  };
+  // 1) 카운트다운(음수 시간)부터 레이스 끝까지
+  for (let t = t0; t <= dur; t += .1) {
     if (G.state !== 'replay') {
       G.exporting = false;
       return;
@@ -116,20 +135,23 @@ export async function exportGif() {
     applyFrame(G.frames[k]);
     G.rp = t;
     draw();
-    o.drawImage(G.cv, 0, 0, GW, GH);
-    const d = o.getImageData(0, 0, GW, GH).data,
-      ix = new Uint8Array(GW * GH);
-    for (let i = 0, j = 0; j < ix.length; i += 4, j++) ix[j] = d[i] >> 5 << 5 | d[i + 1] >> 5 << 2 | d[i + 2] >> 6;
-    parts.push(gifFrame(ix, GW, GH, 10));
-    if (++cnt % 4 === 0) {
-      G.msg = 'GIF 만드는 중… ' + Math.round(t / dur * 100) + '%';
-      push();
-      await new Promise(r => setTimeout(r));
+    await shot(t - t0);
+  }
+  // 2) 시상식: 결과산출 조명이 끝나고 2초 뒤까지
+  endReplay(true);
+  for (let pt = 0; pt <= pend; pt += .1) {
+    if (G.state !== 'podium') {
+      G.exporting = false;
+      return;
     }
+    G.pt = pt;
+    podiumStep(.1);
+    draw();
+    await shot(dur - t0 + pt);
   }
   parts.push(new Uint8Array([0x3B]));
   G.exporting = false;
-  endReplay();
+  if (G.fin.length) G.msg = G.fin[0].name + '이(가) 우승했습니다!';
   offer(new Blob(parts, {
     type: 'image/gif'
   }), 'race-replay.gif');
@@ -166,8 +188,11 @@ export function exportVideo() {
   };
   G.ready = null;
   G.rec = mr;
+  // 카운트다운부터 녹화하고, 리플레이가 끝나도 멈추지 않고 시상식(조명이 끝나고 2초 뒤)까지 이어 감
+  G.fullRec = true;
+  G.recPod = false;
   mr.start();
   startReplay();
-  G.msg = '영상 녹화 중… 리플레이가 끝날 때까지 기다려 주세요.';
+  G.msg = '영상 녹화 중… 카운트다운부터 시상식까지 녹화합니다. 잠시 기다려 주세요.';
   push();
 }

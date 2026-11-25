@@ -56,12 +56,29 @@ function makeCanvas() {
   return c;
 }
 let raf = null;
-globalThis.window = { innerWidth: 1200 };
+// 가짜 MediaRecorder: 녹화 시작·끝 시각(가상 시간 T)을 기록해 녹화 범위를 검사
+let recLog = null;
+globalThis.MediaRecorder = class { static isTypeSupported(t) { return t === 'video/webm'; } constructor() { this.state = 'inactive'; } start() { this.state = 'recording'; recLog = { start: T }; } stop() { this.state = 'inactive'; recLog.end = T; this.ondataavailable?.({ data: new Blob(['x']) }); this.onstop?.(); } };
+globalThis.window = { innerWidth: 1200, MediaRecorder: globalThis.MediaRecorder };
 globalThis.document = { createElement: () => makeCanvas() };
 globalThis.requestAnimationFrame = (cb) => { raf = cb; return 1; };
 globalThis.cancelAnimationFrame = () => {};
 const step = (k = 1) => { for (let i = 0; i < k; i++) { T += 1000 / 60; raf(T); } };
 
+{
+  const { createRequire } = await import('node:module');
+  const req = createRequire(join(here, '../package.json'));
+  const parser = req('@babel/parser'), traverse = req('@babel/traverse').default;
+  const { readdirSync } = await import('node:fs');
+  const KNOWN = new Set(['window', 'document', 'Math', 'performance', 'requestAnimationFrame', 'cancelAnimationFrame', 'console', 'Blob', 'URL', 'MediaRecorder', 'Uint8Array', 'Uint8ClampedArray', 'setTimeout', 'Promise', 'Object', 'Array', 'String', 'Number', 'JSON', 'Date', 'Set', 'Map', 'Infinity', 'NaN', 'undefined', 'parseInt', 'isFinite', 'AbortController']);
+  const walk = (d) => readdirSync(d, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? walk(join(d, e.name)) : e.name.endsWith('.js') ? [join(d, e.name)] : []);
+  const missing = [];
+  for (const f of walk(join(here, '../src/game'))) {
+    traverse(parser.parse(readFileSync(f, 'utf8'), { sourceType: 'module' }), { Identifier(p) { if (p.isReferencedIdentifier() && !p.scope.hasBinding(p.node.name) && !KNOWN.has(p.node.name)) missing.push(f.split(/[\\/]src[\\/]/).pop() + ': ' + p.node.name); } });
+  }
+  if (missing.length) { console.log('✗ 정의되지 않은 이름(import 누락 등):\n  ' + [...new Set(missing)].join('\n  ')); process.exit(1); }
+  console.log('✓ 모든 게임 모듈의 이름이 정의돼 있음');
+}
 const { createGame } = await import(pathToFileURL(join(here, '../src/game/engine.js')).href);
 
 // ---- 시나리오 ----
@@ -101,6 +118,18 @@ const scenarios = {
     const r = v();
     if (r.state !== 'idle' || r.n !== 4 || r.mode !== 'normal' || r.map !== 'city-day' || r.want !== 'first' || r.lanes.some((x, i) => x !== i) || r.cfg.some((c) => c.age !== 'a' || c.name.startsWith('메카'))) throw new Error('완전 초기화: 처음 상태여야 함');
     return { pausedState, names: r.cfg.slice(0, 4).map((c) => c.name).join(',') };
+  },
+  'MP4 녹화 범위(카운트다운 ~ 시상식 조명 끝 +2초)': (g, v) => {
+    g.setN(4); g.setWant('last');
+    const r = race(g, v); g.toggleReplay(); step(5);
+    recLog = null; g.exportVideo();
+    let s = 0; while (v().busy && s < 60 * 120) { step(); s++; }
+    if (!recLog || recLog.end === undefined) throw new Error('녹화가 끝나지 않음');
+    // r.sec은 카운트다운 3초를 포함한 레이스 시간. 리플레이 끝 여유 0.5초 + 시상식(꼴등 원함: 조명 끝 8.1초 + 2초)
+    const sec = (recLog.end - recLog.start) / 1000, need = r.sec + .5 + 10.1;
+    if (Math.abs(sec - need) > 1.5) throw new Error('녹화 길이 ' + sec.toFixed(1) + '초, 기대 약 ' + need.toFixed(1) + '초');
+    if (!v().file) throw new Error('저장 파일이 준비되지 않음');
+    return { ...r, recSec: Math.round(sec) };
   },
   '카메라 직접 조작(누르기·끌기·놓기)': (g, v) => {
     g.setN(6); g.start(); step(60 * 8);
