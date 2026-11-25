@@ -1,6 +1,5 @@
-// 취재 헬기: 레이스 중에는 카메라가 따라가는 캐릭터를, 시작 전에는 마우스 x좌표를 따라 움직인다.
+import { focusR } from "../camera.js";
 import { GT, OFF } from "../constants.js";
-import { focusR } from "../engine.js";
 import { TH } from "./background.js";
 import { G } from "../state.js";
 // 헬기: 시작 전에는 캔버스 위 마우스 x를 따라감(캔버스 밖으로 나가면 마지막 위치에서 제자리 비행)

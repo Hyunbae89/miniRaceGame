@@ -1,4 +1,3 @@
-// 배경(맵): 서울 도심 / 전통 마을 × 낮 / 밤. 하늘, 랜드마크, 건물, 인도, 응원 시민, 산책, 밤 조명.
 import { COLORS, GT, HAIR, OFF, SHOPC, SHOPS, SIGNS, SKIN } from "../constants.js";
 import { G } from "../state.js";
 import { hsh, rr } from "../util.js";
