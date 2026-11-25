@@ -1,3 +1,4 @@
+// 레이스 화면 그리기: 배경·도로·장애물·아이템·캐릭터·지도·실시간 순위·카운트다운, 말풍선.
 import { GT, ITEMS, OFF, TRACK } from "../constants.js";
 import { TH, cityBg, roadPools, stars } from "./background.js";
 import { drawPerson } from "./character.js";

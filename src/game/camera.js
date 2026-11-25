@@ -1,15 +1,12 @@
-// 카메라: 자동으로 아직 도착하지 않은 1위를 따라가고, 지도 드래그로 수동 이동.
 import { OFF, TRACK } from "./constants.js";
 import { push } from "./engine.js";
 import { G } from "./state.js";
-
 // 카메라·헬기가 따라가는 캐릭터: 아직 도착하지 않은 선두. 모두 도착했으면 마지막 도착자
 export function focusR() {
   let f = null;
   for (const r of G.racers) if (!r.fin && (!f || r.x > f.x)) f = r;
   return f || G.fin[G.fin.length - 1] || null;
 }
-
 export function updateCam(dt) {
   if (G.manual) {
     G.camX += (G.mt - G.camX) * Math.min(1, dt * 10);

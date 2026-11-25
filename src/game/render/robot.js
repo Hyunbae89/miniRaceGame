@@ -1,4 +1,3 @@
-// 로봇 캐릭터 그리기: 금속 몸체, LED 얼굴 표정, 부스터 불꽃, 배터리 아이콘.
 import { ARM1, ARM2, COLORS, HIPS, LEG } from "../constants.js";
 import { fk, limb } from "./character.js";
 import { G } from "../state.js";

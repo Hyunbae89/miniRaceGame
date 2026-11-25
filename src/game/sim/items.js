@@ -1,4 +1,3 @@
-// 아이템전 아이템 사용(탈것 탑승, 바나나, 포탈건, 스턴건).
 import { ITEMS, TRACK } from "../constants.js";
 import { say } from "./race.js";
 import { G } from "../state.js";
