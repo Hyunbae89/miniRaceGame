@@ -241,7 +241,15 @@ npm install
 npm run dev      # 개발 서버
 npm run build    # dist/ 에 정적 파일 생성
 npm run preview  # 빌드 결과 미리보기
+npm run check    # 엔진 자동 점검(아래 참고)
 ```
+
+**자동 점검(`npm run check`)**
+- 브라우저 없이 Node로 게임 엔진을 돌립니다. 난수와 시간을 고정한 채 미리보기, 일반전, 아이템전, 맵 4종 시나리오를 시상식과 리플레이까지 진행합니다.
+- 레이스가 끝나지 않거나 그리기에 NaN이 들어가면 실패합니다.
+- 캔버스에 내린 모든 그리기 명령을 해시로 기록해 `scripts/check-baseline.json`의 기준과 비교합니다. 리팩터링 전후에 결과가 같으면 화면이 한 획도 달라지지 않았다는 뜻입니다.
+- 그림이나 동작을 일부러 바꿨다면 `npm run check -- --update`로 기준을 갱신합니다.
+- `npm run check -- --balance`는 로봇과 사람의 평균 순위를 모드별 40판으로 측정합니다.
 
 - `vite.config.js`의 `base`가 `/miniRaceGame/`로 되어 있습니다. 그래서 개발 서버 주소는 `http://localhost:5173/miniRaceGame/`입니다.
 - `dist/index.html`을 파일로 직접 열면 브라우저가 모듈 스크립트를 막습니다. 반드시 서버나 호스팅을 통해 여세요.
