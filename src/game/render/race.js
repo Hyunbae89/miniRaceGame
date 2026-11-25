@@ -1,6 +1,7 @@
 // 레이스 화면 그리기: 배경·도로·장애물·아이템·캐릭터·지도·실시간 순위·카운트다운, 말풍선.
 import { GT, ITEMS, OFF, TRACK } from "../constants.js";
 import { TH, cityBg, roadPools, stars } from "./background.js";
+import { focusR } from "../camera.js";
 import { drawPerson } from "./character.js";
 import { drawHeli } from "./heli.js";
 import { drawPodium } from "./podium.js";
@@ -269,7 +270,8 @@ export function drawRace() {
   }
   G.ctx.globalAlpha = 1;
   liveRank();
-  const order = G.racers.slice().sort((a, b) => a.d - b.d);
+  const order = G.racers.slice().sort((a, b) => a.d - b.d),
+    labels = [];
   for (const r of order) {
     const px = r.x - G.camX + OFF;
     if (px < -60 || px > G.W + 60) continue;
@@ -313,25 +315,9 @@ export function drawRace() {
       G.ctx.fillStyle = '#000';
       G.ctx.fillText(ITEMS.find(i => i.k === r.item.k).e, px, py - 88);
     }
-    G.ctx.textAlign = 'center';
-    G.ctx.font = '14px Jua,sans-serif';
-    if (r.fin) {
-      G.ctx.fillStyle = '#1e2b33';
-      G.ctx.font = '18px Jua,sans-serif';
-      G.ctx.fillText(r.rank + '위', px, py - 66);
-      const tn = G.state === 'replay' ? G.rp : G.rt;
-      if (r.rank === 1 && G.winLine && tn - r.time < 3.5) {
-        bubble(px, py - 90, G.winLine);
-        G.ctx.textAlign = 'center';
-      }
-    } else {
-      const tw = Math.max(34, G.ctx.measureText(r.name).width + 14);
-      G.ctx.fillStyle = r.color;
-      rr(px - tw / 2, py - 79, tw, 17, 8);
-      G.ctx.fill();
-      G.ctx.fillStyle = ink(r.color);
-      G.ctx.fillText(r.name, px, py - 66);
-      if (r.age === 'r') drawBattery(px + tw / 2 + 3, py - 79, r);
+    // 이름표·등수는 모아 두었다가 drawLabels에서 겹침 처리 후 그림
+    labels.push({ r, px, py });
+    if (!r.fin) {
       G.ctx.textAlign = 'center';
       G.ctx.font = '14px Jua,sans-serif';
       if (r.stun > 0) {
@@ -351,6 +337,7 @@ export function drawRace() {
       }
     }
   }
+  drawLabels(labels);
   for (const o of G.portals) {
     const x = o.x - G.camX + OFF,
       y = GT + 16 + o.d - 18;
@@ -520,6 +507,61 @@ export function hurdle(x, y, down, ft) {
   G.ctx.lineWidth = 1;
   G.ctx.strokeRect(-12, -23, 24, 6);
   G.ctx.restore();
+}
+// 이름표: 카운트다운 중에는 숨기고, 출발 후 0.5초 동안 서서히 나타남.
+// 중요한 순서(1위 → 꼴찌 → 카메라가 따라가는 캐릭터 → 나머지 순위순)로 그리면서
+// 이미 그린 이름표와 겹치면 건너뛰고, 대신 머리 위에 옷 색 점만 남김(흩어지면 다시 보임)
+export function drawLabels(list) {
+  if (G.state === 'count') return;
+  const tn = G.state === 'replay' ? G.rp : G.rt,
+    alpha = Math.max(0, Math.min(1, tn / .5));
+  if (alpha <= 0) return;
+  const rank = (r) => r.fin ? r.rank : r.cur,
+    f = focusR(),
+    prio = (r) => rank(r) === 1 ? 0 : rank(r) === G.n ? 1 : r === f ? 2 : 3;
+  list.sort((a, b) => prio(a.r) - prio(b.r) || rank(a.r) - rank(b.r));
+  const placed = [],
+    dots = [],
+    hit = (q) => placed.some((o) => q.x < o.x + o.w + 2 && o.x < q.x + q.w + 2 && q.y < o.y + o.h + 1 && o.y < q.y + q.h + 1);
+  let bub = null;
+  G.ctx.globalAlpha = alpha;
+  for (const { r, px, py } of list) {
+    if (r.fin) {
+      const box = { x: px - 17, y: py - 83, w: 34, h: 21 };
+      if (hit(box)) { dots.push([px, py, r.color]); continue; }
+      placed.push(box);
+      G.ctx.textAlign = 'center';
+      G.ctx.fillStyle = '#1e2b33';
+      G.ctx.font = '18px Jua,sans-serif';
+      G.ctx.fillText(r.rank + '위', px, py - 66);
+      if (r.rank === 1 && G.winLine && tn - r.time < 3.5) bub = [px, py - 90];
+    } else {
+      G.ctx.font = '14px Jua,sans-serif';
+      const tw = Math.max(34, G.ctx.measureText(r.name).width + 14),
+        box = { x: px - tw / 2, y: py - 79, w: tw + (r.age === 'r' ? 21 : 0), h: 17 };
+      if (hit(box)) { dots.push([px, py, r.color]); continue; }
+      placed.push(box);
+      G.ctx.fillStyle = r.color;
+      rr(px - tw / 2, py - 79, tw, 17, 8);
+      G.ctx.fill();
+      G.ctx.textAlign = 'center';
+      G.ctx.fillStyle = ink(r.color);
+      G.ctx.fillText(r.name, px, py - 66);
+      if (r.age === 'r') drawBattery(px + tw / 2 + 3, py - 79, r);
+    }
+  }
+  for (const [px, py, c] of dots) {
+    G.ctx.fillStyle = c;
+    G.ctx.strokeStyle = '#fff';
+    G.ctx.lineWidth = 1.5;
+    G.ctx.beginPath();
+    G.ctx.arc(px, py - 72, 3.5, 0, 7);
+    G.ctx.fill();
+    G.ctx.stroke();
+  }
+  G.ctx.globalAlpha = 1;
+  if (bub) bubble(bub[0], bub[1], G.winLine);
+  G.ctx.textAlign = 'center';
 }
 // 말풍선: (x, y)가 꼬리 끝. 화면 밖으로 나가지 않게 좌우로 맞춤
 export function bubble(x, y, t) {
