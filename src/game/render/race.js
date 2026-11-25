@@ -405,30 +405,45 @@ export function drawRace() {
     G.ctx.fillText(f.s, x, y);
   }
   G.ctx.globalAlpha = 1;
-  // live ranking
+  // 실시간 순위(작은 1열): 6명 이하는 전원, 7명 이상은 1~4위 · '⋯ 외 N명' · 꼴찌만
   const lr = liveRank();
-  // 실시간 순위: 10명 초과 시 2열
   if (lr.length) {
-    const cols = lr.length > 10 ? 2 : 1,
-      rows = Math.ceil(lr.length / cols),
-      cw = 160,
-      x0 = G.W - 12 - cw * cols;
-    G.ctx.fillStyle = 'rgba(255,255,255,.78)';
-    rr(x0, 42, cw * cols, rows * 21 + 12, 10);
+    const many = lr.length > 6,
+      rows = many ? [...lr.slice(0, 4).map((r, k) => [r, k]), null, [lr[lr.length - 1], lr.length - 1]] : lr.map((r, k) => [r, k]);
+    const w = 132,
+      rh = 17,
+      x0 = G.W - 12 - w,
+      y0 = 42;
+    G.ctx.fillStyle = 'rgba(255,255,255,.74)';
+    rr(x0, y0, w, rows.length * rh + 10, 8);
     G.ctx.fill();
-    G.ctx.font = '16px Jua,sans-serif';
-    G.ctx.textAlign = 'left';
-    lr.forEach((r, k) => {
-      const cx = x0 + Math.floor(k / rows) * cw,
-        y = 42 + 22 + k % rows * 21;
-      G.ctx.fillStyle = '#1e2b33';
-      G.ctx.fillText(String(k + 1), cx + 10, y);
+    G.ctx.font = '13px Jua,sans-serif';
+    rows.forEach((e, k) => {
+      const y = y0 + 5 + rh * k + 13;
+      if (!e) {
+        G.ctx.textAlign = 'center';
+        G.ctx.fillStyle = '#7b8a93';
+        G.ctx.fillText('⋯ 외 ' + (lr.length - 5) + '명', x0 + w / 2, y - 1);
+        return;
+      }
+      const [r, i] = e;
+      G.ctx.textAlign = 'right';
+      G.ctx.fillStyle = '#5d6e78';
+      G.ctx.fillText(String(i + 1), x0 + 22, y);
       G.ctx.fillStyle = r.color;
       G.ctx.beginPath();
-      G.ctx.arc(cx + 40, y - 5, 6, 0, 7);
+      G.ctx.arc(x0 + 31, y - 4.5, 4.5, 0, 7);
       G.ctx.fill();
+      G.ctx.textAlign = 'left';
       G.ctx.fillStyle = '#1e2b33';
-      G.ctx.fillText(r.name + (r.fin ? ' 도착' : ''), cx + 52, y);
+      let nm = r.name;
+      while (nm.length > 1 && G.ctx.measureText(nm).width > 78) nm = nm.slice(0, -1);
+      G.ctx.fillText(nm === r.name ? nm : nm + '…', x0 + 40, y);
+      if (r.fin) {
+        G.ctx.textAlign = 'right';
+        G.ctx.fillStyle = '#1f8a5b';
+        G.ctx.fillText('✓', x0 + w - 8, y);
+      }
     });
   }
   if (G.state === 'replay' && !G.rec && !G.exporting) {

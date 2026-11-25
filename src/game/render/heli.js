@@ -7,7 +7,7 @@ import { G } from "../state.js";
 export function drawHeli() {
   const f = G.state === 'idle' ? null : focusR(),
     now = performance.now() / 1000,
-    panel = (G.n > 10 ? 332 : 172) + 30,
+    panel = 144 + 30,
     night = TH().night;
   let tx;
   if (G.state === 'idle') tx = Math.max(50, Math.min(G.W - 50, G.heliMX ?? G.W * .45));else tx = f ? Math.max(110, Math.min(G.W - panel, f.x - G.camX + OFF + 70)) : G.W * .45;
