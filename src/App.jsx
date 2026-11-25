@@ -160,11 +160,12 @@ function Roster({ v, game, editing, setEditing, confirmed, onConfirm, confirmRef
 }
 
 // 레이스 중·후 조작
-function RaceBar({ v, game }) {
+function RaceBar({ v, game, onStop }) {
   const done = v.canReplay;
   return (
     <div className="race-bar">
       <span className="hint">{v.msg}</span>
+      {v.locked && <button type="button" className="stop" onClick={onStop}>■ 경기 중단</button>}
       {v.locked && <span className="tip">화면을 누른 채 끌면 원하는 곳을 보고, 놓으면 다시 1위를 따라가요</span>}
       {!v.locked && <button type="button" onClick={() => game().start()}>다시 시작</button>}
       {!v.locked && <button type="button" className="ghost" onClick={() => game().reset()}>새로 하기</button>}
@@ -191,6 +192,38 @@ function Result({ r }) {
         })}
       </ol>
     </section>
+  );
+}
+
+// 경기 중단 확인 창: 참가자 수정으로 돌아가기 / 완전 초기화 / 취소(경기 계속)
+function StopDialog({ onBack, onReset, onCancel }) {
+  const cancelRef = useRef(null);
+  useEffect(() => {
+    cancelRef.current?.focus();
+    const k = (e) => { if (e.key === 'Escape') onCancel(); };
+    window.addEventListener('keydown', k);
+    return () => window.removeEventListener('keydown', k);
+  }, [onCancel]);
+  return (
+    <div className="modal-back" onClick={onCancel}>
+      <div className="modal stop-modal" role="alertdialog" aria-modal="true" aria-labelledby="stop-h" aria-describedby="stop-p" onClick={(e) => e.stopPropagation()}>
+        <h2 id="stop-h">경기를 중단할까요?</h2>
+        <p id="stop-p">경기는 잠시 멈춰 있어요. 중단하면 지금 경기 기록은 사라집니다.</p>
+        <div className="stop-opts">
+          <button type="button" className="opt" onClick={onBack}>
+            <strong>참가자 수정으로 돌아가기</strong>
+            <span>인원과 참가자 정보는 그대로 두고, 최종 결정 전 상태로 돌아갑니다.</span>
+          </button>
+          <button type="button" className="opt danger" onClick={onReset}>
+            <strong>완전 초기화</strong>
+            <span>인원 4명, 이름 새로 뽑기, 모드·결과산출·맵·자리까지 처음 상태로 되돌립니다.</span>
+          </button>
+        </div>
+        <div className="modal-btns">
+          <button type="button" ref={cancelRef} className="ghost" onClick={onCancel}>취소하고 경기 계속</button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -225,6 +258,9 @@ export default function App() {
   const [editing, setEditing] = useState(0);
   const [confirmedSig, setConfirmedSig] = useState(null);
   const [notice, setNotice] = useState(false);
+  const [stopping, setStopping] = useState(false);
+  // 완전 초기화 때 참가자 카드(이름 입력칸)를 새로 그리기 위한 번호
+  const [rosterKey, setRosterKey] = useState(0);
   const game = () => gameRef.current;
   // 시작 전(idle)에는 설정 + 미리보기 캔버스, 시작하면 캔버스와 레이스 조작만
   const setup = !v || v.state === 'idle';
@@ -243,6 +279,15 @@ export default function App() {
     game().setHover(-1);
     game().start();
   };
+  const openStop = () => { game().setPaused(true); setStopping(true); };
+  const cancelStop = () => { game().setPaused(false); setStopping(false); };
+  const toSetup = () => {
+    setStopping(false);
+    setConfirmedSig(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  const stopBack = () => { game().stop(); toSetup(); };
+  const stopReset = () => { game().resetAll(); setEditing(0); setRosterKey((k) => k + 1); toSetup(); };
   const goConfirm = () => {
     setNotice(false);
     confirmRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -261,11 +306,11 @@ export default function App() {
             <CountPanel v={v} game={game} />
             <RulesPanel v={v} game={game} onStart={onStart} confirmed={confirmed} />
           </div>
-          <Roster v={v} game={game} editing={editing} setEditing={setEditing}
+          <Roster key={rosterKey} v={v} game={game} editing={editing} setEditing={setEditing}
             confirmed={confirmed} onConfirm={() => setConfirmedSig(rosterSig(v))} confirmRef={confirmRef} />
         </>
       )}
-      {v && !setup && <RaceBar v={v} game={game} />}
+      {v && !setup && <RaceBar v={v} game={game} onStop={openStop} />}
       <div className={'stage' + (v && v.locked ? ' racing' : '') + (v && v.manual ? ' grabbing' : '')}>
         <canvas ref={canvasRef} id="cv" width="960" height="420" aria-label="레이스 화면" />
         {v && setup && (
@@ -276,6 +321,7 @@ export default function App() {
       </div>
       {v && v.result && <Result r={v.result} />}
       {notice && <Notice onClose={() => setNotice(false)} onGo={goConfirm} />}
+      {stopping && <StopDialog onBack={stopBack} onReset={stopReset} onCancel={cancelStop} />}
     </div>
   );
 }

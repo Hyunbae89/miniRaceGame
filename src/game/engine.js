@@ -32,6 +32,13 @@ export function loop(ts) {
   if (G.dead) return;
   const dt = Math.min(.05, (ts - G.last) / 1000 || 0);
   G.last = ts;
+  // 일시정지(경기 중단 확인 창이 떠 있는 동안): 시뮬레이션은 멈추고 화면만 그림
+  if (G.paused) {
+    G.fdt = 0;
+    draw();
+    G.raf = requestAnimationFrame(loop);
+    return;
+  }
   let sc = 1;
   if (G.slowT > 0) {
     G.slowT -= dt;
@@ -66,6 +73,32 @@ export function loop(ts) {
   if (G.state !== 'replay' && (G.state !== 'idle' && G.state !== 'podium' || G.manual)) updateCam(dt);
   draw();
   G.raf = requestAnimationFrame(loop);
+}
+// 기본 참가자 20명: 성별에 맞는 이름을 겹치지 않게 무작위로, 옷 색은 기본 순서, 종류는 성인
+export function makeRoster() {
+  const pool = {
+    m: shuffle(NAMES.m.slice()),
+    f: shuffle(NAMES.f.slice())
+  };
+  return COLORS.map((c, i) => {
+    const g = i % 2 ? 'f' : 'm';
+    return {
+      name: pool[g].pop(),
+      color: c,
+      gender: g,
+      age: 'a'
+    };
+  });
+}
+// 완전 초기화: 참가자(이름 새로 뽑기·기본 색·성별·종류), 인원 4명, 모드·결과산출·맵·자리를 모두 처음 상태로
+export function resetAll() {
+  G.paused = false;
+  G.cfg = makeRoster();
+  G.mode = 'normal';
+  G.want = 'first';
+  G.mapId = 'city-day';
+  G.lanes = [];
+  setN(4);
 }
 export function setN(v) {
   if (G.rec && G.rec.state === 'recording') {
@@ -172,19 +205,8 @@ export function createGame(cv, ui) {
   G.mt = 0;
   G.pt = 0;
   G.conf = [];
-  G.pool = {
-    m: shuffle(NAMES.m.slice()),
-    f: shuffle(NAMES.f.slice())
-  };
-  G.cfg = COLORS.map((c, i) => {
-    const g = i % 2 ? 'f' : 'm';
-    return {
-      name: G.pool[g].pop(),
-      color: c,
-      gender: g,
-      age: 'a'
-    };
-  });
+  G.cfg = makeRoster();
+  G.paused = false;
   G.lanes = [];
   G.pv = null;
   G.heli = {
@@ -258,6 +280,15 @@ export function createGame(cv, ui) {
       G.pv = null;
       push();
     },
+    setPaused: b => {
+      G.paused = !!b;
+    },
+    // 경기를 멈추고 준비 화면으로(참가자 정보는 그대로)
+    stop: () => {
+      G.paused = false;
+      setN(G.n);
+    },
+    resetAll: resetAll,
     setHover: i => {
       G.hover = i;
     },
