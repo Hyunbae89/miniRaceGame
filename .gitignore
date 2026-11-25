@@ -3,3 +3,5 @@ dist
 .DS_Store
 *.log
 .env
+# 개인 편집기 설정(VS Code 실행 구성 등)
+.vscode/
