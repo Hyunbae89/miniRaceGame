@@ -363,7 +363,7 @@ export function spectator(x, y, i, now, trad) {
     G.ctx.fillRect(x - 2.6 * s, y - 27 * s, 5.2 * s, 5.5 * s);
   }
   if (hsh(i * 23) > .86) {
-    const t = SIGNS[i % SIGNS.length];
+    const t = SIGNS[(i % SIGNS.length + SIGNS.length) % SIGNS.length];
     G.ctx.font = 'bold 9px Jua,sans-serif';
     const tw = G.ctx.measureText(t).width + 8,
       sy = y - (32 + a * 2) * s;
