@@ -21,10 +21,15 @@ export function podiumStep(dt) {
   G.conf = G.conf.filter(c => c.y < G.H + 10);
 }
 // 조명 세기: t0초부터 0.6초 페이드인 → 4.5초 유지 → 0.6초 페이드아웃 후 전체 컬러로 복귀
+const SPOT_FI = .6,
+  SPOT_HOLD = 4.5,
+  SPOT_T0 = { first: 3.4, last: 2.4 };
 export function spotA(t0) {
-  const FI = .6,
-    HOLD = 4.5;
-  return Math.min((G.pt - t0) / FI, (t0 + FI + HOLD + FI - G.pt) / FI);
+  return Math.min((G.pt - t0) / SPOT_FI, (t0 + SPOT_FI + SPOT_HOLD + SPOT_FI - G.pt) / SPOT_FI);
+}
+// 녹화(MP4·GIF)를 끝낼 시상식 시각: 결과산출 조명이 완전히 꺼지고 2초 뒤
+export function podiumEnd() {
+  return SPOT_T0[G.want === 'last' ? 'last' : 'first'] + SPOT_FI * 2 + SPOT_HOLD + 2;
 }
 export function spotlight(cx, cy, rad, a) {
   a = Math.max(0, Math.min(1, a));
@@ -241,7 +246,7 @@ export function drawPodium() {
     G.ctx.restore();
   }
   // 응원 포커스: 1등 원함이면 1위, 꼴등 원함이면 꼴찌에게 컬러 조명, 나머지는 흑백
-  if (G.want === 'first' && G.fin[0]) spotlight(G.W / 2, 360 - 100 - 40, 72, spotA(3.4));else if (G.want === 'last' && G.n > 1 && G.fin[G.n - 1]) spotlight(lastX() - 8, 328, 90, spotA(2.4));
+  if (G.want === 'first' && G.fin[0]) spotlight(G.W / 2, 360 - 100 - 40, 72, spotA(SPOT_T0.first));else if (G.want === 'last' && G.n > 1 && G.fin[G.n - 1]) spotlight(lastX() - 8, 328, 90, spotA(SPOT_T0.last));
   if (G.podBub && G.winLine) bubble(G.podBub.x, G.podBub.y, G.winLine);
   if (G.lastBub) bubble(G.lastBub.x, G.lastBub.y, G.lastBub.t);
 }
