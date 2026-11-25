@@ -89,6 +89,19 @@ const scenarios = {
   '아이템·20명·서울 밤(꼴등 원함)': (g, v) => { g.setN(20); g.setMode('item'); g.setMap('city-night'); g.setWant('last'); for (let i = 0; i < 20; i += 3) g.setCfg(i, { age: 'r' }); return race(g, v); },
   '일반·3명·전통 낮(꼴찌 로봇)': (g, v) => { g.setN(3); g.setMap('trad-day'); g.setCfg(2, { age: 'r' }); g.setWant('last'); return race(g, v); },
   '아이템·5명·전통 밤': (g, v) => { g.setN(5); g.setMode('item'); g.setMap('trad-night'); return race(g, v); },
+  '경기 중단(일시정지·참가자 수정·완전 초기화)': (g, v) => {
+    g.setN(9); g.setMode('item'); g.setMap('trad-night'); g.setWant('last'); g.setCfg(0, { age: 'r' }); g.shuffleLanes();
+    g.start(); step(60 * 6);
+    g.setPaused(true); step(120); const pausedState = v().state; g.setPaused(false); step(30);
+    g.stop(); step(5);
+    const back = v();
+    if (back.state !== 'idle' || back.n !== 9 || back.cfg[0].age !== 'r' || back.mode !== 'item' || back.map !== 'trad-night') throw new Error('중단(참가자 수정): 설정이 유지돼야 함');
+    g.start(); step(60 * 5);
+    g.resetAll(); step(5);
+    const r = v();
+    if (r.state !== 'idle' || r.n !== 4 || r.mode !== 'normal' || r.map !== 'city-day' || r.want !== 'first' || r.lanes.some((x, i) => x !== i) || r.cfg.some((c) => c.age !== 'a' || c.name.startsWith('메카'))) throw new Error('완전 초기화: 처음 상태여야 함');
+    return { pausedState, names: r.cfg.slice(0, 4).map((c) => c.name).join(',') };
+  },
   '카메라 직접 조작(누르기·끌기·놓기)': (g, v) => {
     g.setN(6); g.start(); step(60 * 8);
     const p = (x, y) => ({ clientX: x, clientY: y, pointerId: 1 });
