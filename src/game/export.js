@@ -70,6 +70,12 @@ export function gifFrame(px, w, h, cs) {
   const a = [0x21, 0xF9, 4, 0x04, cs & 255, cs >> 8, 0, 0, 0x2C, 0, 0, 0, 0, w & 255, w >> 8, h & 255, h >> 8, 0];
   return new Uint8Array(a.concat(lzw(px)));
 }
+// 저장 파일 이름: race-replay_연-월-일_시-분-초.확장자(파일을 만든 순간의 현지 시각)
+export function fileName(ext) {
+  const d = new Date(),
+    p = n => String(n).padStart(2, '0');
+  return 'race-replay_' + d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + '_' + p(d.getHours()) + '-' + p(d.getMinutes()) + '-' + p(d.getSeconds()) + '.' + ext;
+}
 export function offer(blob, name) {
   G.ready = {
     blob: blob,
@@ -154,7 +160,7 @@ export async function exportGif() {
   if (G.fin.length) G.msg = G.fin[0].name + '이(가) 우승했습니다!';
   offer(new Blob(parts, {
     type: 'image/gif'
-  }), 'race-replay.gif');
+  }), fileName('gif'));
 }
 export function exportVideo() {
   if (G.state !== 'podium' || G.frames.length < 2) return;
@@ -182,7 +188,7 @@ export function exportVideo() {
     G.rec = null;
     offer(new Blob(chunks, {
       type: mt.split(';')[0]
-    }), 'race-replay.' + ext);
+    }), fileName(ext));
     if (ext !== 'mp4') G.msg = 'MP4 녹화를 지원하지 않는 브라우저라 WebM으로 만들었어요. 저장 버튼을 눌러 주세요.';
     push();
   };
