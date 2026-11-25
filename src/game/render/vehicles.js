@@ -1,4 +1,3 @@
-// 아이템전 탈것 그리기(자전거, 오토바이, 킥보드, 카트, 휠체어, 제트팩).
 import { G } from "../state.js";
 import { rr } from "../util.js";
 export function drawVeh(k, t) {

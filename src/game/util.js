@@ -1,3 +1,4 @@
+// 공통 도구: 난수, 섞기, 보간, 색 계산, 그리기 보조(둥근 사각형·글자 맞춤).
 import { G } from "./state.js";
 // a 이상 b 미만의 무작위 실수
 export function R(a, b) {
