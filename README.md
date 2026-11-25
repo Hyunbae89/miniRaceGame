@@ -7,10 +7,10 @@ React + Vite로 만들었고, 게임은 하나의 `<canvas>`에 그려집니다.
 
 > 📝 **변경 내역:** [CHANGELOG.md](CHANGELOG.md)
 
-> 📄 **캐릭터 설계 문서:** [질주 레이스 캐릭터 설계: 나이별·로봇](https://claude.ai/artifact/55BUnzkWwfNSahTk3Jubfa#95965225-dc4b.m4qxb9cmp14.1578)
+> 📄 **캐릭터 설계 문서:** [질주 레이스 캐릭터 설계](https://claude.ai/artifact/55BUnzkWwfNSahTk3Jubfa#95965225-dc4b.m4qxb9cmp14.1578)
 > 어린이·성인·어르신·로봇의 재미 요소, 장점과 패널티, 능력치 비교를 정리한 문서입니다. 링크를 누르면 문서의 "번외: 로봇" 항목으로 바로 이동합니다.
 
-> 🧪 **모션 실험실:** [질주 레이스 모션 실험실](https://claude.ai/chat/09d3f87d-c535-4c13-8299-072b9c5c3782?artifact=8e8dba28-bbab-4827-8f3a-7998b0174607)
+> 🧪 **모션 실험실:** [질주 레이스 모션 실험실](https://claude.ai/artifact/JbyvhTxsRp8BqUrEgKfKBC)
 > 캐릭터 동작을 다듬는 방법을 단계별로 한 명씩 움직여 비교해 보는 애니메이션 데모입니다. 아래 "캐릭터 동작"은 이 실험실에서 고른 방식을 게임에 옮긴 것입니다.
 
 ## 모션 실험실
