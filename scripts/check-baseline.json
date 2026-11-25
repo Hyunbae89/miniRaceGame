@@ -27,5 +27,13 @@
     "calls": 11570192,
     "sec": 41,
     "winner": "제인"
+  },
+  "카메라 직접 조작(누르기·끌기·놓기)": {
+    "hash": "19ec76fb",
+    "calls": 10208555,
+    "sec": 37,
+    "winner": "제인",
+    "during": true,
+    "after": false
   }
 }

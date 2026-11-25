@@ -17,11 +17,33 @@ export function updateCam(dt) {
   const t = Math.max(0, Math.min(lead - G.W * .58, TRACK - G.W * .75));
   G.camX += (t - G.camX) * Math.min(1, dt * 6);
 }
+// 지도(화면 위쪽 막대)를 누르거나 끌면 그 비율 위치로 이동
 export function seek(e) {
   const b = G.cv.getBoundingClientRect(),
     x = (e.clientX - b.left) * G.W / b.width;
   const f = Math.max(0, Math.min(1, (x - 70) / (G.W - 130)));
   G.mt = Math.max(0, Math.min(TRACK - G.W * .75, f * TRACK - G.W / 2 + OFF));
   G.manual = true;
+  push();
+}
+// 레이스 중 캔버스 직접 조작: 누르면 그 지점을 화면 가운데로, 누른 채 끌면 잡아끌듯 이동, 떼면 자동 카메라로 복귀
+const camMax = () => TRACK - G.W * .75;
+const toCanvasX = (e) => { const b = G.cv.getBoundingClientRect(); return (e.clientX - b.left) * G.W / b.width; };
+export function camDown(e) {
+  const x = toCanvasX(e),
+    wx = G.camX + x - OFF;
+  G.mt = Math.max(0, Math.min(camMax(), wx + OFF - G.W / 2));
+  G.grabX = x;
+  G.manual = true;
+  push();
+}
+export function camMove(e) {
+  const x = toCanvasX(e);
+  G.mt = Math.max(0, Math.min(camMax(), G.mt - (x - G.grabX)));
+  G.grabX = x;
+}
+export function camUp() {
+  if (!G.manual) return;
+  G.manual = false;
   push();
 }
