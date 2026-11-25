@@ -7,13 +7,6 @@ export const OFF = 60;
 export const JT = .6;
 export const MAXN = 20;
 export const COLORS = ['#e4572e', '#2e86de', '#f2b705', '#2fb67c', '#8e5ad6', '#ef6aa1', '#17a2b8', '#5b6770', '#a0522d', '#7cb518', '#ff8c42', '#3d5a80', '#c71f66', '#00a896', '#b8860b', '#6a4c93', '#ff595e', '#1982c4', '#8ac926', '#2b2d42'];
-// 헬기 광고 현수막 기본값(setAd로 문구·색 변경). bg 바탕, fg 글자, accent "AD" 표시와 테두리
-export const AD_DEFAULT = {
-  text: '광고 문의 · 이 자리에 여러분의 광고를',
-  bg: '#fffdf6',
-  fg: '#1e2b33',
-  accent: '#e4572e'
-};
 export const HINT = '참가자를 정하고 최종 결정을 누른 뒤 시작하세요. 밀치고 잡아당기며 순위가 계속 바뀝니다. 허들·물웅덩이에 걸리면 스턴!';
 // 1등 소감: 종류별 멘트 중 하나를 1위 도착 순간에 뽑아 레이스·시상식에서 말풍선으로 보여 줌
 export const WIN_LINES = {
