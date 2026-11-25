@@ -269,6 +269,9 @@ export default function App() {
   useEffect(() => {
     const g = createGame(canvasRef.current, { onChange: setV });
     gameRef.current = g;
+    // 주소에 ?ad=문구 를 붙이면 헬기 광고 현수막 문구를 바꿈(빈 값이면 현수막 없음)
+    const ad = new URLSearchParams(window.location.search).get('ad');
+    if (ad !== null) g.setAd({ text: ad.slice(0, 40) });
     return () => { g.destroy(); gameRef.current = null; };
   }, []);
   // 인원이 줄어 편집 중 카드가 사라지면 첫 카드로
