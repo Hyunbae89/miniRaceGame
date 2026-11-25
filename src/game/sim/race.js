@@ -1,4 +1,3 @@
-// 레이스 시뮬레이션: 트랙(장애물·진흙·스프링·박스) 생성, 매 프레임 이동·충돌·몸싸움, 순위와 종료.
 import { BACK, GT, ITEMS, JT, TRACK, WIN_LINES } from "../constants.js";
 import { push } from "../engine.js";
 import { useItem } from "./items.js";

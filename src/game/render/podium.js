@@ -1,3 +1,4 @@
+// 시상식: 시상대·꼴등 표지판·말풍선, 결과산출 조명(스포트라이트), 색종이.
 import { COLORS } from "../constants.js";
 import { drawPerson } from "./character.js";
 import { bubble } from "./race.js";

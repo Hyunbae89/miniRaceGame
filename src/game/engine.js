@@ -2,8 +2,10 @@
 // 상태 초기화, 메인 루프, 입력 처리, UI로 상태 전달(push)을 맡는다.
 import { seek, updateCam } from "./camera.js";
 import { COLORS, HINT, MAXN, NAMES } from "./constants.js";
+import { exportGif, exportVideo, saveReady } from "./export.js";
 import { podiumStep } from "./render/podium.js";
 import { draw } from "./render/race.js";
+import { applyFrame, endReplay, record, toggleReplay } from "./replay.js";
 import { setup, update } from "./sim/race.js";
 import { G } from "./state.js";
 import { shuffle } from "./util.js";
@@ -26,318 +28,6 @@ export function push() {
     cfg: G.cfg.map(c => Object.assign({}, c))
   });
 }
-export function record() {
-  if (G.frames.length && G.rt - G.frames[G.frames.length - 1].t < 1 / 40) return;
-  G.frames.push({
-    t: G.rt,
-    camX: G.camX,
-    clock: G.clock,
-    bn: G.banner && G.banner.t > 0 ? {
-      s: G.banner.s,
-      t: G.banner.t
-    } : null,
-    r: G.racers.map(r => ({
-      i: r.i,
-      name: r.name,
-      color: r.color,
-      gender: r.gender,
-      age: r.age,
-      x: r.x,
-      d: r.d,
-      h: r.h,
-      speed: r.speed,
-      mult: r.mult,
-      stun: r.stun,
-      veh: r.veh ? {
-        k: r.veh.k
-      } : null,
-      item: r.item ? {
-        k: r.item.k
-      } : null,
-      fin: r.fin,
-      rank: r.rank,
-      cur: r.cur,
-      act: r.act,
-      ak: r.ak,
-      spr: r.spr,
-      spr0: r.spr0,
-      trip: r.trip,
-      trip0: r.trip0,
-      bat: r.bat,
-      heat: r.heat,
-      boost: r.boost,
-      ovh: r.ovh,
-      chg: r.chg,
-      pt: r.pull ? G.racers.indexOf(r.pull.v) : -1
-    })),
-    hd: G.traps.map(t => t.u ? t.u.map(u => u.down ? '1' : '0').join('') : '').join('|'),
-    bx: G.boxes.map(b => b.t > 0 ? '0' : '1').join(''),
-    ba: G.bananas.map(b => ({
-      x: b.x,
-      d: b.d
-    })),
-    po: G.portals.map(o => ({
-      x: o.x,
-      d: o.d,
-      t: o.t,
-      c: o.c
-    })),
-    bo: G.bolts.map(o => ({
-      a: {
-        x: o.a.x,
-        d: o.a.d
-      },
-      b: {
-        x: o.b.x,
-        d: o.b.d
-      },
-      t: o.t
-    })),
-    fx: G.fx.map(f => ({
-      x: f.x,
-      d: f.d,
-      t: f.t,
-      s: f.s
-    }))
-  });
-}
-export function applyFrame(f) {
-  G.racers = f.r.map(o => Object.assign({}, o));
-  G.racers.forEach((r, k) => {
-    r.pull = f.r[k].pt >= 0 ? {
-      v: G.racers[f.r[k].pt]
-    } : null;
-  });
-  G.fin = G.racers.filter(r => r.fin).sort((a, b) => a.rank - b.rank);
-  G.boxes = G.bk.boxes.map((b, k) => ({
-    x: b.x,
-    d: b.d,
-    t: f.bx[k] === '1' ? 0 : 1
-  }));
-  if (f.hd) {
-    const p = f.hd.split('|');
-    G.traps.forEach((t, k) => {
-      if (t.u) t.u.forEach((u, j) => {
-        u.down = p[k][j] === '1';
-        u.ft = u.down ? 1 : 0;
-      });
-    });
-  }
-  G.bananas = f.ba;
-  G.portals = f.po;
-  G.bolts = f.bo;
-  G.fx = f.fx;
-  G.camX = f.camX;
-  G.clock = f.clock;
-  G.banner = f.bn;
-}
-export function startReplay() {
-  G.bk = {
-    racers: G.racers,
-    fin: G.fin,
-    boxes: G.boxes,
-    bananas: G.bananas,
-    portals: G.portals,
-    bolts: G.bolts,
-    fx: G.fx,
-    camX: G.camX,
-    clock: G.clock,
-    banner: G.banner
-  };
-  G.state = 'replay';
-  G.rp = 0;
-  G.rk = 0;
-  G.manual = false;
-  push();
-}
-export function endReplay() {
-  ({
-    racers: G.racers,
-    fin: G.fin,
-    boxes: G.boxes,
-    bananas: G.bananas,
-    portals: G.portals,
-    bolts: G.bolts,
-    fx: G.fx,
-    camX: G.camX,
-    clock: G.clock,
-    banner: G.banner
-  } = G.bk);
-  G.state = 'podium';
-  G.pt = 0;
-  G.conf = [];
-  if (G.rec && G.rec.state === 'recording') G.rec.stop();
-  push();
-}
-export function lzw(px) {
-  const clear = 256,
-    eoi = 257;
-  let size = 9,
-    next = 258;
-  const dict = new Map(),
-    buf = [];
-  let cur = 0,
-    bits = 0;
-  const emit = c => {
-    cur |= c << bits;
-    bits += size;
-    while (bits >= 8) {
-      buf.push(cur & 255);
-      cur >>= 8;
-      bits -= 8;
-    }
-  };
-  const bump = () => {
-    if (next > (1 << size) - 1 && size < 12) size++;
-  };
-  emit(clear);
-  let p = px[0];
-  for (let i = 1; i < px.length; i++) {
-    const c = px[i],
-      key = p << 8 | c,
-      e = dict.get(key);
-    if (e !== undefined) {
-      p = e;
-      continue;
-    }
-    emit(p);
-    if (next < 4096) {
-      bump();
-      dict.set(key, next++);
-    } else {
-      emit(clear);
-      dict.clear();
-      size = 9;
-      next = 258;
-    }
-    p = c;
-  }
-  emit(p);
-  bump();
-  emit(eoi);
-  if (bits > 0) buf.push(cur & 255);
-  const out = [8];
-  for (let i = 0; i < buf.length; i += 255) {
-    const m = Math.min(255, buf.length - i);
-    out.push(m);
-    for (let k = 0; k < m; k++) out.push(buf[i + k]);
-  }
-  out.push(0);
-  return out;
-}
-export function gifHeader(w, h) {
-  const a = [71, 73, 70, 56, 57, 97, w & 255, w >> 8, h & 255, h >> 8, 0xF7, 0, 0];
-  for (let i = 0; i < 256; i++) a.push(Math.round((i >> 5 & 7) * 255 / 7), Math.round((i >> 2 & 7) * 255 / 7), Math.round((i & 3) * 255 / 3));
-  a.push(0x21, 0xFF, 11, 78, 69, 84, 83, 67, 65, 80, 69, 50, 46, 48, 3, 1, 0, 0, 0);
-  return new Uint8Array(a);
-}
-export function gifFrame(px, w, h, cs) {
-  const a = [0x21, 0xF9, 4, 0x04, cs & 255, cs >> 8, 0, 0, 0x2C, 0, 0, 0, 0, w & 255, w >> 8, h & 255, h >> 8, 0];
-  return new Uint8Array(a.concat(lzw(px)));
-}
-export function offer(blob, name) {
-  G.ready = {
-    blob: blob,
-    name: name
-  };
-  G.msg = '파일이 준비됐어요. 저장 버튼을 눌러 주세요.';
-  push();
-}
-export function saveReady() {
-  if (!G.ready) return;
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(G.ready.blob);
-  a.download = G.ready.name;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-  G.msg = '저장했어요!';
-  push();
-}
-export async function exportGif() {
-  if (G.state !== 'podium' || G.frames.length < 2) return;
-  G.ready = null;
-  startReplay();
-  G.exporting = true;
-  push();
-  const GW = 400,
-    GH = Math.round(G.cv.height * GW / G.W);
-  const oc = document.createElement('canvas');
-  oc.width = GW;
-  oc.height = GH;
-  const o = oc.getContext('2d', {
-    willReadFrequently: true
-  });
-  const dur = G.frames[G.frames.length - 1].t + .3,
-    parts = [gifHeader(GW, GH)];
-  let k = 0,
-    cnt = 0;
-  for (let t = 0; t <= dur; t += .1) {
-    if (G.state !== 'replay') {
-      G.exporting = false;
-      return;
-    }
-    while (k < G.frames.length - 1 && G.frames[k + 1].t <= t) k++;
-    applyFrame(G.frames[k]);
-    G.rp = t;
-    draw();
-    o.drawImage(G.cv, 0, 0, GW, GH);
-    const d = o.getImageData(0, 0, GW, GH).data,
-      ix = new Uint8Array(GW * GH);
-    for (let i = 0, j = 0; j < ix.length; i += 4, j++) ix[j] = d[i] >> 5 << 5 | d[i + 1] >> 5 << 2 | d[i + 2] >> 6;
-    parts.push(gifFrame(ix, GW, GH, 10));
-    if (++cnt % 4 === 0) {
-      G.msg = 'GIF 만드는 중… ' + Math.round(t / dur * 100) + '%';
-      push();
-      await new Promise(r => setTimeout(r));
-    }
-  }
-  parts.push(new Uint8Array([0x3B]));
-  G.exporting = false;
-  endReplay();
-  offer(new Blob(parts, {
-    type: 'image/gif'
-  }), 'race-replay.gif');
-}
-export function exportVideo() {
-  if (G.state !== 'podium' || G.frames.length < 2) return;
-  if (!window.MediaRecorder || !G.cv.captureStream) {
-    G.msg = '이 브라우저는 영상 녹화를 지원하지 않아요. GIF로 만들어 보세요.';
-    push();
-    return;
-  }
-  const mt = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'].find(t => MediaRecorder.isTypeSupported(t));
-  if (!mt) {
-    G.msg = '이 브라우저는 영상 녹화를 지원하지 않아요. GIF로 만들어 보세요.';
-    push();
-    return;
-  }
-  const ext = mt.indexOf('mp4') >= 0 ? 'mp4' : 'webm',
-    chunks = [];
-  const mr = new MediaRecorder(G.cv.captureStream(30), {
-    mimeType: mt,
-    videoBitsPerSecond: 4000000
-  });
-  mr.ondataavailable = e => {
-    if (e.data && e.data.size) chunks.push(e.data);
-  };
-  mr.onstop = () => {
-    G.rec = null;
-    offer(new Blob(chunks, {
-      type: mt.split(';')[0]
-    }), 'race-replay.' + ext);
-    if (ext !== 'mp4') G.msg = 'MP4 녹화를 지원하지 않는 브라우저라 WebM으로 만들었어요. 저장 버튼을 눌러 주세요.';
-    push();
-  };
-  G.ready = null;
-  G.rec = mr;
-  mr.start();
-  startReplay();
-  G.msg = '영상 녹화 중… 리플레이가 끝날 때까지 기다려 주세요.';
-  push();
-}
-
 export function loop(ts) {
   if (G.dead) return;
   const dt = Math.min(.05, (ts - G.last) / 1000 || 0);
@@ -422,10 +112,6 @@ export function setCfg(i, p) {
   }
   push();
 }
-export function toggleReplay() {
-  if (G.state === 'replay') endReplay();else if (G.state === 'podium' || G.state === 'done') startReplay();
-  push();
-}
 export function createGame(cv, ui) {
   for (const k of Object.keys(G)) delete G[k];
   G.cv = cv;
@@ -473,12 +159,12 @@ export function createGame(cv, ui) {
   G.ready = null;
   G.want = 'first';
   G.betMsg = '';
+  // 동작 표현용(시뮬레이션과 무관): 캐릭터별 애니메이션 상태, 개성, 흙먼지, 프레임 시간, 화면 흔들림
   G.anim = [];
   G.quirks = [];
   G.dust = [];
   G.fdt = 0;
   G.shake = 0;
-  // 동작 표현용(시뮬레이션과 무관)
   G.rt = 0;
   G.slowT = 0;
   G.banner = null;

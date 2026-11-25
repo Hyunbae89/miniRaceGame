@@ -1,4 +1,3 @@
-// 사람 캐릭터 그리기: 관절 포즈(달리기·점프·스턴·넘어짐 등), 얼굴, 나이별·개성 걸음, 머리카락·흙먼지 효과.
 import { AGEP, ARM1, ARM2, HAIR, HIPS, LEG, SKIN } from "../constants.js";
 import { robotBody } from "./robot.js";
 import { drawVeh } from "./vehicles.js";

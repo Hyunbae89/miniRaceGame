@@ -1,3 +1,4 @@
+// 시작 전 미리보기: 레인 구분선과 서 있는 캐릭터, 카드 호버 시 해당 캐릭터만 선명하게 강조.
 import { BACK, GT, OFF } from "../constants.js";
 import { drawPerson } from "./character.js";
 import { drawHeli } from "./heli.js";
