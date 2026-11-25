@@ -258,11 +258,36 @@ npm run check    # 엔진 자동 점검(아래 참고)
 
 ```
 src/
-  App.jsx          UI (상단 컨트롤, 캐릭터 카드, 최종 순위)
-  App.css          스타일 (라이트/다크 테마)
-  main.jsx         진입점
-  game/engine.js   캔버스 게임 엔진
+  App.jsx                UI (상단 컨트롤, 캐릭터 카드, 최종 순위)
+  App.css                스타일 (라이트/다크 테마)
+  main.jsx               진입점
+  game/
+    engine.js            진입점 createGame: 상태 초기화, 메인 루프, 입력, UI로 상태 전달
+    state.js             공유 상태 객체 G (게임 한 판의 모든 가변 상태)
+    constants.js         고정 값: 트랙 크기, 색, 이름, 아이템, 캐릭터 비율, 1등 멘트
+    util.js              공통 도구: 난수, 섞기, 보간, 색 계산, 둥근 사각형, 글자 맞춤
+    camera.js            자동 카메라(미도착 1위 추적), 지도 드래그
+    replay.js            리플레이 기록·재생
+    export.js            GIF 인코더, MP4/WebM 녹화, 저장
+    sim/
+      race.js            트랙 생성, 이동·충돌·몸싸움, 순위와 종료
+      items.js           아이템전 아이템 사용
+      robot.js           로봇 배터리·부스터·과열
+    render/
+      race.js            레이스 화면 한 프레임(도로, 장애물, 캐릭터, 지도, 순위), 허들, 말풍선
+      background.js      맵: 서울 도심 / 전통 마을 × 낮 / 밤
+      heli.js            취재 헬기
+      character.js       사람 캐릭터(관절 포즈, 얼굴, 나이·개성 걸음, 부가 효과)
+      robot.js           로봇 몸체, LED 얼굴, 배터리 아이콘
+      vehicles.js        아이템전 탈것
+      preview.js         시작 전 미리보기, 카드 호버 강조
+      podium.js          시상식, 결과산출 조명, 꼴등 표지판
+scripts/
+  check.mjs              엔진 자동 점검(npm run check)
+  check-baseline.json    점검 기준 스냅숏
 ```
+
+**상태 관리**: 게임 한 판의 가변 상태(캐릭터, 카메라, 장애물, 리플레이 프레임 등)는 모두 `state.js`의 `G` 객체 하나에 있고, 각 모듈은 `G.racers`, `G.camX`처럼 읽고 씁니다. 고정 값은 `constants.js`에서 가져옵니다. 새 기능은 해당 영역 파일만 고치면 되도록 나눠 두었습니다(예: 새 맵은 `render/background.js`, 새 장애물은 `sim/race.js`와 `render/race.js`).
 
 엔진은 React와 분리되어 있습니다.
 - `createGame(canvas, { onChange })`가 돌려주는 메서드로 게임을 조작합니다.
@@ -275,6 +300,8 @@ src/
 | `setWant(w)` | 결과산출 순위: `'first'` / `'last'` |
 | `setCfg(i, patch)` | i번 캐릭터의 `name`, `color`, `gender`, `age` 변경 |
 | `shuffleLanes()` / `resetLanes()` | 출발 레인 섞기 / 원래대로 |
+| `setMap(m)` | 맵: `'city-day'`, `'city-night'`, `'trad-day'`, `'trad-night'` |
+| `setHover(i)` | 미리보기에서 i번 캐릭터 강조(`-1`이면 해제) |
 | `start()` / `reset()` | 레이스 시작(또는 다시 시작) / 준비 화면으로 |
 | `toggleReplay()` | 리플레이 시작/종료 |
 | `exportGif()` / `exportVideo()` / `saveReady()` | GIF·영상 만들기 / 만든 파일 저장 |
