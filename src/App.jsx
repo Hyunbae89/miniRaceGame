@@ -24,7 +24,7 @@ function Controls({ v, game }) {
         <span>참가 인원</span>
         <button className="sq" aria-label="인원 줄이기" disabled={v.locked || v.n <= 2} onClick={() => game().setN(v.n - 1)}>−</button>
         <span className="count" aria-live="polite">{v.n}</span>
-        <button className="sq" aria-label="인원 늘리기" disabled={v.locked || v.n >= 8} onClick={() => game().setN(v.n + 1)}>+</button>
+        <button className="sq" aria-label="인원 늘리기" disabled={v.locked || v.n >= 20} onClick={() => game().setN(v.n + 1)}>+</button>
       </div>
       <label>모드{' '}
         <select id="mode" value={v.mode} disabled={v.locked} onChange={e => game().setMode(e.target.value)}>
@@ -32,16 +32,16 @@ function Controls({ v, game }) {
           <option value="item">아이템전</option>
         </select>
       </label>
-      <label>응원{' '}
-        <select id="pick" aria-label="응원할 캐릭터" value={v.pick} disabled={v.locked} onChange={e => game().setPick(Number(e.target.value))}>
-          <option value={-1}>응원 안 함</option>
-          {v.cfg.slice(0, v.n).map((c, i) => <option key={i} value={i}>{c.name}</option>)}
-        </select>{' '}
-        <select id="want" aria-label="원하는 순위" value={v.want} disabled={v.locked} onChange={e => game().setWant(e.target.value)}>
+      <label>결과산출{' '}
+        <select id="want" aria-label="결과산출 순위" value={v.want} disabled={v.locked} onChange={e => game().setWant(e.target.value)}>
           <option value="first">1등 원함</option>
           <option value="last">꼴등 원함</option>
         </select>
       </label>
+      <button className="ghost" disabled={v.locked} onClick={() => game().shuffleLanes()}>🔀 자리 섞기</button>
+      {v.lanes.some((s, i) => s !== i) && (
+        <button className="ghost" disabled={v.locked} onClick={() => game().resetLanes()}>원래 자리</button>
+      )}
       <button disabled={v.locked} onClick={() => game().start()}>{v.state === 'idle' ? '시작' : '다시 시작'}</button>
       <button className="ghost" onClick={() => game().reset()}>새로 하기</button>
       {!hidden && <button className="ghost" onClick={() => game().toggleReplay()}>{v.replaying ? '■ 리플레이 종료' : '▶ 리플레이'}</button>}
@@ -59,6 +59,7 @@ function Names({ v, game }) {
     <div className="bar names" aria-label="캐릭터 이름">
       {v.cfg.slice(0, v.n).map((c, i) => (
         <div className="nm" key={i}>
+          <span className="lane" title="출발 레인 (위에서부터)">{v.lanes[i] + 1}레인</span>
           <input type="color" value={c.color} aria-label={`${i + 1}번 옷 색`} onChange={e => game().setCfg(i, { color: e.target.value })} />
           <input className="t" defaultValue={c.name} maxLength={6} aria-label={`${i + 1}번 이름`}
             onChange={e => game().setCfg(i, { name: e.target.value.trim() || `${i + 1}번` })} />
@@ -80,16 +81,8 @@ function Result({ r }) {
       <h2>최종 순위</h2>
       {r.bet && <p className="sub">{r.bet}</p>}
       <ol>
-        {r.rank.length
-          ? r.rank.map((x, i) => <Row key={i} {...x} />)
-          : <li>완주한 캐릭터가 없습니다.</li>}
+        {r.rank.map((x, i) => <Row key={i} {...x} />)}
       </ol>
-      {r.outs.length > 0 && (
-        <>
-          <p className="sub">탈락</p>
-          <ul>{r.outs.map((x, i) => <Row key={i} pos="–" {...x} />)}</ul>
-        </>
-      )}
     </section>
   );
 }
@@ -99,6 +92,8 @@ export default function App() {
   const gameRef = useRef(null);
   const [v, setV] = useState(null);
   const game = () => gameRef.current;
+  // 시작 전(idle)에는 커스터마이징 + 미리보기 캔버스, 시작하면 캔버스만
+  const setup = !v || v.state === 'idle';
 
   useEffect(() => {
     const g = createGame(canvasRef.current, { onChange: setV });
@@ -110,7 +105,7 @@ export default function App() {
     <div className="wrap">
       <h1>질주 레이스</h1>
       {v && <Controls v={v} game={game} />}
-      {v && <Names v={v} game={game} />}
+      {v && setup && <Names v={v} game={game} />}
       <canvas ref={canvasRef} id="cv" width="960" height="420" aria-label="레이스 화면" />
       {v && v.result && <Result r={v.result} />}
     </div>

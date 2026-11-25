@@ -2,19 +2,28 @@
 
 export function createGame(cv,ui){
 const ctx=cv.getContext('2d');
-const W=window.innerWidth<700?560:960,H=420,GT=232,GD=152,TRACK=6500,OFF=60,JT=.6;
-const COLORS=['#e4572e','#2e86de','#f2b705','#2fb67c','#8e5ad6','#ef6aa1','#17a2b8','#5b6770'];
+const W=window.innerWidth<700?560:960,GT=232,TRACK=6500,OFF=60,JT=.6,MAXN=20;
+// 트랙 깊이(GD)와 캔버스 높이(H)는 인원에 따라 setup()에서 정해짐: 8명까지는 기존 크기, 그 이상은 1명당 12px씩 넓어짐
+let GD=152,H=420;
+const COLORS=['#e4572e','#2e86de','#f2b705','#2fb67c','#8e5ad6','#ef6aa1','#17a2b8','#5b6770',
+  '#a0522d','#7cb518','#ff8c42','#3d5a80','#c71f66','#00a896','#b8860b','#6a4c93','#ff595e','#1982c4','#8ac926','#2b2d42'];
 const R=(a,b)=>a+Math.random()*(b-a);
 let raf=0,dead=false,msg='',result=null;
 const ac=new AbortController();
 const L=(t,f)=>cv.addEventListener(t,f,{signal:ac.signal});
-function push(){ui.onChange({state:state,msg:msg,n:n,mode:mode,manual:manual,canReplay:frames.length>=2&&(state==='podium'||state==='done'||state==='replay'),replaying:state==='replay',busy:!!(rec||exporting),file:ready?ready.name:null,result:result,pick:pickI,want:want,locked:state==='count'||state==='run',cfg:cfg.map(c=>Object.assign({},c))});}
+function push(){ui.onChange({state:state,msg:msg,n:n,mode:mode,manual:manual,canReplay:frames.length>=2&&(state==='podium'||state==='done'||state==='replay'),replaying:state==='replay',busy:!!(rec||exporting),file:ready?ready.name:null,result:result,want:want,locked:state==='count'||state==='run',lanes:lanes.slice(),cfg:cfg.map(c=>Object.assign({},c))});}
 const HINT='인원을 정하고 시작을 누르세요. 밀치고 잡아당기며 순위가 계속 바뀝니다. 구덩이와 가시에 걸리면 스턴!';
 let n=4,racers=[],fin=[],traps=[],fx=[],state='idle',clock=0,camX=0,cd=0,endWait=0,last=0;
 let boxes=[],bananas=[],portals=[],bolts=[],mode='normal';
-let frames=[],bk=null,rp=0,rk=0,rec=null,exporting=false,ready=null,pickI=-1,want='first',betMsg='';
+let frames=[],bk=null,rp=0,rk=0,rec=null,exporting=false,ready=null,want='first',betMsg='';
 let rt=0,slowT=0,banner=null,manual=false,mt=0,pt=0,conf=[];
-const cfg=COLORS.map((c,i)=>({name:(i+1)+'번',color:c,gender:i%2?'f':'m',age:'a'}));
+// 기본 이름: 성별에 맞는 영어 이름을 겹치지 않게 랜덤 배정 (입력칸 최대 6자)
+const NAMES={m:['레오','맥스','젝','스티브','노아','이든','오웬','다니엘','오스카','휴고','태오','밥','라이언','샘','벤','카이','마이클','제이크','루크','제임스'],
+  f:['미아','에마','릴리','아바','클로이','조이','루비','그레이스','엘라','루나','노라','아이비','에이미','루시','소피아','헤이즐','아이리스','제인','로즈','안나']};
+function shuffle(a){for(let k=a.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[a[k],a[j]]=[a[j],a[k]];}return a;}
+const pool={m:shuffle(NAMES.m.slice()),f:shuffle(NAMES.f.slice())};
+const cfg=COLORS.map((c,i)=>{const g=i%2?'f':'m';return {name:pool[g].pop(),color:c,gender:g,age:'a'};});
+let lanes=[],pv=null;// lanes[i] = i번 캐릭터의 출발 레인(0=맨 위)
 const ITEMS=[{k:'jet',n:'제트팩',e:'🚀',m:2,t:2.2},{k:'moto',n:'오토바이',e:'🏍️',m:1.75,t:3.4},{k:'bike',n:'자전거',e:'🚲',m:1.35,t:4},{k:'wheel',n:'휠체어',e:'♿',m:1.2,t:5},{k:'cart',n:'카트',e:'🏎️',m:1.55,t:3},{k:'kick',n:'킥보드',e:'🛴',m:1.3,t:4},{k:'ekick',n:'전동 킥보드',e:'🛴',m:1.65,t:3},{k:'portal',n:'포탈건',e:'🌀'},{k:'banana',n:'바나나',e:'🍌'},{k:'stun',n:'스턴건',e:'🔫'}];
 function ink(c){const v=parseInt(c.slice(1),16);return ((v>>16)*.299+((v>>8)&255)*.587+(v&255)*.114)>150?'#1e2b33':'#fff';}
 const SKIN=['#f5d0b0','#e8b98f','#c68c5c','#8d5a3b','#f2c9a5','#d9a273','#b07548','#f5d0b0'];
@@ -24,24 +33,24 @@ function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h
 function say(r,t){fx.push({x:r.x,d:r.d,t:0,s:t});}
 
 function setup(){
-  cv.width=W;cv.height=H;
+  GD=152+Math.max(0,n-8)*12;H=GT+GD+36;
+  cv.width=W;cv.height=H;pv=null;
   racers=[];fin=[];fx=[];traps=[];camX=0;clock=0;endWait=0;rt=0;slowT=0;banner=null;manual=false;
   boxes=[];bananas=[];portals=[];bolts=[];frames=[];ready=null;betMsg='';
-  if(mode==='item'){let bx=R(900,1100);while(bx<TRACK-500){for(const d of [20,57,94,131])boxes.push({x:bx,d:d,t:0});bx+=R(650,950);}}
+  if(mode==='item'){let bx=R(900,1100);while(bx<TRACK-500){for(let d=20;d<=GD-20;d+=37)boxes.push({x:bx,d:d,t:0});bx+=R(650,950);}}
   let x=R(700,850);
   while(x<TRACK-400){traps.push({x:x,type:(traps.length>=2&&Math.random()<.17)?'pit':'spike'});x+=R(450,800);}
   for(let i=0;i<n;i++){
-    const d=n>1?10+i*(130/(n-1)):70;
-    racers.push({i:i,name:cfg[i].name,color:cfg[i].color,gender:cfg[i].gender,age:cfg[i].age,veh:null,item:null,x:0,d:d,td:d,vd:0,kx:0,speed:0,base:R(215,232),mult:1,change:0,skill:R(.6,.9),dd:{},jt:-1,h:0,stun:0,inv:0,slow:0,cool:R(.5,1.5),pull:null,out:false,why:'',fall:0,fin:false,rank:0,time:0,cur:i+1});
+    const s=lanes[i]??i,d=n>1?10+s*((GD-22)/(n-1)):GD/2;
+    racers.push({i:i,name:cfg[i].name,color:cfg[i].color,gender:cfg[i].gender,age:cfg[i].age,veh:null,item:null,x:0,d:d,td:d,vd:0,kx:0,speed:0,base:R(215,232),mult:1,change:0,skill:R(.6,.9),dd:{},jt:-1,h:0,stun:0,inv:0,slow:0,cool:R(.5,1.5),pull:null,fin:false,rank:0,time:0,cur:i+1});
   }
 }
 
 function update(dt){
   clock+=dt;
-  const act=racers.filter(r=>!r.out&&!r.fin);
+  const act=racers.filter(r=>!r.fin);
   let lead=0;for(const r of act)lead=Math.max(lead,r.x);
   for(const r of racers){
-    if(r.out){r.fall+=dt*140;continue;}
     if(r.fin){r.speed*=Math.pow(.03,dt);r.x+=r.speed*dt;continue;}
     r.cool-=dt;r.inv-=dt;r.slow-=dt;
     if(r.stun>0){r.stun-=dt;r.speed=0;r.h=0;r.jt=-1;}
@@ -58,12 +67,12 @@ function update(dt){
       r.speed+=(r.base*m-r.speed)*Math.min(1,dt*4);
     }
     r.x+=(r.speed+r.kx)*dt;r.kx*=Math.pow(.02,dt);if(r.x<0)r.x=0;
-    if(r.pull){r.pull.t-=dt;const v=r.pull.v;if(r.pull.t<=0||v.out||v.fin)r.pull=null;else{r.x+=150*dt;v.x-=150*dt;if(v.x<0)v.x=0;}}
+    if(r.pull){r.pull.t-=dt;const v=r.pull.v;if(r.pull.t<=0||v.fin)r.pull=null;else{r.x+=150*dt;v.x-=150*dt;if(v.x<0)v.x=0;}}
     // depth steering
     if(Math.random()<dt*.7)r.td=R(8,GD-6);
     const st=Math.max(-60*dt,Math.min(60*dt,r.td-r.d));
     r.d+=st+r.vd*dt;r.vd*=Math.pow(.01,dt);
-    for(const o of racers){if(o!==r&&!o.out&&Math.abs(o.x-r.x)<22&&Math.abs(o.d-r.d)<12)r.d+=(r.d>=o.d?1:-1)*45*dt;}
+    for(const o of racers){if(o!==r&&Math.abs(o.x-r.x)<22&&Math.abs(o.d-r.d)<12)r.d+=(r.d>=o.d?1:-1)*45*dt;}
     r.d=Math.max(4,Math.min(GD-4,r.d));
     if(r.stun<=0){
       // jump AI
@@ -92,7 +101,7 @@ function update(dt){
         }
       }
     }
-    if(!r.out&&r.x>=TRACK){r.fin=true;fin.push(r);r.rank=fin.length;r.time=rt;r.pull=null;if(r.rank<=3){slowT=1.4;banner={t:1.4,s:r.rank+'위 '+r.name};}}
+    if(r.x>=TRACK){r.fin=true;fin.push(r);r.rank=fin.length;r.time=rt;r.pull=null;if(r.rank<=3){slowT=1.4;banner={t:1.4,s:r.rank+'위 '+r.name};}}
   }
   if(mode==='item'){
     for(const b of boxes)if(b.t>0)b.t-=dt;
@@ -107,10 +116,10 @@ function update(dt){
   }
   // shoving and grabbing
   for(const a of racers){
-    if(a.out||a.fin||a.stun>0||a.cool>0)continue;
+    if(a.fin||a.stun>0||a.cool>0)continue;
     let v=null,bd=1e9;
     for(const o of racers){
-      if(o===a||o.out||o.fin)continue;
+      if(o===a||o.fin)continue;
       const dx=o.x-a.x,dd=o.d-a.d;
       if(Math.abs(dx)<44&&Math.abs(dd)<26){const s=Math.abs(dx)+Math.abs(dd);if(s<bd){bd=s;v=o;}}
     }
@@ -122,7 +131,7 @@ function update(dt){
   }
   for(const f of fx)f.t+=dt;for(const o of portals)o.t-=dt;for(const o of bolts)o.t-=dt;portals=portals.filter(o=>o.t>0);bolts=bolts.filter(o=>o.t>0);
   fx=fx.filter(f=>f.t<1);
-  if(racers.every(r=>r.fin||r.out)){endWait+=dt;if(endWait>1.3)finish();}
+  if(racers.every(r=>r.fin)){endWait+=dt;if(endWait>1.3)finish();}
 }
 
 function useItem(r){
@@ -140,7 +149,7 @@ function useItem(r){
 function record(){
   if(frames.length&&rt-frames[frames.length-1].t<1/40)return;
   frames.push({t:rt,camX:camX,clock:clock,bn:banner&&banner.t>0?{s:banner.s,t:banner.t}:null,
-    r:racers.map(r=>({i:r.i,name:r.name,color:r.color,gender:r.gender,age:r.age,x:r.x,d:r.d,h:r.h,speed:r.speed,mult:r.mult,stun:r.stun,veh:r.veh?{k:r.veh.k}:null,item:r.item?{k:r.item.k}:null,fin:r.fin,rank:r.rank,out:false,fall:0,cur:r.cur,pt:r.pull?racers.indexOf(r.pull.v):-1})),
+    r:racers.map(r=>({i:r.i,name:r.name,color:r.color,gender:r.gender,age:r.age,x:r.x,d:r.d,h:r.h,speed:r.speed,mult:r.mult,stun:r.stun,veh:r.veh?{k:r.veh.k}:null,item:r.item?{k:r.item.k}:null,fin:r.fin,rank:r.rank,cur:r.cur,pt:r.pull?racers.indexOf(r.pull.v):-1})),
     bx:boxes.map(b=>b.t>0?'0':'1').join(''),ba:bananas.map(b=>({x:b.x,d:b.d})),po:portals.map(o=>({x:o.x,d:o.d,t:o.t,c:o.c})),
     bo:bolts.map(o=>({a:{x:o.a.x,d:o.a.d},b:{x:o.b.x,d:o.b.d},t:o.t})),fx:fx.map(f=>({x:f.x,d:f.d,t:f.t,s:f.s}))});
 }
@@ -239,7 +248,6 @@ function exportVideo(){
 }
 function liveRank(){
   const a=racers.slice().sort((p,q)=>{
-    if(p.out!==q.out)return p.out?1:-1;
     if(p.fin&&q.fin)return p.rank-q.rank;
     if(p.fin!==q.fin)return p.fin?-1:1;
     return q.x-p.x;
@@ -250,9 +258,8 @@ function liveRank(){
 
 function updateCam(dt){
   if(manual){camX+=(mt-camX)*Math.min(1,dt*10);return;}
-  let lead=-1;
-  for(const r of racers)if(!r.out)lead=Math.max(lead,Math.min(r.x,TRACK));
-  if(lead<0)for(const r of racers)lead=Math.max(lead,r.x);
+  let lead=0;
+  for(const r of racers)lead=Math.max(lead,Math.min(r.x,TRACK));
   const t=Math.max(0,Math.min(lead-W*.58,TRACK-W*.75));
   camX+=(t-camX)*Math.min(1,dt*6);
 }
@@ -277,7 +284,7 @@ function drawPerson(px,py,r,o){
   const el=r.age==='e',ch=r.age==='c',fe=r.gender==='f',v=o.veh;
   const still=v==='moto'||v==='cart'||v==='wheel'||v==='jet';
   const sw=(o.run&&!still)?Math.sin(o.ph||0):0,ar=el?sw*.35:sw;
-  const hair=el?'#d8d8d8':HAIR[r.i];
+  const hair=el?'#d8d8d8':HAIR[r.i%HAIR.length],skin=SKIN[r.i%SKIN.length];
   ctx.save();ctx.translate(px,py);const sc=1.15*(ch?.82:1);ctx.scale(sc,sc);ctx.lineCap='round';
   if(v)drawVeh(v,o.t||0);
   ctx.translate(0,-({bike:6,moto:7,cart:6,wheel:5}[v]||0));
@@ -287,7 +294,7 @@ function drawPerson(px,py,r,o){
   ctx.beginPath();ctx.moveTo(-3,-14);ctx.lineTo(-3+sw*8,-1);ctx.moveTo(3,-14);ctx.lineTo(3-sw*8,-1);ctx.stroke();
   ctx.fillStyle='#1e2b33';ctx.beginPath();ctx.ellipse(-2+sw*8,0,4.5,2,0,0,7);ctx.ellipse(4-sw*8,0,4.5,2,0,0,7);ctx.fill();
   if(fe){ctx.fillStyle=hair;rr(-12,-45,8,20,3);ctx.fill();}
-  ctx.strokeStyle=SKIN[r.i];ctx.lineWidth=3.5;ctx.beginPath();
+  ctx.strokeStyle=skin;ctx.lineWidth=3.5;ctx.beginPath();
   if(o.cheer){ctx.moveTo(-6,-29);ctx.lineTo(-11,-43);ctx.moveTo(6,-29);ctx.lineTo(11,-43);}
   else if(o.sad){ctx.moveTo(-6,-29);ctx.lineTo(0,-38);ctx.moveTo(6,-29);ctx.lineTo(5,-37);}
   else if(o.stun){ctx.moveTo(-6,-29);ctx.lineTo(-9,-18);ctx.moveTo(6,-29);ctx.lineTo(9,-18);}
@@ -295,7 +302,7 @@ function drawPerson(px,py,r,o){
   ctx.stroke();
   ctx.fillStyle=r.color;rr(-7,-33,14,19,5);ctx.fill();
   if(fe){ctx.beginPath();ctx.moveTo(-7,-17);ctx.lineTo(7,-17);ctx.lineTo(11,-7);ctx.lineTo(-11,-7);ctx.fill();}
-  ctx.fillStyle=SKIN[r.i];ctx.beginPath();ctx.arc(0,-42,8.5,0,7);ctx.fill();
+  ctx.fillStyle=skin;ctx.beginPath();ctx.arc(0,-42,8.5,0,7);ctx.fill();
   ctx.fillStyle=hair;ctx.beginPath();ctx.arc(0,-43,9,Math.PI*1.02,Math.PI*1.98);ctx.fill();ctx.fillRect(-9,-44,5,5);
   if(el){ctx.strokeStyle='#6b4a2f';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(13,0);ctx.lineTo(10,-22);ctx.lineTo(7,-24);ctx.stroke();}
   ctx.strokeStyle='#1e2b33';ctx.fillStyle='#1e2b33';ctx.lineWidth=1.6;
@@ -318,12 +325,32 @@ function podiumStep(dt){
   for(const c of conf){c.x+=c.vx*dt;c.y+=c.vy*dt;c.a+=dt*5;}
   conf=conf.filter(c=>c.y<H+10);
 }
+let sp=null;
+// 조명 세기: t0초부터 0.6초 페이드인 → 4.5초 유지 → 0.6초 페이드아웃 후 전체 컬러로 복귀
+function spotA(t0){const FI=.6,HOLD=4.5;return Math.min((pt-t0)/FI,(t0+FI+HOLD+FI-pt)/FI);}
+function spotlight(cx,cy,rad,a){
+  a=Math.max(0,Math.min(1,a));if(a<=0)return;
+  const e=1-(1-a)*(1-a);
+  if(!sp)sp=document.createElement('canvas');
+  if(sp.width!==W||sp.height!==H){sp.width=W;sp.height=H;}
+  const s=sp.getContext('2d');s.clearRect(0,0,W,H);s.drawImage(cv,0,0);
+  ctx.save();ctx.globalAlpha=e;
+  if('filter' in ctx){ctx.filter='grayscale(1) brightness(.55)';ctx.drawImage(sp,0,0);ctx.filter='none';}
+  else{ctx.fillStyle='rgba(0,0,0,.6)';ctx.fillRect(0,0,W,H);}
+  ctx.restore();
+  const z=1+.25*e,r=rad*(.85+.15*e)*z;
+  ctx.save();ctx.beginPath();ctx.arc(cx,cy,r,0,7);ctx.clip();
+  ctx.translate(cx,cy);ctx.scale(z,z);ctx.drawImage(sp,-cx,-cy);
+  ctx.restore();
+  ctx.save();ctx.globalAlpha=e;ctx.strokeStyle='#fff6c8';ctx.lineWidth=4;ctx.shadowColor='#ffd166';ctx.shadowBlur=18;
+  ctx.beginPath();ctx.arc(cx,cy,r,0,7);ctx.stroke();ctx.restore();
+}
 function drawPodium(){
   const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#26325c');g.addColorStop(1,'#6f86c9');
   ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
   ctx.fillStyle='rgba(255,255,255,.07)';
   for(const lx of [W/4,W/2,W*.75]){const c=W/2,q=W/4,mid=lx===c;ctx.beginPath();ctx.moveTo(lx-14,0);ctx.lineTo(lx+14,0);ctx.lineTo(lx+120*(lx-c)/q+(mid?70:0),370);ctx.lineTo(lx-120*(c-lx)/q-(mid?70:0),370);ctx.fill();}
-  ctx.fillStyle='#3b2f3f';ctx.fillRect(0,360,W,60);
+  ctx.fillStyle='#3b2f3f';ctx.fillRect(0,360,W,H-360);
   ctx.textAlign='center';ctx.fillStyle='#fff';ctx.font='36px Jua,sans-serif';ctx.fillText('시상식',W/2,48);
   const dx=Math.min(150,W*.23),slots=[{x:W/2,h:100,c:'#f4c430',d:2.2},{x:W/2-dx,h:70,c:'#c0c6cc',d:1.4},{x:W/2+dx,h:50,c:'#cd7f32',d:.6}];
   slots.forEach((sl,k)=>{
@@ -350,11 +377,57 @@ function drawPodium(){
     drawPerson(x,372,r,{run:walk,ph:pt*14,cry:true,sad:!walk});
     if(!walk){ctx.textAlign='center';ctx.font='17px Jua,sans-serif';ctx.fillStyle='#fff';ctx.fillText('흑흑… '+r.name+' ('+n+'위)',x+10,290);}
   }
-  if(betMsg&&pt>3){ctx.textAlign='center';ctx.font='22px Jua,sans-serif';ctx.fillStyle='#ffd166';ctx.fillText(betMsg,W/2,406);}
   for(const c of conf){ctx.save();ctx.translate(c.x,c.y);ctx.rotate(c.a);ctx.fillStyle=c.c;ctx.fillRect(-4,-2,8,4);ctx.restore();}
+  // 응원 포커스: 1등 원함이면 1위, 꼴등 원함이면 꼴찌에게 컬러 조명, 나머지는 흑백
+  if(want==='first'&&fin[0])spotlight(W/2,360-100-40,72,spotA(3.4));
+  else if(want==='last'&&n>1&&fin[n-1])spotlight(100,330,86,spotA(2.4));
+  if(betMsg&&pt>3){ctx.textAlign='center';ctx.font='22px Jua,sans-serif';ctx.fillStyle='#ffd166';ctx.fillText(betMsg,W/2,H-14);}
 }
 function draw(){
   if(state==='podium'){drawPodium();return;}
+  if(state==='idle'){drawPreview();return;}
+  drawRace();
+}
+// 시작 전 미리보기: 배경·지도 등은 흐리게, 트랙 라인과 캐릭터만 선명하게
+function drawPreview(){
+  if(!pv){
+    const rs=racers;racers=[];drawRace();racers=rs;
+    pv=document.createElement('canvas');pv.width=W;pv.height=H;
+    const p=pv.getContext('2d');
+    p.fillStyle='#d5e9e6';p.fillRect(0,0,W,H);
+    if('filter' in p)p.filter='blur(6px)';
+    p.drawImage(cv,0,0);p.filter='none';
+    p.fillStyle='rgba(255,255,255,.28)';p.fillRect(0,0,W,H);
+  }
+  ctx.drawImage(pv,0,0);
+  const top=GT,bot=GT+GD+20;
+  ctx.strokeStyle='#fff';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(0,top);ctx.lineTo(W,top);ctx.moveTo(0,bot);ctx.lineTo(W,bot);ctx.stroke();
+  ctx.fillStyle='#fff';ctx.fillRect(OFF-3,top,6,bot-top);
+  // 레인 구분선
+  const gap=n>1?(GD-22)/(n-1):0;
+  ctx.strokeStyle='rgba(255,255,255,.8)';ctx.lineWidth=1;ctx.setLineDash([6,6]);ctx.beginPath();
+  for(let k=1;k<n;k++){const y=GT+16+10+(k-.5)*gap+4;ctx.moveTo(0,y);ctx.lineTo(W,y);}
+  ctx.stroke();ctx.setLineDash([]);
+  const fs=Math.max(11,Math.min(15,gap-2));
+  for(const r of racers.slice().sort((a,b)=>a.d-b.d)){
+    const base=GT+16+r.d;
+    ctx.fillStyle='rgba(30,43,51,.25)';ctx.beginPath();ctx.ellipse(OFF,base+4,13,4,0,0,7);ctx.fill();
+    drawPerson(OFF,base,r,{run:false});
+  }
+  // 이름표는 발 높이 오른쪽, 레인 번호는 출발선 왼쪽 (겹침 방지)
+  ctx.font=fs+'px Jua,sans-serif';
+  for(const r of racers){
+    const y=GT+16+r.d+4,ln=(lanes[r.i]??r.i)+1;
+    ctx.textAlign='center';ctx.fillStyle='#1e2b33';ctx.fillText(String(ln),24,y);
+    const tw=ctx.measureText(r.name).width+12;
+    ctx.fillStyle=r.color;rr(OFF+20,y-fs+1,tw,fs+3,6);ctx.fill();
+    ctx.textAlign='left';ctx.fillStyle=ink(r.color);ctx.fillText(r.name,OFF+26,y);
+  }
+  ctx.textAlign='center';ctx.font='26px Jua,sans-serif';ctx.lineWidth=5;ctx.strokeStyle='#fff';ctx.fillStyle='#1e2b33';
+  ctx.strokeText('시작을 누르면 출발!',W/2,GT-60);ctx.fillText('시작을 누르면 출발!',W/2,GT-60);
+}
+function drawRace(){
   const g=ctx.createLinearGradient(0,0,0,GT);g.addColorStop(0,'#bfe3f2');g.addColorStop(1,'#eaf5ee');
   ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
   hills(.2,GT-40,50,'#b4d6b0',1);
@@ -376,7 +449,7 @@ function draw(){
       ctx.fillStyle='#4a3524';ctx.fillRect(tx-24,GT,5,GD+20);ctx.fillRect(tx+19,GT,5,GD+20);
     }else{
       ctx.fillStyle='#8c2f2f';
-      for(let k=0;k<4;k++){const by=GT+30+k*38;for(let c=-1;c<=1;c++){ctx.beginPath();ctx.moveTo(tx+c*12-7,by+4);ctx.lineTo(tx+c*12,by-16);ctx.lineTo(tx+c*12+7,by+4);ctx.fill();}}
+      for(let k=0;k<Math.floor(GD/38);k++){const by=GT+30+k*38;for(let c=-1;c<=1;c++){ctx.beginPath();ctx.moveTo(tx+c*12-7,by+4);ctx.lineTo(tx+c*12,by-16);ctx.lineTo(tx+c*12+7,by+4);ctx.fill();}}
     }
   }
   ctx.font='16px Jua,sans-serif';ctx.textAlign='left';
@@ -415,7 +488,6 @@ function draw(){
     ctx.fillStyle='rgba(30,43,51,.25)';ctx.beginPath();ctx.ellipse(px,base+4,13-r.h/6,4,0,0,7);ctx.fill();
     const cry=(r.fin&&r.rank===n&&n>1)||(!r.fin&&(state==='run'||state==='replay')&&r.cur===n&&(r.x>TRACK-1800||fin.length>=n-1));
     drawPerson(px,py,r,{ph:r.x*.09,stun:r.stun>0,cry:cry,run:r.stun<=0&&!(r.fin&&r.speed<20),veh:r.veh&&r.veh.k,t:clock});
-    if(pickI===r.i&&state!=='podium'){ctx.fillStyle='#f4c430';ctx.strokeStyle='#1e2b33';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(px-7,py-106);ctx.lineTo(px+7,py-106);ctx.lineTo(px,py-95);ctx.closePath();ctx.fill();ctx.stroke();ctx.fillStyle='#1e2b33';ctx.font='13px Jua,sans-serif';ctx.textAlign='center';ctx.fillText(want==='first'?'1등!':'꼴등!',px,py-110);}
     if(r.item){ctx.font='20px sans-serif';ctx.textAlign='center';ctx.fillStyle='#000';ctx.fillText(ITEMS.find(i=>i.k===r.item.k).e,px,py-88);}
     ctx.textAlign='center';ctx.font='14px Jua,sans-serif';
     if(r.fin){ctx.fillStyle='#1e2b33';ctx.font='18px Jua,sans-serif';ctx.fillText(r.rank+'위',px,py-66);}
@@ -448,14 +520,18 @@ function draw(){
   ctx.globalAlpha=1;
   // live ranking
   const lr=liveRank();
-  ctx.fillStyle='rgba(255,255,255,.78)';rr(W-172,42,160,n*21+12,10);ctx.fill();
-  ctx.font='16px Jua,sans-serif';ctx.textAlign='left';
-  lr.forEach((r,k)=>{
-    const y=42+22+k*21;
-    ctx.fillStyle='#1e2b33';ctx.fillText(r.out?'–':String(k+1),W-162,y);
-    ctx.fillStyle=r.color;ctx.beginPath();ctx.arc(W-132,y-5,6,0,7);ctx.fill();
-    ctx.fillStyle=r.out?'#7b8a93':'#1e2b33';ctx.fillText(r.out?r.name+' 탈락':r.name+(r.fin?' 도착':''),W-120,y);
-  });
+  // 실시간 순위: 10명 초과 시 2열
+  if(lr.length){
+    const cols=lr.length>10?2:1,rows=Math.ceil(lr.length/cols),cw=160,x0=W-12-cw*cols;
+    ctx.fillStyle='rgba(255,255,255,.78)';rr(x0,42,cw*cols,rows*21+12,10);ctx.fill();
+    ctx.font='16px Jua,sans-serif';ctx.textAlign='left';
+    lr.forEach((r,k)=>{
+      const cx=x0+Math.floor(k/rows)*cw,y=42+22+(k%rows)*21;
+      ctx.fillStyle='#1e2b33';ctx.fillText(String(k+1),cx+10,y);
+      ctx.fillStyle=r.color;ctx.beginPath();ctx.arc(cx+40,y-5,6,0,7);ctx.fill();
+      ctx.fillStyle='#1e2b33';ctx.fillText(r.name+(r.fin?' 도착':''),cx+52,y);
+    });
+  }
   if(state==='replay'&&!rec&&!exporting){
     const dur=frames[frames.length-1].t;
     ctx.fillStyle='rgba(192,57,43,.92)';rr(14,44,112,26,8);ctx.fill();
@@ -498,19 +574,20 @@ function loop(ts){
 function finish(){
   state='podium';pt=0;conf=[];
   betMsg='';
-  if(pickI>=0&&racers[pickI]){const r=racers[pickI],ok=want==='first'?r.rank===1:r.rank===n;betMsg='응원 '+(ok?'성공!':'아쉬워요')+' · '+r.name+' '+(want==='first'?'1등':'꼴등')+' 기원 → '+r.rank+'위';}
+  // 결과 산출: 원하는 순위(1등/꼴등)에 해당하는 캐릭터 발표
+  {const r=want==='first'?fin[0]:fin[fin.length-1];if(r)betMsg='결과 산출 · '+(want==='first'?'1등':'꼴등')+': '+r.name;}
   result={bet:betMsg,
-    rank:fin.map(r=>({pos:r.rank+'위',color:r.color,name:r.name,right:r.time.toFixed(2)+'초'})),
-    outs:racers.filter(r=>r.out).map(r=>({color:r.color,name:r.name,right:r.why}))};
-  msg=fin.length?(fin[0].name+'이(가) 우승했습니다!'):'모두 탈락했습니다.';
+    rank:fin.map(r=>({pos:r.rank+'위',color:r.color,name:r.name,right:r.time.toFixed(2)+'초'}))};
+  msg=fin[0].name+'이(가) 우승했습니다!';
   push();
 }
 
 function setN(v){
   if(rec&&rec.state==='recording'){rec.onstop=null;rec.stop();}
   rec=null;exporting=false;
-  n=Math.max(2,Math.min(8,v));
-  if(pickI>=n)pickI=-1;
+  const nn=Math.max(2,Math.min(MAXN,v));
+  if(nn!==n||lanes.length!==nn)lanes=Array.from({length:nn},(_,k)=>k);
+  n=nn;
   state='idle';result=null;
   msg=mode==='item'?'아이템전: ?박스를 먹으면 탈것·무기·함정이 랜덤으로! 시작을 눌러주세요.':HINT;
   setup();push();
@@ -539,7 +616,7 @@ function seek(e){
 }
 L('pointerdown',e=>{
   const b=cv.getBoundingClientRect(),y=(e.clientY-b.top)*cv.height/b.height;
-  if(y<=46&&state!=='podium'&&state!=='replay'){drag=true;cv.setPointerCapture(e.pointerId);seek(e);}
+  if(y<=46&&state!=='podium'&&state!=='replay'&&state!=='idle'){drag=true;cv.setPointerCapture(e.pointerId);seek(e);}
 });
 L('pointermove',e=>{if(drag)seek(e);});
 L('pointerup',()=>{drag=false;});
@@ -549,7 +626,10 @@ raf=requestAnimationFrame(loop);
 return{
   setN:setN,start:start,reset:()=>setN(n),setCfg:setCfg,toggleReplay:toggleReplay,
   setMode:m=>{mode=m;setN(n);},
-  setPick:i=>{pickI=i;push();},setWant:w=>{want=w;push();},
+  shuffleLanes:()=>{if(state==='count'||state==='run')return;shuffle(lanes);if(state==='idle')setup();
+    msg='출발 자리를 섞었습니다: '+lanes.map((s,i)=>[s,cfg[i].name]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]).join(' · ');push();},
+  resetLanes:()=>{if(state==='count'||state==='run')return;lanes=lanes.map((_,k)=>k);if(state==='idle')setup();msg='출발 자리를 원래대로 되돌렸습니다.';push();},
+  setWant:w=>{want=w;push();},
   follow:()=>{manual=false;push();},
   exportGif:exportGif,exportVideo:exportVideo,saveReady:saveReady,
   destroy:()=>{dead=true;cancelAnimationFrame(raf);ac.abort();if(rec&&rec.state==='recording'){rec.onstop=null;rec.stop();}}
