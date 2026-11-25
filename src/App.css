@@ -42,14 +42,14 @@ button.sq{width:48px;height:44px;padding:0;font-size:24px;background:var(--panel
 
 /* 경기 설정 */
 .rules-panel{display:flex;flex-direction:column}
-/* 경기 설정: 1줄 [모드 | 결과산출] 같은 폭, 2줄 [맵] 전체 폭. 선택 버튼은 칸을 꽉 채우고 모두 같은 크기 */
-.rules{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 16px;align-items:start;flex:1}
-.rules .field:nth-child(3){grid-column:1/-1}
+/* 경기 설정: 한 줄 [모드 | 결과산출 | 맵(장소·시간대)]을 버튼 수 비율 2:2:4로 나눠 버튼 8개가 모두 같은 크기.
+   900px 미만은 두 줄(1줄 모드·결과산출, 2줄 맵), 720px 이하는 한 줄씩 */
+.rules{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,2fr) minmax(0,4fr);gap:14px 12px;align-items:start;flex:1}
+.map-pick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .rules .seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;width:100%}
-.rules .seg button{padding:9px 8px;font-size:15px;text-align:center;white-space:nowrap}
+.rules .seg button{padding:9px 4px;font-size:14px;text-align:center;white-space:nowrap}
 .field{display:flex;flex-direction:column;gap:6px;min-width:0}
 .label{font-size:13px;font-weight:600}
-.map-pick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .seg{display:inline-flex;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px;flex-wrap:wrap}
 .seg button{background:transparent;color:var(--muted);font-weight:600;padding:6px 12px;border-radius:7px;font-size:14px}
 .seg button.on{background:var(--panel);color:var(--accent);box-shadow:0 1px 3px rgba(20,40,55,.15)}
@@ -120,6 +120,11 @@ canvas{display:block;width:100%;height:auto;border-radius:var(--radius);border:1
 .modal-btns{display:flex;justify-content:flex-end;gap:8px}
 @keyframes fade{from{opacity:0}to{opacity:1}}
 
+@media (max-width:900px){
+  .rules{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 16px}
+  .rules .field:nth-child(3){grid-column:1/-1}
+  .map-pick{gap:16px}
+}
 @media (max-width:720px){
   .setup{grid-template-columns:1fr}
   .count-panel{flex-direction:row;flex-wrap:wrap;justify-content:space-between;text-align:left}
