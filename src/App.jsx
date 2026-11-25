@@ -5,9 +5,9 @@ import './App.css';
 const GENDERS = [['m', '남'], ['f', '여']];
 const AGES = [['c', '어린이'], ['a', '성인'], ['e', '어르신'], ['r', '로봇']];
 
-function Row({ pos, color, name, right }) {
+function Row({ pos, color, name, right, hl }) {
   return (
-    <li>
+    <li className={hl}>
       <span className="pos">{pos}</span>
       <span className="dot" style={{ background: color }} />
       <span>{name}</span>
@@ -39,6 +39,14 @@ function Controls({ v, game }) {
         </select>
       </label>
       <button className="ghost" disabled={v.locked} onClick={() => game().shuffleLanes()}>🔀 자리 섞기</button>
+      <label>맵{' '}
+        <select id="map" value={v.map} disabled={v.locked} onChange={e => game().setMap(e.target.value)}>
+          <option value="city-day">서울 도심 · 낮</option>
+          <option value="city-night">서울 도심 · 밤</option>
+          <option value="trad-day">전통 마을 · 낮</option>
+          <option value="trad-night">전통 마을 · 밤</option>
+        </select>
+      </label>
       {v.lanes.some((s, i) => s !== i) && (
         <button className="ghost" disabled={v.locked} onClick={() => game().resetLanes()}>원래 자리</button>
       )}
@@ -58,14 +66,18 @@ function Names({ v, game }) {
   return (
     <div className="bar names" aria-label="캐릭터 이름">
       {v.cfg.slice(0, v.n).map((c, i) => (
-        <div className="nm" key={i}>
+        <div className="nm" key={i}
+          onMouseEnter={() => game().setHover(i)} onMouseLeave={() => game().setHover(-1)}
+          onFocus={() => game().setHover(i)} onBlur={() => game().setHover(-1)}>
           <span className="lane" title="출발 레인 (위에서부터)">{v.lanes[i] + 1}레인</span>
           <input type="color" value={c.color} aria-label={`${i + 1}번 옷 색`} onChange={e => game().setCfg(i, { color: e.target.value })} />
-          <input className="t" defaultValue={c.name} maxLength={6} aria-label={`${i + 1}번 이름`}
+          <input className="t" key={`name-${c.age === 'r'}`} defaultValue={c.name} maxLength={c.age === 'r' ? 9 : 6} aria-label={`${i + 1}번 이름`}
             onChange={e => game().setCfg(i, { name: e.target.value.trim() || `${i + 1}번` })} />
-          <select value={c.gender} aria-label={`${i + 1}번 성별`} disabled={c.age === 'r'} title={c.age === 'r' ? '로봇은 성별이 없습니다' : undefined} onChange={e => game().setCfg(i, { gender: e.target.value })}>
-            {GENDERS.map(([k, t]) => <option key={k} value={k}>{t}</option>)}
-          </select>
+          {c.age !== 'r' && (
+            <select value={c.gender} aria-label={`${i + 1}번 성별`} onChange={e => game().setCfg(i, { gender: e.target.value })}>
+              {GENDERS.map(([k, t]) => <option key={k} value={k}>{t}</option>)}
+            </select>
+          )}
           <select value={c.age} aria-label={`${i + 1}번 나이`} onChange={e => game().setCfg(i, { age: e.target.value })}>
             {AGES.map(([k, t]) => <option key={k} value={k}>{t}</option>)}
           </select>
@@ -81,7 +93,13 @@ function Result({ r }) {
       <h2>최종 순위</h2>
       {r.bet && <p className="sub">{r.bet}</p>}
       <ol>
-        {r.rank.map((x, i) => <Row key={i} {...x} />)}
+        {r.rank.map((x, i) => {
+          // 1등 원함: 1·2·3위 하이라이트, 꼴등 원함: 꼴찌만
+          const hl = r.want === 'last'
+            ? (i === r.rank.length - 1 ? 'hl-last' : undefined)
+            : (i < 3 ? `hl-${i + 1}` : undefined);
+          return <Row key={i} {...x} hl={hl} />;
+        })}
       </ol>
     </section>
   );
