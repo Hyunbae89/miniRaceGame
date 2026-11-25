@@ -89,6 +89,17 @@ const scenarios = {
   '아이템·20명·서울 밤(꼴등 원함)': (g, v) => { g.setN(20); g.setMode('item'); g.setMap('city-night'); g.setWant('last'); for (let i = 0; i < 20; i += 3) g.setCfg(i, { age: 'r' }); return race(g, v); },
   '일반·3명·전통 낮(꼴찌 로봇)': (g, v) => { g.setN(3); g.setMap('trad-day'); g.setCfg(2, { age: 'r' }); g.setWant('last'); return race(g, v); },
   '아이템·5명·전통 밤': (g, v) => { g.setN(5); g.setMode('item'); g.setMap('trad-night'); return race(g, v); },
+  '카메라 직접 조작(누르기·끌기·놓기)': (g, v) => {
+    g.setN(6); g.start(); step(60 * 8);
+    const p = (x, y) => ({ clientX: x, clientY: y, pointerId: 1 });
+    handlers.pointerdown(p(300, 260)); step(20); handlers.pointermove(p(520, 260)); step(20);
+    const during = v().manual;
+    handlers.pointerup(p(520, 260)); step(5);
+    const after = v().manual;
+    handlers.pointerdown(p(400, 20)); step(10); const mapDuring = v().manual; handlers.pointercancel(p(400, 20)); step(5);
+    if (!during || after || !mapDuring || v().manual) throw new Error('카메라: 누르는 동안 수동, 놓으면 자동이어야 함');
+    return { ...race(g, v), during, after };
+  },
 };
 
 if (args.includes('--balance')) {

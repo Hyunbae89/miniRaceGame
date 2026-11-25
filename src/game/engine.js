@@ -1,6 +1,6 @@
 // 게임 엔진 진입점: createGame(canvas, { onChange })가 게임을 만들고 조작 API를 돌려준다.
 // 상태 초기화, 메인 루프, 입력 처리, UI로 상태 전달(push)을 맡는다.
-import { seek, updateCam } from "./camera.js";
+import { camDown, camMove, camUp, seek, updateCam } from "./camera.js";
 import { COLORS, HINT, MAXN, NAMES } from "./constants.js";
 import { exportGif, exportVideo, saveReady } from "./export.js";
 import { podiumStep } from "./render/podium.js";
@@ -198,28 +198,30 @@ export function createGame(cv, ui) {
   G.lastBub = null;
   G.fb = null;
   G.drag = false;
+  // 레이스 중(카운트다운·달리기) 캔버스 조작: 위쪽 지도는 비율 위치로, 나머지는 누른 지점으로. 떼면 자동 카메라
+  const camOK = () => G.state === 'count' || G.state === 'run';
   G.L('pointerdown', e => {
+    if (!camOK()) return;
     const b = G.cv.getBoundingClientRect(),
       y = (e.clientY - b.top) * G.cv.height / b.height;
-    if (y <= 46 && G.state !== 'podium' && G.state !== 'replay' && G.state !== 'idle') {
-      G.drag = true;
-      G.cv.setPointerCapture(e.pointerId);
-      seek(e);
-    }
+    G.drag = y <= 46 ? 'map' : 'view';
+    G.cv.setPointerCapture?.(e.pointerId);
+    if (G.drag === 'map') seek(e);else camDown(e);
   });
   G.L('pointermove', e => {
-    if (G.drag) seek(e);
+    if (G.drag === 'map') seek(e);else if (G.drag === 'view') camMove(e);
     if (G.state === 'idle') {
       const b = G.cv.getBoundingClientRect();
       G.heliMX = (e.clientX - b.left) * G.W / b.width;
     }
   });
-  G.L('pointerup', () => {
+  const release = () => {
+    if (!G.drag) return;
     G.drag = false;
-  });
-  G.L('pointercancel', () => {
-    G.drag = false;
-  });
+    camUp();
+  };
+  G.L('pointerup', release);
+  G.L('pointercancel', release);
   setN(4);
   G.raf = requestAnimationFrame(loop);
   return {

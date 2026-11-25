@@ -134,13 +134,13 @@ function RaceBar({ v, game }) {
   return (
     <div className="race-bar">
       <span className="hint">{v.msg}</span>
+      {v.locked && <span className="tip">화면을 누른 채 끌면 원하는 곳을 보고, 놓으면 다시 1위를 따라가요</span>}
       {!v.locked && <button type="button" onClick={() => game().start()}>다시 시작</button>}
       {!v.locked && <button type="button" className="ghost" onClick={() => game().reset()}>새로 하기</button>}
       {done && <button type="button" className="ghost" onClick={() => game().toggleReplay()}>{v.replaying ? '■ 리플레이 종료' : '▶ 리플레이'}</button>}
       {done && <button type="button" className="ghost" disabled={v.busy} onClick={() => game().exportVideo()}>MP4 만들기</button>}
       {done && <button type="button" className="ghost" disabled={v.busy} onClick={() => game().exportGif()}>GIF 만들기</button>}
       {v.file && <button type="button" onClick={() => game().saveReady()}>⬇ {v.file} 저장</button>}
-      {v.manual && <button type="button" className="ghost" onClick={() => game().follow()}>자동 카메라</button>}
     </div>
   );
 }
@@ -235,7 +235,7 @@ export default function App() {
         </>
       )}
       {v && !setup && <RaceBar v={v} game={game} />}
-      <div className="stage">
+      <div className={'stage' + (v && v.locked ? ' racing' : '') + (v && v.manual ? ' grabbing' : '')}>
         <canvas ref={canvasRef} id="cv" width="960" height="420" aria-label="레이스 화면" />
         {v && setup && (
           <button type="button" className={'stage-start' + (confirmed ? '' : ' locked')} onClick={onStart}>
