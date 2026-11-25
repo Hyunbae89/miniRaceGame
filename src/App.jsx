@@ -3,7 +3,7 @@ import { createGame } from './game/engine.js';
 import './App.css';
 
 const GENDERS = [['m', '남'], ['f', '여']];
-const AGES = [['c', '어린이'], ['a', '성인'], ['e', '어르신']];
+const AGES = [['c', '어린이'], ['a', '성인'], ['e', '어르신'], ['r', '로봇']];
 
 function Row({ pos, color, name, right }) {
   return (
@@ -63,7 +63,7 @@ function Names({ v, game }) {
           <input type="color" value={c.color} aria-label={`${i + 1}번 옷 색`} onChange={e => game().setCfg(i, { color: e.target.value })} />
           <input className="t" defaultValue={c.name} maxLength={6} aria-label={`${i + 1}번 이름`}
             onChange={e => game().setCfg(i, { name: e.target.value.trim() || `${i + 1}번` })} />
-          <select value={c.gender} aria-label={`${i + 1}번 성별`} onChange={e => game().setCfg(i, { gender: e.target.value })}>
+          <select value={c.gender} aria-label={`${i + 1}번 성별`} disabled={c.age === 'r'} title={c.age === 'r' ? '로봇은 성별이 없습니다' : undefined} onChange={e => game().setCfg(i, { gender: e.target.value })}>
             {GENDERS.map(([k, t]) => <option key={k} value={k}>{t}</option>)}
           </select>
           <select value={c.age} aria-label={`${i + 1}번 나이`} onChange={e => game().setCfg(i, { age: e.target.value })}>
