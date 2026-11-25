@@ -1,7 +1,7 @@
 // 게임 엔진 진입점: createGame(canvas, { onChange })가 게임을 만들고 조작 API를 돌려준다.
 // 상태 초기화, 메인 루프, 입력 처리, UI로 상태 전달(push)을 맡는다.
 import { camDown, camMove, camUp, seek, updateCam } from "./camera.js";
-import { COLORS, HINT, MAXN, NAMES } from "./constants.js";
+import { AD_DEFAULT, COLORS, HINT, MAXN, NAMES } from "./constants.js";
 import { exportGif, exportVideo, saveReady } from "./export.js";
 import { podiumStep } from "./render/podium.js";
 import { draw } from "./render/race.js";
@@ -207,6 +207,8 @@ export function createGame(cv, ui) {
   G.conf = [];
   G.cfg = makeRoster();
   G.paused = false;
+  G.ad = { ...AD_DEFAULT };
+  G.adImg = null;
   G.lanes = [];
   G.pv = null;
   G.heli = {
@@ -289,6 +291,11 @@ export function createGame(cv, ui) {
       setN(G.n);
     },
     resetAll: resetAll,
+    // 헬기 광고 현수막: { text, bg, fg, accent } 중 바꿀 것만. text를 ''로 주면 현수막을 뗌
+    setAd: a => {
+      G.ad = { ...G.ad, ...a };
+      G.pv = null;
+    },
     setHover: i => {
       G.hover = i;
     },
