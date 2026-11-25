@@ -321,22 +321,33 @@ export function pine(x, y, i) {
   G.ctx.ellipse(x + lean * .4, y - 50, 8, 2.5, 0, 0, 7);
   G.ctx.fill();
 }
-export function spectator(x, y, i, now, trad) {
-  const s = .85 + hsh(i * 13) * .3,
+// 구경꾼 한 명(발 위치 x, y). 크기 s는 1.3~1.6배. 밤에는 모두 팔을 흔들고, 오른손 위치를 돌려줘 응원봉을 따로 그림
+// pose: 'wave'(흔들기) | 'down'(내림) | 'hold'(현수막을 머리 위로 듦: 양손 높이 hy)
+export function spectator(x, y, i, now, trad, night, pose, hy) {
+  const s = 1.3 + hsh(i * 13) * .3,
     c = COLORS[Math.floor(hsh(i * 5) * COLORS.length)],
     sk = SKIN[Math.floor(hsh(i * 9) * SKIN.length)],
     hr = HAIR[Math.floor(hsh(i * 19) * HAIR.length)];
-  const wave = hsh(i * 17) > .4,
-    a = Math.sin(now * 7 + i * 1.3);
+  pose = pose || (night || hsh(i * 17) > .4 ? 'wave' : 'down');
+  const a = Math.sin(now * (night ? 5 : 7) + i * 1.3);
+  let hand = null;
   G.ctx.strokeStyle = sk;
   G.ctx.lineWidth = 2.2 * s;
   G.ctx.lineCap = 'round';
   G.ctx.beginPath();
-  if (wave) {
+  if (pose === 'hold') {
+    G.ctx.moveTo(x - 3 * s, y - 12 * s);
+    G.ctx.lineTo(x - 4 * s, hy);
+    G.ctx.moveTo(x + 3 * s, y - 12 * s);
+    G.ctx.lineTo(x + 4 * s, hy);
+  } else if (pose === 'wave') {
+    const rx = x + 7 * s,
+      ry = y - (20 - a * 3) * s;
     G.ctx.moveTo(x - 3 * s, y - 12 * s);
     G.ctx.lineTo(x - 7 * s, y - (20 + a * 3) * s);
     G.ctx.moveTo(x + 3 * s, y - 12 * s);
-    G.ctx.lineTo(x + 7 * s, y - (20 - a * 3) * s);
+    G.ctx.lineTo(rx, ry);
+    hand = { x: rx, y: ry, s, a, i };
   } else {
     G.ctx.moveTo(x - 3 * s, y - 12 * s);
     G.ctx.lineTo(x - 5 * s, y - 5 * s);
@@ -362,26 +373,92 @@ export function spectator(x, y, i, now, trad) {
     G.ctx.fill();
     G.ctx.fillRect(x - 2.6 * s, y - 27 * s, 5.2 * s, 5.5 * s);
   }
-  if (hsh(i * 23) > .86) {
+  // 피켓(낮에 팔을 내린 사람 중 일부)
+  if (!night && pose === 'down' && hsh(i * 23) > .6) {
     const t = SIGNS[(i % SIGNS.length + SIGNS.length) % SIGNS.length];
-    G.ctx.font = 'bold 9px Jua,sans-serif';
-    const tw = G.ctx.measureText(t).width + 8,
-      sy = y - (32 + a * 2) * s;
+    G.ctx.font = 'bold 11px Jua,sans-serif';
+    const tw = G.ctx.measureText(t).width + 10,
+      sy = y - 40 * s;
     G.ctx.strokeStyle = '#7a5536';
-    G.ctx.lineWidth = 1.5;
+    G.ctx.lineWidth = 2;
     G.ctx.beginPath();
-    G.ctx.moveTo(x, sy + 10);
-    G.ctx.lineTo(x, y - 14 * s);
+    G.ctx.moveTo(x + 5 * s, sy + 13);
+    G.ctx.lineTo(x + 5 * s, y - 6 * s);
     G.ctx.stroke();
     G.ctx.fillStyle = '#fff';
-    G.ctx.fillRect(x - tw / 2, sy, tw, 11);
+    G.ctx.fillRect(x + 5 * s - tw / 2, sy, tw, 14);
     G.ctx.strokeStyle = '#1e2b33';
     G.ctx.lineWidth = 1;
-    G.ctx.strokeRect(x - tw / 2, sy, tw, 11);
+    G.ctx.strokeRect(x + 5 * s - tw / 2, sy, tw, 14);
     G.ctx.fillStyle = '#e4572e';
     G.ctx.textAlign = 'center';
-    G.ctx.fillText(t, x, sy + 9);
+    G.ctx.fillText(t, x + 5 * s, sy + 11);
   }
+  return hand;
+}
+// 두 사람이 양 끝을 잡고 머리 위로 드는 현수막
+const BANNERS = ['끝까지 달려라!', '모두 완주 화이팅!', '미니 레이스 토너먼트', '오늘의 1등은 누구?'];
+// 폭은 문구 길이에 맞춰 x1부터 최대 maxSpan까지 넓히고, 그래도 넘치면 글자를 줄임
+export function bannerPair(x1, minSpan, maxSpan, y, i, now, trad, night) {
+  const s = 1.45,
+    top = y - 46 * s + Math.sin(now * 3 + i) * 1.5,
+    h = 16,
+    t = BANNERS[Math.floor(hsh(i * 41) * BANNERS.length)];
+  let fs = 12;
+  G.ctx.font = 'bold ' + fs + 'px Jua,sans-serif';
+  const tw = G.ctx.measureText(t).width,
+    span = Math.max(minSpan, Math.min(maxSpan, tw + 14 - 8 * s)),
+    room = span + 8 * s - 10;
+  if (tw > room) fs = Math.max(8, Math.floor(fs * room / tw));
+  const x2 = x1 + span;
+  spectator(x1, y, i, now, trad, night, 'hold', top + h - 2);
+  spectator(x2, y, i + 1, now, trad, night, 'hold', top + h - 2);
+  // 천이 살짝 늘어지게(아래 가장자리 곡선)
+  const l = x1 - 4 * s,
+    r = x2 + 4 * s,
+    sag = 3;
+  G.ctx.fillStyle = night ? '#e9e2c8' : '#fffaf0';
+  G.ctx.beginPath();
+  G.ctx.moveTo(l, top);
+  G.ctx.quadraticCurveTo((l + r) / 2, top + sag, r, top);
+  G.ctx.lineTo(r, top + h);
+  G.ctx.quadraticCurveTo((l + r) / 2, top + h + sag, l, top + h);
+  G.ctx.closePath();
+  G.ctx.fill();
+  G.ctx.strokeStyle = COLORS[(i * 3 % COLORS.length + COLORS.length) % COLORS.length];
+  G.ctx.lineWidth = 2;
+  G.ctx.stroke();
+  G.ctx.fillStyle = '#c0392b';
+  G.ctx.font = 'bold ' + fs + 'px Jua,sans-serif';
+  G.ctx.textAlign = 'center';
+  G.ctx.fillText(t, (l + r) / 2, top + h - 3 + sag / 2);
+}
+// 밤 응원봉: 인도를 어둡게 덮은 뒤 그려서 빛나 보이게. 손에서 팔 방향으로 뻗고 흔들림
+const STICKS = ['#ff4fd8', '#3ff2ff', '#7dff6b', '#ffe14d', '#ff8a3d'];
+export function glowStick(h) {
+  const c = STICKS[Math.floor(hsh(h.i * 37) * STICKS.length)],
+    ang = -1.2 + h.a * .5,
+    len = 11 * h.s,
+    ex = h.x + Math.cos(ang) * len,
+    ey = h.y + Math.sin(ang) * len;
+  G.ctx.save();
+  G.ctx.lineCap = 'round';
+  G.ctx.shadowColor = c;
+  G.ctx.shadowBlur = 10;
+  G.ctx.strokeStyle = c;
+  G.ctx.lineWidth = 3.2;
+  G.ctx.beginPath();
+  G.ctx.moveTo(h.x, h.y);
+  G.ctx.lineTo(ex, ey);
+  G.ctx.stroke();
+  G.ctx.shadowBlur = 0;
+  G.ctx.strokeStyle = '#fff';
+  G.ctx.lineWidth = 1.2;
+  G.ctx.beginPath();
+  G.ctx.moveTo(h.x + (ex - h.x) * .3, h.y + (ey - h.y) * .3);
+  G.ctx.lineTo(ex, ey);
+  G.ctx.stroke();
+  G.ctx.restore();
 }
 export function walker(x, y, k, now) {
   const ph = now * 6 + k,
@@ -534,9 +611,23 @@ export function cityBg(th) {
     const x = i * sp + 70 - G.camX + OFF;
     th.trad ? pine(x, top + 12, i) : tree(x, top + 12);
   }
-  const s0 = Math.floor((G.camX - OFF - 20) / 22),
-    s1 = Math.ceil((G.camX - OFF + G.W + 20) / 22);
-  for (let i = s0; i <= s1; i++) if (hsh(i * 3) > .22) spectator(i * 22 + hsh(i) * 8 - G.camX + OFF, GT - 6, i, now, th.trad);
+  // 구경꾼: 36 간격(일부는 빈자리). hsh(i*7)이 큰 자리는 두 사람이 현수막을 들고 다음 세 자리를 비움
+  const SP = 36,
+    s0 = Math.floor((G.camX - OFF - 120) / SP),
+    s1 = Math.ceil((G.camX - OFF + G.W + 40) / SP),
+    hands = [];
+  for (let i = s0; i <= s1; i++) {
+    const x = i * SP + hsh(i) * 8 - G.camX + OFF;
+    if (hsh(i * 7) > .92 && hsh((i - 1) * 7) <= .92 && hsh((i - 2) * 7) <= .92 && hsh((i - 3) * 7) <= .92) {
+      bannerPair(x, SP * 2, SP * 3 - 10, GT - 6, i, now, th.trad, n8);
+      i += 3;
+      continue;
+    }
+    if (hsh(i * 3) > .25) {
+      const h = spectator(x, GT - 6, i, now, th.trad, n8);
+      if (n8 && h) hands.push(h);
+    }
+  }
   if (th.trad) {
     // 돌담 + 기와 얹은 담장
     G.ctx.fillStyle = n8 ? '#4a4a52' : '#a39e94';
@@ -576,5 +667,6 @@ export function cityBg(th) {
     G.ctx.fillRect(0, top - 60, G.W, GT - top + 60);
     G.ctx.fillRect(0, by, G.W, G.H - by);
     nightLights(th);
+    for (const h of hands) glowStick(h);
   }
 }
