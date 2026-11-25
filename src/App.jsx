@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createGame } from './game/engine.js';
 import './App.css';
 
@@ -84,6 +84,31 @@ function Roster({ v, game, editing, setEditing, confirmed, onConfirm, confirmRef
   const shuffled = v.lanes.some((s, i) => s !== i);
   // 캔버스 강조: 마우스를 올린 카드, 없으면 입력 중(포커스)인 카드
   const focused = useRef(-1);
+  // 카드 목록 높이 고정: PC 2줄·휴대폰 3장까지만 보이고 나머지는 목록 안에서 스크롤(전체 보기로 펼침)
+  const listRef = useRef(null);
+  const [fit, setFit] = useState({ h: null, hidden: 0 });
+  const [expanded, setExpanded] = useState(false);
+  const [atEnd, setAtEnd] = useState(false);
+  useLayoutEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    const calc = () => {
+      const cards = [...el.children];
+      const rows = window.matchMedia('(max-width:720px)').matches ? 3 : 2;
+      const tops = [...new Set(cards.map((c) => c.offsetTop))].sort((a, b) => a - b);
+      if (tops.length <= rows) { setFit((f) => (f.h === null ? f : { h: null, hidden: 0 })); return; }
+      const lastTop = tops[rows - 1];
+      const bottom = Math.max(...cards.filter((c) => c.offsetTop === lastTop).map((c) => c.offsetTop + c.offsetHeight));
+      const h = bottom + 6, hidden = cards.filter((c) => c.offsetTop > lastTop).length;
+      setFit((f) => (f.h === h && f.hidden === hidden ? f : { h, hidden }));
+    };
+    calc();
+    const ro = new ResizeObserver(calc);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [v.n]);
+  const clipped = fit.h !== null && !expanded;
+  const onScroll = (e) => { const t = e.currentTarget; setAtEnd(t.scrollTop + t.clientHeight >= t.scrollHeight - 4); };
   const show = (i) => game().setHover(i);
   return (
     <section className="panel roster" aria-labelledby="roster-h">
@@ -92,9 +117,15 @@ function Roster({ v, game, editing, setEditing, confirmed, onConfirm, confirmRef
         <div className="roster-tools">
           <button type="button" className="ghost" onClick={() => game().shuffleLanes()}>🔀 자리 섞기</button>
           {shuffled && <button type="button" className="ghost" onClick={() => game().resetLanes()}>원래 자리</button>}
+          {fit.h !== null && (
+            <button type="button" className="ghost" aria-expanded={expanded} onClick={() => setExpanded((x) => !x)}>
+              {expanded ? '접기' : `전체 보기 · +${fit.hidden}명`}
+            </button>
+          )}
         </div>
       </div>
-      <div className="cards" onMouseLeave={() => show(focused.current)}>
+      <div ref={listRef} className={'cards' + (clipped ? ' clipped' : '') + (clipped && !atEnd ? ' more' : '')}
+        style={clipped ? { maxHeight: fit.h } : undefined} onScroll={onScroll} onMouseLeave={() => show(focused.current)}>
         {v.cfg.slice(0, v.n).map((c, i) => (
           <div key={i} className={'card' + (editing === i ? ' editing' : '')}
             onMouseEnter={() => show(i)}
