@@ -1,128 +1,9 @@
-// 공유 상태: 게임 한 판(createGame 한 번)의 모든 가변 상태. 함수들은 G.x로 읽고 쓴다.
-export const G = {};
-// BACK: 출발 위치를 출발선(x=0)보다 이만큼 뒤로 둬서, 웅크린 출발 자세의 머리 끝이 출발선 뒤쪽 끝에 맞도록 함
-const BACK = 24;
-const GT = 232;
-const TRACK = 6500;
-const OFF = 60;
-const JT = .6;
-const MAXN = 20;
-const COLORS = ['#e4572e', '#2e86de', '#f2b705', '#2fb67c', '#8e5ad6', '#ef6aa1', '#17a2b8', '#5b6770', '#a0522d', '#7cb518', '#ff8c42', '#3d5a80', '#c71f66', '#00a896', '#b8860b', '#6a4c93', '#ff595e', '#1982c4', '#8ac926', '#2b2d42'];
-const HINT = '인원을 정하고 시작을 누르세요. 밀치고 잡아당기며 순위가 계속 바뀝니다. 구덩이와 가시에 걸리면 스턴!';
-// 1등 소감: 종류별 멘트 중 하나를 1위 도착 순간에 뽑아 레이스·시상식에서 말풍선으로 보여 줌
-const WIN_LINES = {
-  c: ['야호! 내가 1등이다!', '엄마, 나 봤어?!', '한 번 더 할래!', '사탕 사 주세요!'],
-  a: ['출근길보다 쉽네요', '역시 꾸준함이 답이죠', '오늘 회식은 제가 쏩니다! 라고 할뻔.', '지각은 면했다!'],
-  e: ['허허, 아직 안 죽었어', '젊은이들, 분발하게', '이 동네 오래 살았지', '다 지팡이 덕분이야'],
-  r: ['목표 달성. 1위 확인.', '삐빅! 승리 프로토콜 실행', '배터리 잔량 충분', '인간 대비 성능 우위']
-};
-// 기본 이름: 성별에 맞는 영어 이름을 겹치지 않게 랜덤 배정 (입력칸 최대 6자)
-const NAMES = {
-  m: ['레오', '맥스', '잭', '스티브', '노아', '이든', '오웬', '다니엘', '오스카', '휴고', '태오', '밥', '라이언', '샘', '벤', '카이', '마이클', '제이크', '루크', '제임스'],
-  f: ['미아', '에마', '릴리', '아바', '클로이', '조이', '루비', '그레이스', '엘라', '루나', '노라', '아이비', '에이미', '루시', '소피아', '헤이즐', '아이리스', '제인', '로즈', '안나']
-};
-// lanes[i] = i번 캐릭터의 출발 레인(0=맨 위)
-const ITEMS = [{
-  k: 'jet',
-  n: '제트팩',
-  e: '🚀',
-  m: 2,
-  t: 2.2
-}, {
-  k: 'moto',
-  n: '오토바이',
-  e: '🏍️',
-  m: 1.75,
-  t: 3.4
-}, {
-  k: 'bike',
-  n: '자전거',
-  e: '🚲',
-  m: 1.35,
-  t: 4
-}, {
-  k: 'wheel',
-  n: '휠체어',
-  e: '♿',
-  m: 1.2,
-  t: 5
-}, {
-  k: 'cart',
-  n: '카트',
-  e: '🏎️',
-  m: 1.55,
-  t: 3
-}, {
-  k: 'kick',
-  n: '킥보드',
-  e: '🛴',
-  m: 1.3,
-  t: 4
-}, {
-  k: 'ekick',
-  n: '전동 킥보드',
-  e: '🛴',
-  m: 1.65,
-  t: 3
-}, {
-  k: 'portal',
-  n: '포탈건',
-  e: '🌀'
-}, {
-  k: 'banana',
-  n: '바나나',
-  e: '🍌'
-}, {
-  k: 'stun',
-  n: '스턴건',
-  e: '🔫'
-}];
-const SKIN = ['#f5d0b0', '#e8b98f', '#c68c5c', '#8d5a3b', '#f2c9a5', '#d9a273', '#b07548', '#f5d0b0'];
-const HAIR = ['#2b1d14', '#5a3a22', '#c9a227', '#1e2b33', '#8a2b1b', '#2b1d14', '#6b4a2f', '#111'];
-const SIGNS = ['힘내!', '화이팅!', 'GO!', '달려라!', '최고!'];
-const SHOPS = ['치킨', '카페', 'PC방', '노래방', '편의점', '분식', '약국', '은행', '떡볶이', '24시'];
-const SHOPC = ['#e4572e', '#1f6fb2', '#2fb67c', '#8e5ad6', '#f2b705', '#ef6aa1'];
-// ---- 캐릭터 동작: 관절(허벅지·정강이, 위팔·아래팔) + 반동·기울기 + 상태별 포즈 + 나이/개성 걸음 + 부가 효과 ----
-// 각도는 '아래 방향'이 0, 앞(+x)이 양수. 정강이 = 허벅지 - 무릎(뒤로 접힘), 아래팔 = 위팔 + 팔꿈치(앞으로 접힘)
-const LEG = 7;
-const ARM1 = 6.2;
-const ARM2 = 5.8;
-const HIPS = [-2, 2];
-const AGEP = {
-  c: {
-    cad: 1.25,
-    stride: .8,
-    knee: 1.1,
-    arm: 1.15,
-    lean: .06,
-    bob: 1.3
-  },
-  a: {
-    cad: 1,
-    stride: 1,
-    knee: 1,
-    arm: 1,
-    lean: .14,
-    bob: 1
-  },
-  e: {
-    cad: .9,
-    stride: .5,
-    knee: .55,
-    arm: .35,
-    lean: .28,
-    bob: .45
-  },
-  r: {
-    cad: 1,
-    stride: .85,
-    knee: .6,
-    arm: .55,
-    lean: .05,
-    bob: .25
-  }
-};
-function push() {
+// 게임 엔진 진입점: createGame(canvas, { onChange })가 게임을 만들고 조작 API를 돌려준다.
+// 상태 초기화, 메인 루프, 입력 처리, UI로 상태 전달(push)을 맡는다.
+import { AGEP, ARM1, ARM2, BACK, COLORS, GT, HAIR, HINT, HIPS, ITEMS, JT, LEG, MAXN, NAMES, OFF, SHOPC, SHOPS, SIGNS, SKIN, TRACK, WIN_LINES } from "./constants.js";
+import { G } from "./state.js";
+import { R, fitText, hsh, ink, lerp, rr, shade, shuffle } from "./util.js";
+export function push() {
   G.ui.onChange({
     state: G.state,
     msg: G.msg,
@@ -141,27 +22,7 @@ function push() {
     cfg: G.cfg.map(c => Object.assign({}, c))
   });
 }
-function shuffle(a) {
-  for (let k = a.length - 1; k > 0; k--) {
-    const j = Math.floor(Math.random() * (k + 1));
-    [a[k], a[j]] = [a[j], a[k]];
-  }
-  return a;
-}
-function ink(c) {
-  const v = parseInt(c.slice(1), 16);
-  return (v >> 16) * .299 + (v >> 8 & 255) * .587 + (v & 255) * .114 > 150 ? '#1e2b33' : '#fff';
-}
-function rr(x, y, w, h, r) {
-  G.ctx.beginPath();
-  G.ctx.moveTo(x + r, y);
-  G.ctx.arcTo(x + w, y, x + w, y + h, r);
-  G.ctx.arcTo(x + w, y + h, x, y + h, r);
-  G.ctx.arcTo(x, y + h, x, y, r);
-  G.ctx.arcTo(x, y, x + w, y, r);
-  G.ctx.closePath();
-}
-function say(r, t) {
+export function say(r, t) {
   G.fx.push({
     x: r.x,
     d: r.d,
@@ -171,17 +32,17 @@ function say(r, t) {
 }
 
 // 레인 s의 발 위치(d): 트랙(GT ~ GT+GD+20)을 n등분한 칸의 가운데
-function laneD(s) {
+export function laneD(s) {
   return (s + .5) * (G.GD + 20) / G.n - 16;
 }
 // 장애물의 깊이 d 위치 x(허들은 사선), 깊이 d의 허들 칸
-function hx(t, d) {
+export function hx(t, d) {
   return t.x - (d - ((G.GD + 20) / 2 - 16)) * (t.s || 0);
 }
-function unitAt(t, d) {
+export function unitAt(t, d) {
   return t.u[Math.max(0, Math.min(G.n - 1, Math.floor((d + 16) / ((G.GD + 20) / G.n))))];
 }
-function setup() {
+export function setup() {
   G.GD = 152 + Math.max(0, G.n - 8) * 12;
   G.H = GT + G.GD + 50;
   G.cv.width = G.W;
@@ -214,23 +75,23 @@ function setup() {
   G.quirks = Array.from({
     length: G.n
   }, () => ({
-    stride: G.R(.88, 1.12),
-    arm: G.R(.8, 1.25),
-    lean: G.R(.75, 1.3),
-    cad: G.R(.92, 1.08)
+    stride: R(.88, 1.12),
+    arm: R(.8, 1.25),
+    lean: R(.75, 1.3),
+    cad: R(.92, 1.08)
   }));
   if (G.mode === 'item') {
-    let bx = G.R(900, 1100);
+    let bx = R(900, 1100);
     while (bx < TRACK - 500) {
       for (let d = 20; d <= G.GD - 20; d += 37) G.boxes.push({
         x: bx,
         d: d,
         t: 0
       });
-      bx += G.R(650, 950);
+      bx += R(650, 950);
     }
   }
-  let x = G.R(700, 850);
+  let x = R(700, 850);
   // 장애물: 허들(점프로 넘음), 물웅덩이(점프로 넘음, 빠지면 오래 멈춤)
   // 허들은 레인마다 한 칸씩 사선으로 늘어섬. 걸려 넘어진 칸은 쓰러져서 그 레인은 다음 사람부터 그냥 통과
   while (x < TRACK - 400) {
@@ -251,14 +112,14 @@ function setup() {
         ft: 0
       }))
     });
-    x += G.R(450, 800);
+    x += R(450, 800);
   }
   // 진흙: 장애물 사이 넓은 틈에 최대 3곳. 점프로 못 피하고 지나는 동안 느려짐
   for (let k = 0; k + 1 < G.traps.length && G.muds.length < 3; k++) {
     const a = G.traps[k].x,
       b = G.traps[k + 1].x;
     if (b - a >= 620 && Math.random() < .4) {
-      const len = G.R(150, 220),
+      const len = R(150, 220),
         c = (a + b) / 2;
       G.muds.push({
         x0: c - len / 2,
@@ -269,10 +130,10 @@ function setup() {
   // 스프링 발판 4개: 트랙 중반(40%)부터 결승 250 앞 사이 무작위 위치. 무작위 레인(맨 아래 포함)을 중심으로
   // 트랙 폭의 42%를 사선(s: 깊이 1당 x 이동량)으로 덮음. 밟으면 뒤로 튕겨 나감(발판마다 캐릭터당 한 번만 작동)
   for (let tries = 0; G.springs.length < 4 && tries < 300; tries++) {
-    const sx = G.R(TRACK * .4, TRACK - 250);
+    const sx = R(TRACK * .4, TRACK - 250);
     if (G.traps.some(t => Math.abs(sx - t.x) < 140) || G.muds.some(z => sx > z.x0 - 70 && sx < z.x1 + 70) || G.springs.some(p => Math.abs(sx - p.x) < 300)) continue;
     const w = (G.GD + 20) * .42,
-      c = laneD(Math.floor(G.R(0, G.n))),
+      c = laneD(Math.floor(R(0, G.n))),
       d0 = Math.max(-12, Math.min(G.GD - w, c - w / 2));
     G.springs.push({
       x: sx,
@@ -300,17 +161,17 @@ function setup() {
       vd: 0,
       kx: 0,
       speed: 0,
-      base: G.R(215, 232),
+      base: R(215, 232),
       mult: 1,
       change: 0,
-      skill: G.R(.6, .9),
+      skill: R(.6, .9),
       dd: {},
       jt: -1,
       h: 0,
       stun: 0,
       inv: 0,
       slow: 0,
-      cool: G.R(.5, 1.5),
+      cool: R(.5, 1.5),
       pull: null,
       act: 0,
       ak: '',
@@ -332,7 +193,7 @@ function setup() {
     });
   }
 }
-function update(dt) {
+export function update(dt) {
   G.clock += dt;
   const act = G.racers.filter(r => !r.fin);
   let lead = 0;
@@ -358,8 +219,8 @@ function update(dt) {
       if (r.change <= 0) {
         const late = r.x > TRACK - 1000,
           q = Math.random();
-        r.mult = q < (late ? .45 : .35) ? G.R(1.3, 1.7) : q < .7 ? G.R(.5, .75) : G.R(.95, 1.15);
-        r.change = G.R(.6, 1.8);
+        r.mult = q < (late ? .45 : .35) ? R(1.3, 1.7) : q < .7 ? R(.5, .75) : R(.95, 1.15);
+        r.change = R(.6, 1.8);
       }
       const gap = lead - r.x;
       let m = r.mult + Math.min(gap / 450, 1) * .28 - (gap < 1 ? .08 : 0);
@@ -387,7 +248,7 @@ function update(dt) {
       }
     }
     // depth steering
-    if (Math.random() < dt * .7) r.td = G.R(-8, G.GD - 4);
+    if (Math.random() < dt * .7) r.td = R(-8, G.GD - 4);
     const st = Math.max(-60 * dt, Math.min(60 * dt, r.td - r.d));
     r.d += st + r.vd * dt;
     r.vd *= Math.pow(.01, dt);
@@ -525,10 +386,10 @@ function update(dt) {
           say(r, '🔋 충전!');
           break;
         }
-        const it = ITEMS[Math.floor(G.R(0, ITEMS.length))];
+        const it = ITEMS[Math.floor(R(0, ITEMS.length))];
         r.item = {
           k: it.k,
-          d: G.R(.5, 1.2),
+          d: R(.5, 1.2),
           life: 5
         };
         say(r, it.e + it.n);
@@ -571,7 +432,7 @@ function update(dt) {
       }
     }
     if (v && Math.random() < dt * 2.2) {
-      a.cool = G.R(1.3, 2.3);
+      a.cool = R(1.3, 2.3);
       if (v.x - a.x > 8 && Math.random() < .4 && !a.pull) {
         a.pull = {
           v: v,
@@ -609,7 +470,7 @@ function update(dt) {
     if (G.endWait > 1.3) finish();
   }
 }
-function useItem(r) {
+export function useItem(r) {
   const k = r.item.k,
     it = ITEMS.find(i => i.k === k);
   if (it.m) {
@@ -673,7 +534,7 @@ function useItem(r) {
     }
   }
 }
-function record() {
+export function record() {
   if (G.frames.length && G.rt - G.frames[G.frames.length - 1].t < 1 / 40) return;
   G.frames.push({
     t: G.rt,
@@ -748,7 +609,7 @@ function record() {
     }))
   });
 }
-function applyFrame(f) {
+export function applyFrame(f) {
   G.racers = f.r.map(o => Object.assign({}, o));
   G.racers.forEach((r, k) => {
     r.pull = f.r[k].pt >= 0 ? {
@@ -778,7 +639,7 @@ function applyFrame(f) {
   G.clock = f.clock;
   G.banner = f.bn;
 }
-function startReplay() {
+export function startReplay() {
   G.bk = {
     racers: G.racers,
     fin: G.fin,
@@ -797,7 +658,7 @@ function startReplay() {
   G.manual = false;
   push();
 }
-function endReplay() {
+export function endReplay() {
   ({
     racers: G.racers,
     fin: G.fin,
@@ -816,7 +677,7 @@ function endReplay() {
   if (G.rec && G.rec.state === 'recording') G.rec.stop();
   push();
 }
-function lzw(px) {
+export function lzw(px) {
   const clear = 256,
     eoi = 257;
   let size = 9,
@@ -872,17 +733,17 @@ function lzw(px) {
   out.push(0);
   return out;
 }
-function gifHeader(w, h) {
+export function gifHeader(w, h) {
   const a = [71, 73, 70, 56, 57, 97, w & 255, w >> 8, h & 255, h >> 8, 0xF7, 0, 0];
   for (let i = 0; i < 256; i++) a.push(Math.round((i >> 5 & 7) * 255 / 7), Math.round((i >> 2 & 7) * 255 / 7), Math.round((i & 3) * 255 / 3));
   a.push(0x21, 0xFF, 11, 78, 69, 84, 83, 67, 65, 80, 69, 50, 46, 48, 3, 1, 0, 0, 0);
   return new Uint8Array(a);
 }
-function gifFrame(px, w, h, cs) {
+export function gifFrame(px, w, h, cs) {
   const a = [0x21, 0xF9, 4, 0x04, cs & 255, cs >> 8, 0, 0, 0x2C, 0, 0, 0, 0, w & 255, w >> 8, h & 255, h >> 8, 0];
   return new Uint8Array(a.concat(lzw(px)));
 }
-function offer(blob, name) {
+export function offer(blob, name) {
   G.ready = {
     blob: blob,
     name: name
@@ -890,7 +751,7 @@ function offer(blob, name) {
   G.msg = '파일이 준비됐어요. 저장 버튼을 눌러 주세요.';
   push();
 }
-function saveReady() {
+export function saveReady() {
   if (!G.ready) return;
   const a = document.createElement('a');
   a.href = URL.createObjectURL(G.ready.blob);
@@ -902,7 +763,7 @@ function saveReady() {
   G.msg = '저장했어요!';
   push();
 }
-async function exportGif() {
+export async function exportGif() {
   if (G.state !== 'podium' || G.frames.length < 2) return;
   G.ready = null;
   startReplay();
@@ -947,7 +808,7 @@ async function exportGif() {
     type: 'image/gif'
   }), 'race-replay.gif');
 }
-function exportVideo() {
+export function exportVideo() {
   if (G.state !== 'podium' || G.frames.length < 2) return;
   if (!window.MediaRecorder || !G.cv.captureStream) {
     G.msg = '이 브라우저는 영상 녹화를 지원하지 않아요. GIF로 만들어 보세요.';
@@ -984,7 +845,7 @@ function exportVideo() {
   G.msg = '영상 녹화 중… 리플레이가 끝날 때까지 기다려 주세요.';
   push();
 }
-function liveRank() {
+export function liveRank() {
   const a = G.racers.slice().sort((p, q) => {
     if (p.fin && q.fin) return p.rank - q.rank;
     if (p.fin !== q.fin) return p.fin ? -1 : 1;
@@ -993,7 +854,7 @@ function liveRank() {
   a.forEach((r, k) => r.cur = k + 1);
   return a;
 }
-function updateCam(dt) {
+export function updateCam(dt) {
   if (G.manual) {
     G.camX += (G.mt - G.camX) * Math.min(1, dt * 10);
     return;
@@ -1005,17 +866,13 @@ function updateCam(dt) {
 }
 
 // ---- 배경(맵): 서울 도심 / 전통 마을 × 낮 / 밤 ----
-function hsh(i) {
-  const v = Math.sin(i * 127.1 + 311.7) * 43758.5453;
-  return v - Math.floor(v);
-}
-function TH() {
+export function TH() {
   return {
     night: G.mapId.endsWith('night'),
     trad: G.mapId.startsWith('trad')
   };
 }
-function stars() {
+export function stars() {
   const now = performance.now() / 1000;
   G.ctx.fillStyle = '#fff';
   for (let k = 0; k < 70; k++) {
@@ -1040,7 +897,7 @@ function stars() {
   G.ctx.fill();
 }
 // 부드러운 산 능선(시차 par)
-function ridge(par, seed, base, amp, col, rocky) {
+export function ridge(par, seed, base, amp, col, rocky) {
   const off = G.camX * par;
   G.ctx.fillStyle = col;
   G.ctx.beginPath();
@@ -1055,7 +912,7 @@ function ridge(par, seed, base, amp, col, rocky) {
   G.ctx.closePath();
   G.ctx.fill();
 }
-function skyline(par, seed, base, minH, maxH, col, win, winP, signs, night) {
+export function skyline(par, seed, base, minH, maxH, col, win, winP, signs, night) {
   const off = G.camX * par,
     step = 46,
     i0 = Math.floor((off - 70) / step),
@@ -1099,7 +956,7 @@ function skyline(par, seed, base, minH, maxH, col, win, winP, signs, night) {
   }
 }
 // 서울 랜드마크: 남산(N서울타워), 롯데월드타워, 63빌딩 — 시차 공간에서 700 간격으로 번갈아 등장
-function landmarks(par, base, night, phase) {
+export function landmarks(par, base, night, phase) {
   const off = G.camX * par,
     sp = 700,
     i0 = Math.floor((off - 250) / sp),
@@ -1201,7 +1058,7 @@ function landmarks(par, base, night, phase) {
   }
 }
 // 한옥(기와지붕 곡선, 처마 끝이 들림) / 궁궐 대문
-function roof(x, top, w, col) {
+export function roof(x, top, w, col) {
   G.ctx.fillStyle = col;
   G.ctx.beginPath();
   G.ctx.moveTo(x - 14, top - 8);
@@ -1226,7 +1083,7 @@ function roof(x, top, w, col) {
   }
   G.ctx.stroke();
 }
-function hanok(x, base, w, night, i) {
+export function hanok(x, base, w, night, i) {
   const h = 30,
     top = base - h;
   G.ctx.fillStyle = night ? '#3a3a44' : '#f3ecdc';
@@ -1253,7 +1110,7 @@ function hanok(x, base, w, night, i) {
   G.ctx.fillRect(x - 4, top - 3, w + 8, 3);
   roof(x, top - 3, w, night ? '#1c1f26' : '#4a4f57');
 }
-function palaceGate(x, base, night) {
+export function palaceGate(x, base, night) {
   const w = 160;
   G.ctx.fillStyle = night ? '#4a4a52' : '#b9b2a5';
   G.ctx.fillRect(x, base - 34, w, 34);
@@ -1294,7 +1151,7 @@ function palaceGate(x, base, night) {
     G.ctx.fillRect(x - 40, base - 150, w + 80, 150);
   }
 }
-function tree(x, y) {
+export function tree(x, y) {
   G.ctx.fillStyle = '#7a5536';
   G.ctx.fillRect(x - 3, y - 24, 6, 24);
   G.ctx.fillStyle = '#5f9e5a';
@@ -1308,7 +1165,7 @@ function tree(x, y) {
   G.ctx.arc(x - 5, y - 42, 6, 0, 7);
   G.ctx.fill();
 }
-function pine(x, y, i) {
+export function pine(x, y, i) {
   const lean = (hsh(i * 5) - .5) * 10;
   G.ctx.strokeStyle = '#8a4b2f';
   G.ctx.lineWidth = 5;
@@ -1328,7 +1185,7 @@ function pine(x, y, i) {
   G.ctx.ellipse(x + lean * .4, y - 50, 8, 2.5, 0, 0, 7);
   G.ctx.fill();
 }
-function spectator(x, y, i, now, trad) {
+export function spectator(x, y, i, now, trad) {
   const s = .85 + hsh(i * 13) * .3,
     c = COLORS[Math.floor(hsh(i * 5) * COLORS.length)],
     sk = SKIN[Math.floor(hsh(i * 9) * SKIN.length)],
@@ -1390,7 +1247,7 @@ function spectator(x, y, i, now, trad) {
     G.ctx.fillText(t, x, sy + 9);
   }
 }
-function walker(x, y, k, now) {
+export function walker(x, y, k, now) {
   const ph = now * 6 + k,
     sw = Math.sin(ph),
     c = COLORS[(k * 3 + 2) % COLORS.length],
@@ -1454,19 +1311,19 @@ function walker(x, y, k, now) {
   G.ctx.stroke();
 }
 // 밤 조명: 도심은 가로등, 전통 마을은 청사초롱. 같은 위치로 도로에 빛 웅덩이를 그림
-function lampXs(spacing, offset, cb) {
+export function lampXs(spacing, offset, cb) {
   const a = Math.floor((G.camX - OFF - offset - 100) / spacing),
     b = Math.ceil((G.camX - OFF - offset + G.W + 100) / spacing);
   for (let i = a; i <= b; i++) cb(i * spacing + offset - G.camX + OFF, i);
 }
-function glow(x, y, r, c) {
+export function glow(x, y, r, c) {
   const g = G.ctx.createRadialGradient(x, y, 0, x, y, r);
   g.addColorStop(0, c);
   g.addColorStop(1, 'rgba(0,0,0,0)');
   G.ctx.fillStyle = g;
   G.ctx.fillRect(x - r, y - r, r * 2, r * 2);
 }
-function nightLights(th) {
+export function nightLights(th) {
   if (th.trad) lampXs(150, 40, x => {
     G.ctx.strokeStyle = '#3a2a1c';
     G.ctx.lineWidth = 2.5;
@@ -1498,7 +1355,7 @@ function nightLights(th) {
     G.ctx.fill();
   });
 }
-function roadPools(th) {
+export function roadPools(th) {
   const sp = th.trad ? 150 : 200,
     of = th.trad ? 48 : 112;
   lampXs(sp, of, x => {
@@ -1509,7 +1366,7 @@ function roadPools(th) {
     G.ctx.restore();
   });
 }
-function cityBg(th) {
+export function cityBg(th) {
   const now = performance.now() / 1000,
     top = GT - 30,
     n8 = th.night;
@@ -1586,14 +1443,13 @@ function cityBg(th) {
   }
 }
 // 카메라·헬기가 따라가는 캐릭터: 아직 도착하지 않은 선두. 모두 도착했으면 마지막 도착자
-function focusR() {
+export function focusR() {
   let f = null;
   for (const r of G.racers) if (!r.fin && (!f || r.x > f.x)) f = r;
   return f || G.fin[G.fin.length - 1] || null;
 }
 // 헬기: 시작 전에는 캔버스 위 마우스 x를 따라감(캔버스 밖으로 나가면 마지막 위치에서 제자리 비행)
-
-function drawHeli() {
+export function drawHeli() {
   const f = G.state === 'idle' ? null : focusR(),
     now = performance.now() / 1000,
     panel = (G.n > 10 ? 332 : 172) + 30,
@@ -1677,7 +1533,7 @@ function drawHeli() {
   G.ctx.restore();
 }
 // 허들 한 칸(레인 하나). down이면 앞으로 넘어간 모습(ft: 0→1 넘어가는 진행도)
-function hurdle(x, y, down, ft) {
+export function hurdle(x, y, down, ft) {
   const p = down ? Math.min(1, ft) : 0;
   if (p < 1) {
     G.ctx.fillStyle = 'rgba(30,43,51,.18)';
@@ -1719,19 +1575,7 @@ function hurdle(x, y, down, ft) {
   G.ctx.strokeRect(-12, -23, 24, 6);
   G.ctx.restore();
 }
-function hills(par, base, amp, col, seed) {
-  G.ctx.fillStyle = col;
-  G.ctx.beginPath();
-  G.ctx.moveTo(0, GT);
-  for (let x = 0; x <= G.W; x += 20) {
-    const wx = x + G.camX * par;
-    G.ctx.lineTo(x, base - amp * (Math.sin(wx * .006 + seed) * .5 + Math.sin(wx * .013 + seed * 2) * .3 + .8));
-  }
-  G.ctx.lineTo(G.W, GT);
-  G.ctx.closePath();
-  G.ctx.fill();
-}
-function drawVeh(k, t) {
+export function drawVeh(k, t) {
   G.ctx.lineWidth = 2;
   G.ctx.strokeStyle = '#1e2b33';
   G.ctx.fillStyle = '#1e2b33';
@@ -1811,7 +1655,7 @@ function drawVeh(k, t) {
 // 배터리는 달리는 동안 닳고, 가득 차면 부스터가 자동 발동(배터리 35 소모). 부스터는 열을 올리고 열이 100이면 과열(2초 반속).
 // 배터리 0이면 급정지 후 2.2초 수동 충전. 배터리가 있는 동안은 랜덤 배율 대신 일정 속도(크루즈)를 유지.
 // 크루즈 배율은 모드별로 시뮬레이션 평균 순위가 사람과 비슷해지도록 맞춘 값(아이템전은 충전 아이템이 있어 낮춤).
-function robotStep(r, dt, gap) {
+export function robotStep(r, dt, gap) {
   if (r.chg > 0) {
     r.chg -= dt;
     r.bat = Math.min(100, r.bat + 28 * dt);
@@ -1854,7 +1698,7 @@ function robotStep(r, dt, gap) {
   return m;
 }
 // ---- 로봇 그리기: 금속 몸체, LED 얼굴, 부스터 불꽃, 환호 시 머리 회전·가슴 폭죽 ----
-function led(f, now, o) {
+export function led(f, now, o) {
   const c = f === 'hot' || f === 'sad' ? '#ff6a5a' : f === 'low' || f === 'error' ? '#ffd166' : '#5ff5c8';
   G.ctx.fillStyle = c;
   G.ctx.strokeStyle = c;
@@ -1925,7 +1769,7 @@ function led(f, now, o) {
   }
   G.ctx.lineCap = 'round';
 }
-function robotBody(P, r, o, f, now) {
+export function robotBody(P, r, o, f, now) {
   const metal = '#b4c0ca',
     dark = '#7d8a95',
     joint = '#4b5863';
@@ -2020,7 +1864,7 @@ function robotBody(P, r, o, f, now) {
   }
   G.ctx.restore();
 }
-function drawBattery(x, y, r) {
+export function drawBattery(x, y, r) {
   const b = Math.max(0, Math.min(100, r.bat)) / 100;
   G.ctx.fillStyle = 'rgba(255,255,255,.85)';
   rr(x, y, 16, 8, 2);
@@ -2040,20 +1884,12 @@ function drawBattery(x, y, r) {
     G.ctx.fillText('⚡', x + 8, y + 7.5);
   }
 }
-function shade(hex, f) {
-  const v = parseInt(hex.slice(1), 16),
-    ch = s => Math.round((v >> s & 255) * (1 - f));
-  return 'rgb(' + ch(16) + ',' + ch(8) + ',' + ch(0) + ')';
-}
-function lerp(a, b, w) {
-  return a + (b - a) * w;
-}
-function fk(x, y, a1, l1, a2, l2) {
+export function fk(x, y, a1, l1, a2, l2) {
   const kx = x + Math.sin(a1) * l1,
     ky = y + Math.cos(a1) * l1;
   return [kx, ky, kx + Math.sin(a2) * l2, ky + Math.cos(a2) * l2];
 }
-function limb(x, y, a1, l1, a2, l2, w, col) {
+export function limb(x, y, a1, l1, a2, l2, w, col) {
   const p = fk(x, y, a1, l1, a2, l2);
   G.ctx.strokeStyle = col;
   G.ctx.lineWidth = w;
@@ -2065,10 +1901,10 @@ function limb(x, y, a1, l1, a2, l2, w, col) {
   G.ctx.stroke();
   return [p[2], p[3]];
 }
-function footY(lg, s) {
+export function footY(lg, s) {
   return fk(HIPS[s], -14, lg.t, LEG, lg.t - lg.k, LEG)[3];
 }
-function pose(legs, arms, o) {
+export function pose(legs, arms, o) {
   return Object.assign({
     legs: legs,
     arms: arms,
@@ -2080,7 +1916,7 @@ function pose(legs, arms, o) {
     head: 0
   }, o || {});
 }
-function gait(phi, p) {
+export function gait(phi, p) {
   const A = .55 * p.stride,
     legs = [],
     arms = [];
@@ -2099,7 +1935,7 @@ function gait(phi, p) {
   }
   return pose(legs, arms);
 }
-function mixPose(a, b, w) {
+export function mixPose(a, b, w) {
   const m = (x, y) => lerp(x, y, w);
   return {
     legs: a.legs.map((l, i) => ({
@@ -2118,7 +1954,7 @@ function mixPose(a, b, w) {
     head: m(a.head, b.head)
   };
 }
-function face(f, tilt) {
+export function face(f, tilt) {
   G.ctx.save();
   G.ctx.translate(0, -34);
   G.ctx.rotate(tilt);
@@ -2187,7 +2023,7 @@ function face(f, tilt) {
   G.ctx.restore();
 }
 // o: ph(걸음 위상), run, stun, cry, sad, cheer, veh, t, ready(카운트다운), h(점프 높이), act('push'|'pull'), actT, sprint, wx/wd(월드 좌표: 먼지용)
-function drawPerson(px, py, r, o) {
+export function drawPerson(px, py, r, o) {
   const el = r.age === 'e',
     ch = r.age === 'c',
     fe = r.gender === 'f',
@@ -2234,12 +2070,12 @@ function drawPerson(px, py, r, o) {
     if (robo && o.wx !== undefined) {
       G.shake = Math.max(G.shake, .18);
       for (let k = 0; k < 10; k++) G.dust.push({
-        x: o.wx + G.R(-8, 8),
+        x: o.wx + R(-8, 8),
         d: o.wd,
         y: 1,
-        vx: G.R(-120, 120),
-        vy: G.R(40, 120),
-        r: G.R(.8, 1.6),
+        vx: R(-120, 120),
+        vy: R(40, 120),
+        r: R(.8, 1.6),
         a: 1,
         c: k % 2 ? '#ffb020' : '#ffe08a',
         g: 1
@@ -2624,12 +2460,12 @@ function drawPerson(px, py, r, o) {
   // 흙먼지: 발이 땅을 딛는 순간(허벅지가 뒤로 가기 시작) 월드 좌표에 생성
   // 과열·재부팅 연기
   if (robo && o.wx !== undefined && (o.ovh > 0 || o.stun) && G.fdt > 0 && Math.random() < G.fdt * 14 && G.dust.length < 300) G.dust.push({
-    x: o.wx + G.R(-6, 6),
+    x: o.wx + R(-6, 6),
     d: o.wd,
     y: 52 * sc,
-    vx: G.R(-25, -5),
-    vy: G.R(25, 45),
-    r: G.R(2, 3.5),
+    vx: R(-25, -5),
+    vy: R(25, 45),
+    r: R(2, 3.5),
     a: .9,
     c: '#8d99a3',
     g: -1
@@ -2641,16 +2477,16 @@ function drawPerson(px, py, r, o) {
         x: o.wx + feet[s][0] * sc,
         d: o.wd,
         y: 0,
-        vx: -G.R(20, 70),
-        vy: G.R(10, 35),
-        r: G.R(1.5, 3),
+        vx: -R(20, 70),
+        vy: R(10, 35),
+        r: R(1.5, 3),
         a: 1
       });
       an.prevCos[s] = cs;
     }
   }
 }
-function bubble(x, y, t) {
+export function bubble(x, y, t) {
   G.ctx.font = '16px Jua,sans-serif';
   const w = G.ctx.measureText(t).width + 20,
     h = 28,
@@ -2674,14 +2510,14 @@ function bubble(x, y, t) {
   G.ctx.textAlign = 'center';
   G.ctx.fillText(t, bx + w / 2, y - 9);
 }
-function podiumStep(dt) {
+export function podiumStep(dt) {
   if (G.pt > 2.9) for (let k = 0; k < 3; k++) G.conf.push({
-    x: G.R(0, G.W),
+    x: R(0, G.W),
     y: -10,
-    vx: G.R(-40, 40),
-    vy: G.R(90, 170),
-    c: COLORS[Math.floor(G.R(0, 8))],
-    a: G.R(0, 6)
+    vx: R(-40, 40),
+    vy: R(90, 170),
+    c: COLORS[Math.floor(R(0, 8))],
+    a: R(0, 6)
   });
   for (const c of G.conf) {
     c.x += c.vx * dt;
@@ -2691,12 +2527,12 @@ function podiumStep(dt) {
   G.conf = G.conf.filter(c => c.y < G.H + 10);
 }
 // 조명 세기: t0초부터 0.6초 페이드인 → 4.5초 유지 → 0.6초 페이드아웃 후 전체 컬러로 복귀
-function spotA(t0) {
+export function spotA(t0) {
   const FI = .6,
     HOLD = 4.5;
   return Math.min((G.pt - t0) / FI, (t0 + FI + HOLD + FI - G.pt) / FI);
 }
-function spotlight(cx, cy, rad, a) {
+export function spotlight(cx, cy, rad, a) {
   a = Math.max(0, Math.min(1, a));
   if (a <= 0) return;
   const e = 1 - (1 - a) * (1 - a);
@@ -2741,11 +2577,11 @@ function spotlight(cx, cy, rad, a) {
   G.ctx.restore();
 }
 // 꼴찌 자리: 왼쪽에 꽂힌 '꼴등' 화살표 표지판이 캐릭터를 가리킴. 2위 시상대와 겹치지 않게 모바일 폭에선 조금 왼쪽
-function lastX() {
+export function lastX() {
   const dx = Math.min(150, G.W * .23);
   return Math.max(70, Math.min(90, G.W / 2 - dx - 84));
 }
-function lastSign(lx) {
+export function lastSign(lx) {
   const px = lx - 36,
     y0 = 304,
     y1 = 326,
@@ -2777,14 +2613,7 @@ function lastSign(lx) {
   G.ctx.fillText('꼴등', (x0 + x1 - 10) / 2, y1 - 6);
 }
 // 폭에 맞게 글자 크기를 줄여 가운데 정렬로 씀
-function fitText(t, x, y, size, maxW) {
-  G.ctx.textAlign = 'center';
-  G.ctx.font = size + 'px Jua,sans-serif';
-  const w = G.ctx.measureText(t).width;
-  if (w > maxW) G.ctx.font = Math.max(10, Math.floor(size * maxW / w)) + 'px Jua,sans-serif';
-  G.ctx.fillText(t, x, y);
-}
-function drawPodium() {
+export function drawPodium() {
   G.podBub = null;
   G.lastBub = null;
   const g = G.ctx.createLinearGradient(0, 0, 0, G.H);
@@ -2922,7 +2751,7 @@ function drawPodium() {
   if (G.podBub && G.winLine) bubble(G.podBub.x, G.podBub.y, G.winLine);
   if (G.lastBub) bubble(G.lastBub.x, G.lastBub.y, G.lastBub.t);
 }
-function draw() {
+export function draw() {
   if (G.state === 'podium') {
     drawPodium();
     return;
@@ -2934,13 +2763,13 @@ function draw() {
   if (G.shake > 0) {
     G.shake -= G.fdt;
     G.ctx.save();
-    G.ctx.translate(G.R(-3, 3) * G.shake * 5, G.R(-3, 3) * G.shake * 5);
+    G.ctx.translate(R(-3, 3) * G.shake * 5, R(-3, 3) * G.shake * 5);
     drawRace();
     G.ctx.restore();
   } else drawRace();
 }
 // 시작 전 미리보기: 배경 위에 트랙 라인·레인 번호·이름표와 서 있는 캐릭터
-function drawPreview() {
+export function drawPreview() {
   if (!G.pv) {
     const rs = G.racers;
     G.racers = [];
@@ -3017,8 +2846,7 @@ function drawPreview() {
   if (hr) focusOne(hr);
 }
 // 호버한 캐릭터 강조: 지금까지 그린 화면 전체를 흐리게 덮고, 그 캐릭터만 선명하게 + 흰 외곽선
-
-function focusOne(r) {
+export function focusOne(r) {
   if (!G.fb) G.fb = [0, 0, 0].map(() => document.createElement('canvas'));
   for (const c of G.fb) if (c.width !== G.W || c.height !== G.H) {
     c.width = G.W;
@@ -3061,7 +2889,7 @@ function focusOne(r) {
   for (const [dx, dy] of [[-2.5, 0], [2.5, 0], [0, -2.5], [0, 2.5], [-1.8, -1.8], [1.8, -1.8], [-1.8, 1.8], [1.8, 1.8]]) G.ctx.drawImage(G.fb[2], dx, dy);
   G.ctx.drawImage(G.fb[1], 0, 0);
 }
-function drawRace() {
+export function drawRace() {
   const th = TH(),
     sky = th.night ? ['#0b1530', '#2b3d6e'] : th.trad ? ['#cfe6f0', '#f4efe0'] : ['#bfe3f2', '#eaf5ee'];
   const g = G.ctx.createLinearGradient(0, 0, 0, GT);
@@ -3497,7 +3325,7 @@ function drawRace() {
     G.ctx.fillText(String(Math.max(1, Math.ceil(G.cd))), G.W / 2, G.H / 2 + 40);
   }
 }
-function loop(ts) {
+export function loop(ts) {
   if (G.dead) return;
   const dt = Math.min(.05, (ts - G.last) / 1000 || 0);
   G.last = ts;
@@ -3536,7 +3364,7 @@ function loop(ts) {
   draw();
   G.raf = requestAnimationFrame(loop);
 }
-function finish() {
+export function finish() {
   G.state = 'podium';
   G.pt = 0;
   G.conf = [];
@@ -3559,7 +3387,7 @@ function finish() {
   G.msg = G.fin[0].name + '이(가) 우승했습니다!';
   push();
 }
-function setN(v) {
+export function setN(v) {
   if (G.rec && G.rec.state === 'recording') {
     G.rec.onstop = null;
     G.rec.stop();
@@ -3577,7 +3405,7 @@ function setN(v) {
   setup();
   push();
 }
-function start() {
+export function start() {
   if (G.state === 'run' || G.state === 'count') return;
   if (G.state === 'replay') endReplay();
   if (G.state === 'done' || G.state === 'podium') setup();
@@ -3587,7 +3415,7 @@ function start() {
   G.msg = '곧 출발합니다…';
   push();
 }
-function setCfg(i, p) {
+export function setCfg(i, p) {
   if (p.age !== undefined && p.age !== G.cfg[i].age) {
     const base = G.cfg[i].name.replace(/^메카 /, '');
     p = Object.assign({}, p, {
@@ -3604,11 +3432,11 @@ function setCfg(i, p) {
   }
   push();
 }
-function toggleReplay() {
+export function toggleReplay() {
   if (G.state === 'replay') endReplay();else if (G.state === 'podium' || G.state === 'done') startReplay();
   push();
 }
-function seek(e) {
+export function seek(e) {
   const b = G.cv.getBoundingClientRect(),
     x = (e.clientX - b.left) * G.W / b.width;
   const f = Math.max(0, Math.min(1, (x - 70) / (G.W - 130)));
@@ -3617,7 +3445,6 @@ function seek(e) {
   push();
 }
 // 레이스 게임 엔진: 캔버스 렌더링과 게임 로직. UI 상태는 ui.onChange 콜백으로만 내보냅니다.
-
 export function createGame(cv, ui) {
   for (const k of Object.keys(G)) delete G[k];
   G.cv = cv;
@@ -3627,7 +3454,6 @@ export function createGame(cv, ui) {
   // 트랙 깊이(GD)와 캔버스 높이(H)는 인원에 따라 setup()에서 정해짐: 8명까지는 기존 크기, 그 이상은 1명당 12px씩 넓어짐
   G.GD = 152;
   G.H = 420;
-  G.R = (a, b) => a + Math.random() * (b - a);
   G.raf = 0;
   G.dead = false;
   G.msg = '';
