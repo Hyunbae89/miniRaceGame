@@ -72,13 +72,6 @@ export function drawPreview() {
     G.ctx.fillStyle = '#1e2b33';
     G.ctx.fillText(String(ln), 11, y);
   }
-  G.ctx.textAlign = 'center';
-  G.ctx.font = '26px Jua,sans-serif';
-  G.ctx.lineWidth = 5;
-  G.ctx.strokeStyle = '#fff';
-  G.ctx.fillStyle = '#1e2b33';
-  G.ctx.strokeText('시작을 누르면 출발!', G.W / 2, GT - 60);
-  G.ctx.fillText('시작을 누르면 출발!', G.W / 2, GT - 60);
   if (hr) focusOne(hr);
 }
 // 호버한 캐릭터 강조: 지금까지 그린 화면 전체를 흐리게 덮고, 그 캐릭터만 선명하게 + 흰 외곽선
