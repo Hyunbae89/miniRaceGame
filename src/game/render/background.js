@@ -604,10 +604,70 @@ export function roadPools(th) {
     G.ctx.restore();
   });
 }
+// 밤 폭죽: 시간만으로 위치·색·크기를 계산(게임 난수를 쓰지 않아 레이스 결과에 영향 없음).
+// 0.55초마다 한 발 후보(약 35%는 건너뜀). 꼬리를 끌며 0.6초 올라가 터지고, 1.6초 동안 퍼지며 떨어지다 사라짐
+const FW = ['#ff5a5f', '#ffd166', '#4cc9f0', '#b388ff', '#7dff6b', '#ff9f1c', '#ff4fd8'];
+export function fireworks(now) {
+  const step = .55,
+    rise = .6,
+    life = 1.6,
+    k1 = Math.floor(now / step),
+    c = G.ctx;
+  c.save();
+  c.globalCompositeOperation = 'lighter';
+  c.lineCap = 'round';
+  for (let k = k1 - Math.ceil((rise + life) / step) - 1; k <= k1; k++) {
+    if (hsh(k * 11 + 3) < .35) continue;
+    const age = now - (k * step + hsh(k * 5) * step);
+    if (age < 0 || age > rise + life) continue;
+    const cx = 40 + hsh(k * 13) * (G.W - 80),
+      cy = 38 + hsh(k * 17) * 72,
+      col = FW[Math.floor(hsh(k * 19) * FW.length)],
+      col2 = FW[Math.floor(hsh(k * 23) * FW.length)];
+    if (age < rise) {
+      const q = age / rise,
+        y = GT - 30 - (GT - 30 - cy) * (1 - (1 - q) * (1 - q));
+      c.globalAlpha = .8;
+      c.strokeStyle = col;
+      c.lineWidth = 2;
+      c.beginPath();
+      c.moveTo(cx, y + 16);
+      c.lineTo(cx, y);
+      c.stroke();
+      continue;
+    }
+    const a = (age - rise) / life,
+      R = (46 + hsh(k * 29) * 32) * (1 - Math.pow(1 - Math.min(1, a * 1.7), 3)),
+      drop = 24 * a * a,
+      n = 22;
+    if (a < .1) {
+      c.globalAlpha = .5 * (1 - a / .1);
+      c.fillStyle = col;
+      c.beginPath();
+      c.arc(cx, cy, 16, 0, 7);
+      c.fill();
+    }
+    c.globalAlpha = Math.max(0, 1 - a);
+    c.lineWidth = 2;
+    for (let j = 0; j < n; j++) {
+      const ang = j / n * Math.PI * 2 + hsh(k) * .5,
+        r = R * (.85 + hsh(k * 31 + j) * .3),
+        ex = cx + Math.cos(ang) * r,
+        ey = cy + Math.sin(ang) * r + drop;
+      c.strokeStyle = j % 2 ? col : col2;
+      c.beginPath();
+      c.moveTo(cx + Math.cos(ang) * r * .78, cy + Math.sin(ang) * r * .78 + drop * .85);
+      c.lineTo(ex, ey);
+      c.stroke();
+    }
+  }
+  c.restore();
+}
 export function cityBg(th) {
   const now = performance.now() / 1000,
     top = GT - 30,
     n8 = th.night;
+  if (n8) fireworks(now);
   if (th.trad) {
     ridge(.05, 1, top + 4, 120, n8 ? '#2a3650' : '#aebccb', true);
     ridge(.1, 5, top + 4, 80, n8 ? '#1f2a3d' : '#8fa79f', true);
