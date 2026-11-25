@@ -20,6 +20,9 @@ let seed = 1;
 const rand = () => { seed |= 0; seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 Math.random = rand;
 let T = 0;
+// 저장 파일 이름에 들어가는 날짜·시각도 고정(2026-01-02 03:04:05)
+const RealDate = Date;
+globalThis.Date = class extends RealDate { constructor(...a) { super(...(a.length ? a : [2026, 0, 2, 3, 4, 5])); } static now() { return new RealDate(2026, 0, 2, 3, 4, 5).getTime(); } };
 Object.defineProperty(globalThis, 'performance', { value: { now: () => T }, configurable: true });
 
 // ---- 그리기 명령을 해시로 기록하는 가짜 캔버스 ----
@@ -163,9 +166,9 @@ if (args.includes('--balance')) {
 
 const results = {};
 for (const [name, fn] of Object.entries(scenarios)) {
-  const t0 = Date.now();
+  const t0 = RealDate.now();
   results[name] = run(name, fn);
-  console.log(`✓ ${name}  ${results[name].sec ? results[name].sec + '초 레이스, ' : ''}그리기 ${results[name].calls}회  (${((Date.now() - t0) / 1000).toFixed(1)}s)`);
+  console.log(`✓ ${name}  ${results[name].sec ? results[name].sec + '초 레이스, ' : ''}그리기 ${results[name].calls}회  (${((RealDate.now() - t0) / 1000).toFixed(1)}s)`);
 }
 if (args.includes('--update') || !existsSync(BASE)) {
   writeFileSync(BASE, JSON.stringify(results, null, 2) + '\n');
