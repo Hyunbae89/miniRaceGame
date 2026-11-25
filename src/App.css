@@ -148,3 +148,8 @@ canvas{display:block;width:100%;height:auto;border-radius:var(--radius);border:1
 .stage.racing canvas{cursor:grab}
 .stage.racing.grabbing canvas{cursor:grabbing}
 .race-bar .tip{width:100%;order:9;font-size:12px;color:var(--muted)}
+
+/* 참가자 목록 높이 고정(PC 2줄·휴대폰 3장) + 목록 안 스크롤. 아래에 더 있으면 끝을 흐리게 */
+.cards{position:relative;padding:4px 6px 6px 4px;margin:-4px -6px -6px -4px}
+.cards.clipped{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+.cards.more{-webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 36px),transparent);mask-image:linear-gradient(to bottom,#000 calc(100% - 36px),transparent)}
