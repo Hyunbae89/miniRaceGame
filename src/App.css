@@ -107,7 +107,7 @@ canvas{display:block;width:100%;height:auto;border-radius:var(--radius);border:1
 #result li.hl-2{background:rgba(160,170,180,.22)}
 #result li.hl-3{background:rgba(205,127,50,.2)}
 #result li.hl-last{background:rgba(79,195,247,.2)}
-.pos{width:3ch;font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
+.pos{flex:none;min-width:3.4em;font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 .dot{width:14px;height:14px;border-radius:50%}
 .sub{margin:4px 0 8px;color:var(--muted)}
 .time{margin-left:auto;color:var(--muted);font-variant-numeric:tabular-nums}
@@ -153,3 +153,5 @@ canvas{display:block;width:100%;height:auto;border-radius:var(--radius);border:1
 .cards{position:relative;padding:4px 6px 6px 4px;margin:-4px -6px -6px -4px}
 .cards.clipped{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
 .cards.more{-webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 36px),transparent);mask-image:linear-gradient(to bottom,#000 calc(100% - 36px),transparent)}
+#result li>span:nth-child(3){min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#result .time{flex:none;white-space:nowrap}
