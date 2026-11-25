@@ -322,8 +322,8 @@ export function pine(x, y, i) {
   G.ctx.fill();
 }
 // 구경꾼 한 명(발 위치 x, y). 크기 s는 1.3~1.6배. 밤에는 모두 팔을 흔들고, 오른손 위치를 돌려줘 응원봉을 따로 그림
-// pose: 'wave'(흔들기) | 'down'(내림) | 'hold'(현수막을 머리 위로 듦: 양손 높이 hy)
-export function spectator(x, y, i, now, trad, night, pose, hy) {
+// pose: 'wave'(흔들기) | 'down'(내림) | 'hold'(현수막 막대를 두 손으로 잡음: hold = { px 막대 x, y1 윗손, y2 아랫손 })
+export function spectator(x, y, i, now, trad, night, pose, hold) {
   const s = 1.3 + hsh(i * 13) * .3,
     c = COLORS[Math.floor(hsh(i * 5) * COLORS.length)],
     sk = SKIN[Math.floor(hsh(i * 9) * SKIN.length)],
@@ -337,9 +337,9 @@ export function spectator(x, y, i, now, trad, night, pose, hy) {
   G.ctx.beginPath();
   if (pose === 'hold') {
     G.ctx.moveTo(x - 3 * s, y - 12 * s);
-    G.ctx.lineTo(x - 4 * s, hy);
+    G.ctx.lineTo(hold.px, hold.y1);
     G.ctx.moveTo(x + 3 * s, y - 12 * s);
-    G.ctx.lineTo(x + 4 * s, hy);
+    G.ctx.lineTo(hold.px, hold.y2);
   } else if (pose === 'wave') {
     const rx = x + 7 * s,
       ry = y - (20 - a * 3) * s;
@@ -398,25 +398,30 @@ export function spectator(x, y, i, now, trad, night, pose, hy) {
 }
 // 두 사람이 양 끝을 잡고 머리 위로 드는 현수막
 const BANNERS = ['끝까지 달려라!', '모두 완주 화이팅!', '미니 레이스 토너먼트', '오늘의 1등은 누구?'];
-// 폭은 문구 길이에 맞춰 x1부터 최대 maxSpan까지 넓히고, 그래도 넘치면 글자를 줄임
+// 현수막: 양 끝을 나무 막대에 묶고, 두 사람이 바깥쪽에 서서 각자 막대를 두 손으로 잡음.
+// 폭은 문구 길이에 맞춰 minSpan~maxSpan(사람 사이 거리), 그래도 넘치면 글자를 줄임
 export function bannerPair(x1, minSpan, maxSpan, y, i, now, trad, night) {
   const s = 1.45,
-    top = y - 46 * s + Math.sin(now * 3 + i) * 1.5,
+    bob = Math.sin(now * 3 + i) * 1.5,
+    top = y - 50 * s + bob,
     h = 16,
+    gap = 7 * s,
     t = BANNERS[Math.floor(hsh(i * 41) * BANNERS.length)];
   let fs = 12;
   G.ctx.font = 'bold ' + fs + 'px Jua,sans-serif';
   const tw = G.ctx.measureText(t).width,
-    span = Math.max(minSpan, Math.min(maxSpan, tw + 14 - 8 * s)),
-    room = span + 8 * s - 10;
+    span = Math.max(minSpan, Math.min(maxSpan, tw + 14 + 2 * gap)),
+    room = span - 2 * gap - 10;
   if (tw > room) fs = Math.max(8, Math.floor(fs * room / tw));
-  const x2 = x1 + span;
-  spectator(x1, y, i, now, trad, night, 'hold', top + h - 2);
-  spectator(x2, y, i + 1, now, trad, night, 'hold', top + h - 2);
-  // 천이 살짝 늘어지게(아래 가장자리 곡선)
-  const l = x1 - 4 * s,
-    r = x2 + 4 * s,
-    sag = 3;
+  const x2 = x1 + span,
+    l = x1 + gap,
+    r = x2 - gap,
+    g1 = y - 27 * s + bob,
+    g2 = y - 18 * s + bob;
+  spectator(x1, y, i, now, trad, night, 'hold', { px: l, y1: g1, y2: g2 });
+  spectator(x2, y, i + 1, now, trad, night, 'hold', { px: r, y1: g1, y2: g2 });
+  // 천(아래 가장자리가 살짝 처짐)
+  const sag = 3;
   G.ctx.fillStyle = night ? '#e9e2c8' : '#fffaf0';
   G.ctx.beginPath();
   G.ctx.moveTo(l, top);
@@ -432,6 +437,26 @@ export function bannerPair(x1, minSpan, maxSpan, y, i, now, trad, night) {
   G.ctx.font = 'bold ' + fs + 'px Jua,sans-serif';
   G.ctx.textAlign = 'center';
   G.ctx.fillText(t, (l + r) / 2, top + h - 3 + sag / 2);
+  // 나무 막대 두 개(끝에 둥근 마개) + 막대를 쥔 주먹
+  for (const [px, k] of [[l, i], [r, i + 1]]) {
+    G.ctx.strokeStyle = '#8a5a32';
+    G.ctx.lineWidth = 3;
+    G.ctx.lineCap = 'round';
+    G.ctx.beginPath();
+    G.ctx.moveTo(px, top - 5);
+    G.ctx.lineTo(px, y - 9 * s + bob);
+    G.ctx.stroke();
+    G.ctx.fillStyle = '#c99a5b';
+    G.ctx.beginPath();
+    G.ctx.arc(px, top - 6, 2.6, 0, 7);
+    G.ctx.fill();
+    G.ctx.fillStyle = SKIN[Math.floor(hsh(k * 9) * SKIN.length)];
+    for (const gy of [g1, g2]) {
+      G.ctx.beginPath();
+      G.ctx.arc(px, gy, 2.4, 0, 7);
+      G.ctx.fill();
+    }
+  }
 }
 // 밤 응원봉: 인도를 어둡게 덮은 뒤 그려서 빛나 보이게. 손에서 팔 방향으로 뻗고 흔들림
 const STICKS = ['#ff4fd8', '#3ff2ff', '#7dff6b', '#ffe14d', '#ff8a3d'];
@@ -611,16 +636,16 @@ export function cityBg(th) {
     const x = i * sp + 70 - G.camX + OFF;
     th.trad ? pine(x, top + 12, i) : tree(x, top + 12);
   }
-  // 구경꾼: 36 간격(일부는 빈자리). hsh(i*7)이 큰 자리는 두 사람이 현수막을 들고 다음 세 자리를 비움
+  // 구경꾼: 36 간격(일부는 빈자리). hsh(i*7)이 큰 자리는 두 사람이 현수막을 들고 다음 네 자리를 비움
   const SP = 36,
     s0 = Math.floor((G.camX - OFF - 120) / SP),
     s1 = Math.ceil((G.camX - OFF + G.W + 40) / SP),
     hands = [];
   for (let i = s0; i <= s1; i++) {
     const x = i * SP + hsh(i) * 8 - G.camX + OFF;
-    if (hsh(i * 7) > .92 && hsh((i - 1) * 7) <= .92 && hsh((i - 2) * 7) <= .92 && hsh((i - 3) * 7) <= .92) {
-      bannerPair(x, SP * 2, SP * 3 - 10, GT - 6, i, now, th.trad, n8);
-      i += 3;
+    if (hsh(i * 7) > .92 && [1, 2, 3, 4].every((d) => hsh((i - d) * 7) <= .92)) {
+      bannerPair(x, SP * 2, SP * 4, GT - 6, i, now, th.trad, n8);
+      i += 4;
       continue;
     }
     if (hsh(i * 3) > .25) {
