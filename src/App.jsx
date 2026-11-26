@@ -12,7 +12,16 @@ const AGE_DESC = {
   e: '작은 보폭으로 지팡이를 짚고 걸어요.',
   r: '배터리와 부스터로 달려요. 진흙엔 약하고 밀치기엔 강해요.',
 };
+// 설명 칸의 장점·패널티 요약(설계 페이지 기준). 사람 셋은 아직 경기 계산에 넣기 전이라 안내를 붙임, 로봇은 지금 게임 그대로
+const AGE_PROS = {
+  c: ['몸이 작아 잘 피하고 출발이 빨라요. 넘어져도 금방 일어나요.', '최고속도가 낮고 후반에 지쳐요. 부딪히면 멀리 밀려요.'],
+  a: ['질주를 가장 오래 유지하고 약점이 없어요.', '특출난 강점이 없어요.'],
+  e: ['잘 넘어지지 않고 끝까지 같은 속도로 가요.', '가속과 점프가 느려요.'],
+  r: ['일정한 속도로 달리고 배터리가 차면 부스터. 무거워서 밀치기에 강해요.', '과열·방전되면 멈추고 점프가 낮아요. 넘어지면 재부팅이 길어요.'],
+};
 const MODES = [['normal', '일반'], ['item', '아이템전']];
+// 레이스 배속 3단계(빠르게 = 예전 속도)
+const RATES = [[.65, '느리게'], [.8, '보통'], [1, '빠르게']];
 const WANTS = [['first', '1등 원함'], ['last', '꼴등 원함']];
 // 장신구 탭: 왼쪽은 장신구 줄(이름 · 종류 알약), 오른쪽 끝은 모든 장신구가 같이 쓰는 색 칸(2열).
 // 장신구를 누르면 그 장신구가 선택되고 색 칸이 그 장신구의 색을 바꿈.
@@ -204,7 +213,7 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
             <input className="name" key={`name-${i}-${c.age === 'r'}`} defaultValue={c.name} maxLength={c.age === 'r' ? 9 : 6} aria-label={`${i + 1}번 이름`}
               onChange={(e) => { game().setCfg(i, { name: e.target.value.trim() || `${i + 1}번` }); game().react(i, 'name'); }} />
             {/* 휴대폰: 캔버스가 낮아 종류·성별을 이름 옆 선택 상자로 */}
-            <select className="m-only" value={c.age} aria-label={`${i + 1}번 종류`} onChange={(e) => game().setCfg(i, { age: e.target.value })}>
+            <select className="m-only" value={c.age} aria-label={`${i + 1}번 종류`} onChange={(e) => { game().setCfg(i, { age: e.target.value }); game().react(i, 'mood', true); }}>
               {AGES.map(([k, t]) => <option key={k} value={k}>{t}</option>)}
             </select>
             {c.age !== 'r' && (
@@ -215,9 +224,14 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
             {c.age !== 'r' && <div className="pc-only gender"><Seg small label={`${i + 1}번 성별`} value={c.gender} options={GENDERS} onChange={(g) => game().setCfg(i, { gender: g })} /></div>}
           </div>
           <div className="pc-only ages">
-            <Seg small label={`${i + 1}번 종류`} value={c.age} options={AGES} onChange={(a) => game().setCfg(i, { age: a })} />
+            <Seg small label={`${i + 1}번 종류`} value={c.age} options={AGES} onChange={(a) => { game().setCfg(i, { age: a }); game().react(i, 'mood', true); }} />
           </div>
-          <p className="pc-only desc">{AGE_DESC[c.age]}</p>
+          <div className="pc-only desc">
+            <p>{AGE_DESC[c.age]}</p>
+            <p><b className="pro">장점</b> {AGE_PROS[c.age][0]}</p>
+            <p><b className="con">패널티</b> {AGE_PROS[c.age][1]}</p>
+            {c.age !== 'r' && <p className="soon">사람 셋의 능력 차이는 다음 업데이트에서 경기에 반영돼요.</p>}
+          </div>
         </div>
         )}
       </div>
@@ -240,6 +254,7 @@ function RaceBar({ v, game, onStop, onNew }) {
     <div className="race-bar">
       <span className="hint">{v.msg}</span>
       {v.locked && <button type="button" className="stop" onClick={onStop}>■ 경기 중단</button>}
+      {v.locked && <Seg small label="배속" value={v.rate} options={RATES} onChange={(r) => game().setRate(r)} />}
       {v.locked && <span className="tip">화면을 누른 채 끌면 원하는 곳을 보고, 놓으면 다시 1위를 따라가요</span>}
       {!v.locked && <button type="button" onClick={() => game().start()}>다시 시작</button>}
       {!v.locked && <button type="button" className="ghost" onClick={onNew}>새로 하기</button>}
@@ -308,6 +323,54 @@ function StopDialog({ onBack, onReset, onCancel }) {
   );
 }
 
+// 가이드: 실제 화면 캡처(public/guide)와 설명을 한 장씩. 첫 화면의 각 부분 → 레이스 → 시상식 → 리플레이
+const GUIDE = [
+  ['01-count', '참가 인원', ['− / + 버튼으로 2~20명을 고릅니다.', '인원을 바꾸면 참가자 창이 다시 열려요.']],
+  ['02-rules', '경기 설정', ['모드: 일반 / 아이템전(?박스에서 탈것·무기·함정을 얻음)', '결과산출: 시상식 조명을 1등에게 줄지, 꼴등에게 줄지', '맵: 서울 도심 / 전통 마을 × 낮 / 밤', '랜덤 이벤트: 켜면 달리다가 좋은 일·나쁜 일이 생겨요', '장애물: 허들·물웅덩이·진흙·스프링 발판을 놓을지', '경기 시작: 참가자를 최종 결정한 뒤에 열려요']],
+  ['03-roster', '참가자 창 · 기본', ['한 명씩 옷 색·이름·성별·종류(어린이·성인·어르신·로봇)를 정해요.', '오른쪽 설명 칸에서 종류의 특징과 장점·패널티를 볼 수 있어요.', '바꿀 때마다 출발선의 캐릭터가 한마디 해요.', '아래 버튼: 장신구 ▶ → 다음 사람 ▶ 순서로 넘어가요.']],
+  ['04-acc', '참가자 창 · 장신구', ['장신구 줄을 누르고 종류를 골라요(없음 · 캡모자 · 비니 …).', '오른쪽 색상 칸은 지금 누른 장신구의 색을 바꿔요. 무지개 점은 다른 색.', '로봇은 눈 빛 · 경고 띠 · 안테나 · 등 · 발 부품을 바꿔요.', '장신구는 모습만 바꾸고 레이스 결과에는 영향이 없어요.']],
+  ['05-start', '최종 결정과 시작', ['자리 섞기: 출발 레인 순서를 섞어요.', '최종 결정: 아직 안 본 참가자가 있으면 알려 줘요.', '결정하면 ▶ 시작 버튼이 열리고, 참가자 수정으로 다시 고칠 수 있어요.']],
+  ['06-race', '레이스', ['위쪽 지도와 오른쪽 실시간 순위로 전체 흐름을 봐요. 지도를 누르면 그 위치로 이동해요.', '화면을 누른 채 끌면 원하는 곳을 보고, 놓으면 다시 1위를 따라가요.', '배속: 느리게 · 보통 · 빠르게', '말풍선은 랜덤 이벤트예요. 빨라지기도, 멈추거나 거꾸로 뛰기도 해요.', '경기 중단으로 참가자 수정이나 완전 초기화를 할 수 있어요.']],
+  ['07-podium', '시상식', ['1~3위가 시상대에 오르고, 결과산출 대상에게 컬러 조명이 켜져요.', '꼴찌는 "꼴등" 표지판 옆에서 울어요.', '아래 최종 순위 표에서 모두의 기록을 봐요.', '다시 시작: 같은 설정으로 한 번 더 · 새로 하기: 같은 참가자로 준비 화면']],
+  ['08-replay', '리플레이와 보내기', ['▶ 리플레이로 카운트다운부터 다시 봐요.', '리플레이 중 📤 다른 사람에게 보내기 → 움짤(GIF) 또는 영상(MP4)', '다 만들어지면 📤 보내기(메신저 공유 창) 또는 ⬇ 저장']],
+];
+function Guide({ onClose }) {
+  const [k, setK] = useState(0);
+  const nextRef = useRef(null);
+  const last = k === GUIDE.length - 1;
+  useEffect(() => {
+    nextRef.current?.focus();
+    const key = (e) => {
+      if (e.key === 'Escape') onClose();
+      else if (e.key === 'ArrowRight') setK((x) => Math.min(GUIDE.length - 1, x + 1));
+      else if (e.key === 'ArrowLeft') setK((x) => Math.max(0, x - 1));
+    };
+    window.addEventListener('keydown', key);
+    return () => window.removeEventListener('keydown', key);
+  }, [onClose]);
+  const [img, title, items] = GUIDE[k];
+  return (
+    <div className="modal-back" onClick={onClose}>
+      <div className="modal guide" role="dialog" aria-modal="true" aria-labelledby="guide-h" onClick={(e) => e.stopPropagation()}>
+        <div className="guide-top">
+          <span className="guide-step">{k + 1} / {GUIDE.length}</span>
+          <h2 id="guide-h">{title}</h2>
+          <button type="button" className="ghost guide-x" aria-label="가이드 닫기" onClick={onClose}>✕</button>
+        </div>
+        <div className="guide-shot"><img src={`${import.meta.env.BASE_URL}guide/${img}.webp`} alt={`${title} 화면`} /></div>
+        <ul className="guide-list">{items.map((t) => <li key={t}>{t}</li>)}</ul>
+        <div className="guide-foot">
+          <button type="button" className="ghost" disabled={k === 0} onClick={() => setK(k - 1)}>◀ 이전</button>
+          <div className="guide-dots" role="tablist" aria-label="가이드 페이지">
+            {GUIDE.map(([, t], i) => <button type="button" key={t} role="tab" aria-selected={i === k} aria-label={t} className={i === k ? 'on' : ''} onClick={() => setK(i)} />)}
+          </div>
+          <button type="button" ref={nextRef} onClick={() => (last ? onClose() : setK(k + 1))}>{last ? '시작하기' : '다음 ▶'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // 안내 창: 최종 결정 전에 시작을 누를 때, 확인하지 않은 참가자가 남았는데 최종 결정을 누를 때
 function Notice({ title, children, closeText = '닫기', goText, onClose, onAlt = onClose, onGo }) {
   const okRef = useRef(null);
@@ -339,6 +402,7 @@ export default function App() {
   const [editing, setEditing] = useState(0);
   const [confirmedSig, setConfirmedSig] = useState(null);
   const [notice, setNotice] = useState(false);
+  const [guide, setGuide] = useState(false);
   const [stopping, setStopping] = useState(false);
   // 참가자 창에서 한 번이라도 본 참가자 번호(최종 결정 때 안 본 사람이 있으면 알림)
   const [seen, setSeen] = useState([0]);
@@ -398,7 +462,7 @@ export default function App() {
   return (
     <div className="wrap">
       <header className="top">
-        <h1>{TITLE}</h1>
+        <h1>{TITLE} <button type="button" className="guide-btn" aria-label="가이드 보기" title="가이드" onClick={() => setGuide(true)}>?</button></h1>
         <p className="tagline">참가자를 정하고 출발! 1등과 꼴등은 누가 될까요?</p>
       </header>
       {v && setup && (
@@ -424,6 +488,7 @@ export default function App() {
         )}
       </div>
       {v && v.result && <Result r={v.result} />}
+      {guide && <Guide onClose={() => setGuide(false)} />}
       {notice && (
         <Notice title="참가자를 먼저 확정해 주세요" goText="최종 결정으로 이동" onClose={() => setNotice(false)} onGo={goConfirm}>
           캔버스 위 참가자 창의 <strong>최종 결정</strong>을 누르면 경기를 시작할 수 있어요.

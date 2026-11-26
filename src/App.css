@@ -104,7 +104,7 @@ button.sq{width:48px;height:44px;padding:0;font-size:24px;background:var(--panel
 .name{text-align:center}
 .gender .seg{display:grid;grid-template-columns:1fr 1fr}
 .ages .seg{display:grid;grid-template-columns:1fr 1fr;width:100%}
-.desc{grid-column:2;grid-row:1/3;margin:0;padding:10px 12px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);color:var(--muted);font-size:13px;line-height:1.55}
+.desc{grid-column:2;grid-row:1/3;display:flex;flex-direction:column;gap:3px;margin:0;padding:8px 12px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);color:var(--muted);font-size:13px;line-height:1.55}
 .card .seg button{padding-inline:4px;white-space:nowrap}
 .card select{font:inherit;font-size:14px;padding:6px 4px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
 .m-only{display:none}
@@ -245,3 +245,26 @@ canvas{display:block;width:100%;height:auto;border-radius:var(--radius);border:1
 /* 저작권·저장소 표시(페이지 맨 아래 가운데) */
 .credit{margin-top:8px;text-align:center;font-size:12px;color:var(--muted)}
 .credit a{color:inherit}
+
+/* 설명 칸: 한 줄 설명 + 장점·패널티 + (사람) 반영 예정 안내 */
+.desc p{margin:0}
+.desc .pro{color:var(--ok)}
+.desc .con{color:#e4572e}
+.desc .soon{font-size:11px;opacity:.75}
+
+/* 가이드: 제목 옆 ? 아이콘, 화면 캡처 + 설명을 한 장씩 넘기는 창 */
+.guide-btn{width:26px;height:26px;padding:0;margin-left:6px;vertical-align:middle;border-radius:50%;font-family:var(--font);font-size:15px;font-weight:800;line-height:1;background:var(--panel2);color:var(--accent);border:1.5px solid var(--accent)}
+.modal.guide{max-width:760px;display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 40px);overflow-y:auto}
+.guide-top{display:flex;align-items:center;gap:10px}
+.guide-top h2{margin:0;font-size:18px;flex:1}
+.guide-step{font-size:12px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:2px 9px;font-variant-numeric:tabular-nums}
+.guide-x{padding:4px 10px}
+.guide-shot{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel2);display:grid;place-items:center}
+.guide-shot img{display:block;max-width:100%;max-height:52vh;width:auto;height:auto}
+.guide-list{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--ink)}
+.guide-foot{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.guide-dots{display:flex;gap:6px}
+.guide-dots button{width:9px;height:9px;padding:0;border-radius:50%;background:var(--line)}
+.guide-dots button.on{background:var(--accent);width:22px;border-radius:999px}
+.guide-foot>button{white-space:nowrap}
+@media (max-width:720px){.guide-btn{width:22px;height:22px;font-size:13px}.guide-list{font-size:13px}.guide-shot img{max-height:38vh}.guide-foot>button{padding:8px 12px;font-size:14px}.guide-dots{gap:4px}.guide-dots button{width:7px;height:7px}.guide-dots button.on{width:16px}}
