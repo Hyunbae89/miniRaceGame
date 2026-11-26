@@ -23,12 +23,12 @@ const NEON = ['#5ff5c8', '#39e6ff', '#7dff4a', '#ffd166', '#ff4fd8', '#ff6a5a'];
 const HUMAN_ROWS = [
   [{ t: '가방', k: 'bag', wear: '#8e5b3a' }, { t: '목도리', k: 'scarf', wear: '#e74c3c' }],
   [{ t: '모자', k: 'hat', opts: [['', '없음'], ['cap', '캡모자'], ['beanie', '비니'], ['goggle', '고글 모자']], ck: 'hatC' }],
-  [{ t: '신발', k: 'shoe', opts: [['', '기본'], ['sneaker', '운동화'], ['boot', '장화']], ck: 'shoeC' }],
-  [{ t: '지팡이', k: 'cane', opts: [['wood', '나무'], ['umbrella', '우산'], ['gold', '황금']], ck: 'caneC', cWhen: (v) => v === 'umbrella', ages: ['e'] }],
+  [{ t: '신발', k: 'shoe', opts: [['', '기본'], ['sneaker', '운동화'], ['boot', '장화']], ck: 'shoeC' },
+   { t: '지팡이', k: 'cane', opts: [['wood', '나무'], ['umbrella', '우산'], ['gold', '황금']], ck: 'caneC', cWhen: (v) => v === 'umbrella', ages: ['e'] }],
 ];
 const ROBOT_ROWS = [
-  [{ t: '눈 빛', ck: 'eye', pal: NEON }, { t: '경고 띠', k: 'neck', opts: [['', '없음'], ['hazard', '두르기']], ck: 'neckC' }],
-  [{ t: '안테나', k: 'ant', opts: [['', '기본'], ['spring', '스프링'], ['dish', '접시']], ck: 'antC' }],
+  [{ t: '눈 빛', ck: 'eye', pal: NEON }, { t: '경고 띠', k: 'neck', opts: [['', '없음'], ['hazard', '두르기']], ck: 'neckC' },
+   { t: '안테나', k: 'ant', opts: [['', '기본'], ['spring', '스프링'], ['dish', '접시']], ck: 'antC' }],
   [{ t: '등', k: 'back', opts: [['', '기본'], ['jet', '제트팩'], ['tank', '코어 탱크']] }],
   [{ t: '발', k: 'foot', opts: [['', '기본'], ['toe', '발가락'], ['rev', '역관절']] }],
 ];
