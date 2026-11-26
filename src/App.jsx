@@ -334,6 +334,22 @@ const GUIDE = [
   ['07-podium', '시상식', ['1~3위가 시상대에 오르고, 결과산출 대상에게 컬러 조명이 켜져요.', '꼴찌는 "꼴등" 표지판 옆에서 울어요.', '아래 최종 순위 표에서 모두의 기록을 봐요.', '다시 시작: 같은 설정으로 한 번 더 · 새로 하기: 같은 참가자로 준비 화면']],
   ['08-replay', '리플레이와 보내기', ['▶ 리플레이로 카운트다운부터 다시 봐요.', '리플레이 중 📤 다른 사람에게 보내기 → 움짤(GIF) 또는 영상(MP4)', '다 만들어지면 📤 보내기(메신저 공유 창) 또는 ⬇ 저장']],
 ];
+// 처음엔 시스템 설정을 따르고, 누르면 그 선택을 기억(index.html이 다음 방문 때 먼저 적용)
+function ThemeBtn() {
+  const root = document.documentElement;
+  const [dark, setDark] = useState(() => (root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches));
+  const flip = () => {
+    const t = dark ? 'light' : 'dark';
+    root.dataset.theme = t;
+    try { localStorage.setItem('theme', t); } catch {}
+    setDark(!dark);
+  };
+  return (
+    <button type="button" className="theme-btn" role="switch" aria-checked={dark} aria-label="다크 모드" onClick={flip}>
+      <span className="theme-knob" aria-hidden="true">{dark ? '☾' : '☀'}</span>{dark ? '다크' : '라이트'}
+    </button>
+  );
+}
 function Guide({ onClose }) {
   const [k, setK] = useState(0);
   const nextRef = useRef(null);
@@ -464,6 +480,7 @@ export default function App() {
       <header className="top">
         <h1>{TITLE} <button type="button" className="guide-btn" aria-label="가이드 보기" title="가이드" onClick={() => setGuide(true)}>?</button></h1>
         <p className="tagline">참가자를 정하고 출발! 1등과 꼴등은 누가 될까요?</p>
+        <ThemeBtn />
       </header>
       {v && setup && (
         <>
