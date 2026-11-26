@@ -1,8 +1,8 @@
-import { AGEP, ARM1, ARM2, HAIR, HIPS, LEG, SKIN } from "../constants.js";
+import { AGEP, ARM1, ARM2, COLORS, HAIR, HIPS, LEG, SKIN } from "../constants.js";
 import { robotBody } from "./robot.js";
 import { drawVeh } from "./vehicles.js";
 import { G } from "../state.js";
-import { R, easeIO, lerp, rr, shade } from "../util.js";
+import { R, easeIO, hsh, lerp, rr, shade } from "../util.js";
 // 각도는 아래 방향이 0, 앞(+x)이 양수. 정강이 = 허벅지 - 무릎(뒤로 접힘), 아래팔 = 위팔 + 팔꿈치(앞으로 접힘)
 // fk: 관절 두 마디의 끝점 계산(무릎·발 또는 팔꿈치·손)
 export function fk(x, y, a1, l1, a2, l2) {
@@ -143,6 +143,65 @@ export function face(f, tilt) {
   }
   G.ctx.restore();
 }
+// 목도리: 목에 두른 고리 + 8마디 꼬리 사슬(몸 기준 좌표). 맞바람(속도), 중력, 펄럭임, 몸의 위아래 반동을 받음
+function scarf(an, r, spd, lv, dt) {
+  const n = 8,
+    seg = 3,
+    ax = -5,
+    ay = -33;
+  if (!an.scarf) an.scarf = Array.from({
+    length: n
+  }, (_, i) => ({
+    x: ax - i * seg,
+    y: ay,
+    px: ax - i * seg,
+    py: ay
+  }));
+  const ch = an.scarf,
+    t = performance.now() / 1000;
+  if (dt > 0) for (let i = 1; i < n; i++) {
+    const p = ch[i],
+      vx = (p.x - p.px) * .9,
+      vy = (p.y - p.py) * .9,
+      fx = -(20 + 150 * spd),
+      fy = 60 + 70 * spd * Math.sin(t * 13 - i * .9) * (i / n) - lv * 4;
+    p.px = p.x;
+    p.py = p.y;
+    p.x += vx + fx * dt * dt;
+    p.y += vy + fy * dt * dt;
+  }
+  ch[0].x = ax;
+  ch[0].y = ay;
+  for (let it = 0; it < 6; it++) for (let i = 1; i < n; i++) {
+    const a = ch[i - 1],
+      b = ch[i],
+      dx = b.x - a.x,
+      dy = b.y - a.y,
+      d = Math.hypot(dx, dy) || 1,
+      f = (d - seg) / d;
+    if (i === 1) {
+      b.x -= dx * f;
+      b.y -= dy * f;
+    } else {
+      a.x += dx * f * .5;
+      a.y += dy * f * .5;
+      b.x -= dx * f * .5;
+      b.y -= dy * f * .5;
+    }
+  }
+  G.ctx.strokeStyle = COLORS[(r.i * 7 + 3) % COLORS.length];
+  G.ctx.lineCap = 'round';
+  G.ctx.lineJoin = 'round';
+  G.ctx.lineWidth = 2.6;
+  G.ctx.beginPath();
+  G.ctx.moveTo(ch[0].x, ch[0].y);
+  for (let i = 1; i < n; i++) G.ctx.lineTo(ch[i].x, ch[i].y);
+  G.ctx.stroke();
+  G.ctx.lineWidth = 3;
+  G.ctx.beginPath();
+  G.ctx.ellipse(0, -33.5, 6.5, 1.8, 0, 0, 7);
+  G.ctx.stroke();
+}
 // o: ph(걸음 위상), run, stun, cry, sad, cheer, veh, t, ready(카운트다운), h(점프 높이), act('push'|'pull'), actT, sprint, wx/wd(월드 좌표: 먼지용)
 export function drawPerson(px, py, r, o) {
   const el = r.age === 'e',
@@ -164,7 +223,10 @@ export function drawPerson(px, py, r, o) {
     prevCos: [1, 1],
     prevH: 0,
     land: 0,
-    brake: 0
+    brake: 0,
+    bag: 0,
+    bv: 0,
+    scarf: null
   });
   const q = G.quirks[r.i] || {
       stride: 1,
@@ -506,6 +568,14 @@ export function drawPerson(px, py, r, o) {
     target = .15 + .55 * spd + lv * .012;
   an.hv += (140 * (target - an.hair) - 11 * an.hv) * Math.min(G.fdt, .05);
   an.hair += an.hv * Math.min(G.fdt, .05);
+  // 2차 동작 장신구: 캐릭터 번호로 고정(난수를 쓰지 않음). 가방은 몸이 튈 때 한 박자 늦게 출렁임
+  const hasBag = !robo && hsh(r.i * 7 + 2) < .4,
+    hasScarf = !robo && hsh(r.i * 7 + 1) < .4,
+    sdt = Math.min(G.fdt, 1 / 30);
+  if (hasBag) {
+    an.bv += (160 * (-lv * .02 - an.bag) - 9 * an.bv) * sdt;
+    an.bag += an.bv * sdt;
+  }
   const sc = 1.15 * (ch ? .82 : 1);
   // 속도선: 질주 중 몸 뒤로
   if (o.sprint && o.run && !seat) {
@@ -555,6 +625,17 @@ export function drawPerson(px, py, r, o) {
     G.ctx.rotate(P.lean);
     G.ctx.translate(0, 14);
     limb(-1.5, -29, P.arms[0].u, ARM1, P.arms[0].u + P.arms[0].f, ARM2, 3.5, shade(skin, .22));
+    if (hasBag) {
+      G.ctx.save();
+      G.ctx.translate(-8, -27 + an.bag);
+      G.ctx.rotate(an.bag * .04);
+      G.ctx.fillStyle = COLORS[(r.i * 7 + 5) % COLORS.length];
+      rr(-4, -6, 7, 12, 2);
+      G.ctx.fill();
+      G.ctx.fillStyle = 'rgba(0,0,0,.2)';
+      G.ctx.fillRect(-4, -1, 7, 1.2);
+      G.ctx.restore();
+    }
     if (fe) {
       G.ctx.save();
       G.ctx.translate(-8, -45);
@@ -592,6 +673,7 @@ export function drawPerson(px, py, r, o) {
     G.ctx.fillRect(-9, -44, 5, 5);
     G.ctx.restore();
     face(f, P.head);
+    if (hasScarf) scarf(an, r, spd, lv, sdt);
     hand = limb(1.5, -29, P.arms[1].u, ARM1, P.arms[1].u + P.arms[1].f, ARM2, 3.5, skin);
     G.ctx.restore();
   }
