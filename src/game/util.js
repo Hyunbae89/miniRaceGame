@@ -12,6 +12,8 @@ export function shuffle(a) {
   }
   return a;
 }
+// 천천히 시작해 천천히 끝나는 곡선(0~1 → 0~1)
+export const easeIO = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 export function lerp(a, b, w) {
   return a + (b - a) * w;
 }

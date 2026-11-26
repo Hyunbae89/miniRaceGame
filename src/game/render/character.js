@@ -2,7 +2,7 @@ import { AGEP, ARM1, ARM2, HAIR, HIPS, LEG, SKIN } from "../constants.js";
 import { robotBody } from "./robot.js";
 import { drawVeh } from "./vehicles.js";
 import { G } from "../state.js";
-import { R, lerp, rr, shade } from "../util.js";
+import { R, easeIO, lerp, rr, shade } from "../util.js";
 // 각도는 아래 방향이 0, 앞(+x)이 양수. 정강이 = 허벅지 - 무릎(뒤로 접힘), 아래팔 = 위팔 + 팔꿈치(앞으로 접힘)
 // fk: 관절 두 마디의 끝점 계산(무릎·발 또는 팔꿈치·손)
 export function fk(x, y, a1, l1, a2, l2) {
@@ -163,7 +163,8 @@ export function drawPerson(px, py, r, o) {
     prevLift: 0,
     prevCos: [1, 1],
     prevH: 0,
-    land: 0
+    land: 0,
+    brake: 0
   });
   const q = G.quirks[r.i] || {
       stride: 1,
@@ -185,9 +186,10 @@ export function drawPerson(px, py, r, o) {
   const phi = robo ? Math.round(ph0 / STEP) * STEP : ph0,
     now = performance.now() / 1000,
     h = o.h || 0;
-  // 착지 감지: 공중에 있다가 내려오면 0.22초 찌그러짐
+  const rising = h > an.prevH;
+  // 착지 감지: 공중에 있다가 내려오면 눌렸다가 살짝 늘어나며 반동(0.34초)
   if (an.prevH > 3 && h <= .5) {
-    an.land = .22;
+    an.land = .34;
     if (robo && o.wx !== undefined) {
       G.shake = Math.max(G.shake, .18);
       for (let k = 0; k < 10; k++) G.dust.push({
@@ -362,6 +364,23 @@ export function drawPerson(px, py, r, o) {
     }], {
       lean: .08
     }), a);
+    // 예비 동작: 뛰어오르기 시작할 때는 아직 웅크린 자세가 남아 있음
+    if (rising && h < 14) P = mixPose(P, pose([{
+      t: -.45,
+      k: 1.2
+    }, {
+      t: .6,
+      k: 1.5
+    }], [{
+      u: -.7,
+      f: .6
+    }, {
+      u: -.5,
+      f: .6
+    }], {
+      lean: .35,
+      lift: -3
+    }), .8 * (1 - h / 14));
   } else if (o.run) {
     kind = ride ? 'ride' : 'run';
     P = gait(phi, ride ? {
@@ -455,19 +474,30 @@ export function drawPerson(px, py, r, o) {
     P.rot = -(1 - o.spr / (o.spr0 || .75)) * Math.PI * 2;
   }
   if (an.land > 0) {
-    const s = Math.sin(Math.PI * (1 - an.land / .22));
-    P.sy *= 1 - .18 * s;
-    P.sx *= 1 + .12 * s;
-    P.lift -= 2.5 * s;
+    const u = 1 - an.land / .34;
+    if (u < .55) {
+      const s = Math.sin(Math.PI * u / .55);
+      P.sy *= 1 - .2 * s;
+      P.sx *= 1 + .13 * s;
+      P.lift -= 2.5 * s;
+    } else {
+      const s = Math.sin(Math.PI * (u - .55) / .45);
+      P.sy *= 1 + .06 * s;
+      P.sx *= 1 - .04 * s;
+    }
   }
-  // 상태가 바뀌면 0.15초 동안 이전 자세에서 이어짐
+  // 상태가 바뀌면 0.25초 동안 이전 자세에서 부드럽게(천천히 시작·끝) 이어짐.
+  // 달리다 멈추면(도착 후 서기·환호) 0.4초 동안 몸이 뒤로 젖혀졌다 돌아옴
   if (kind !== an.kind) {
+    if (an.kind.startsWith('run') && (kind === 'stand' || kind === 'cheer')) an.brake = .4;
     an.prev = an.cur;
     an.w = an.prev ? 0 : 1;
     an.kind = kind;
   }
-  an.w = Math.min(1, an.w + G.fdt / .15);
-  if (an.w < 1 && an.prev) P = Object.assign(mixPose(an.prev, P, an.w), {});
+  an.w = Math.min(1, an.w + G.fdt / .25);
+  if (an.w < 1 && an.prev) P = mixPose(an.prev, P, easeIO(an.w));
+  an.brake = Math.max(0, an.brake - G.fdt);
+  if (an.brake > 0) P.lean -= .3 * Math.sin(Math.PI * (1 - an.brake / .4));
   an.cur = P;
   // 머리카락 스프링: 몸이 튀면 반대로 처지고, 빠를수록 뒤로 날림
   const lv = (P.lift - an.prevLift) / Math.max(G.fdt, 1e-3);
