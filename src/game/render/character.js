@@ -75,7 +75,23 @@ export function mixPose(a, b, w) {
     head: m(a.head, b.head)
   };
 }
-export function face(f, tilt) {
+// 표정을 숫자로: 눈 뜸 eo(1 점, 0 감음) · 감은 눈 모양 ec(+1 웃는 ^, -1 우는 —) · X눈 x · 입 곡선 mc(+웃음, -찡그림) · 입 벌림 mo · 눈물 tr
+const FACES = {
+  n: { eo: 1, ec: 0, x: 0, mc: .8, mo: 0, tr: 0 },
+  focus: { eo: .8, ec: 0, x: 0, mc: 0, mo: 0, tr: 0 },
+  happy: { eo: 0, ec: 1, x: 0, mc: 1, mo: .8, tr: 0 },
+  x: { eo: 1, ec: 0, x: 1, mc: -.2, mo: .6, tr: 0 },
+  cry: { eo: 0, ec: -1, x: 0, mc: -1, mo: 0, tr: 1 }
+};
+// 표정 그리기: 이전 표정에서 0.25초 동안 서서히 바뀌고(an.fp), 눈을 뜬 표정이면 캐릭터마다 다른 주기로 깜빡임
+export function face(f, tilt, an, i) {
+  const T = FACES[f] || FACES.n;
+  if (!an.fp) an.fp = { ...T };
+  const k = 1 - Math.exp(-G.fdt / .08);
+  for (const key in T) an.fp[key] += (T[key] - an.fp[key]) * k;
+  const fp = an.fp,
+    now = performance.now() / 1000,
+    blink = fp.eo > .5 && fp.x < .5 && (now + i * .77) % 3.3 < .12 ? .1 : 1;
   G.ctx.save();
   G.ctx.translate(0, -34);
   G.ctx.rotate(tilt);
@@ -83,16 +99,37 @@ export function face(f, tilt) {
   G.ctx.strokeStyle = '#1e2b33';
   G.ctx.fillStyle = '#1e2b33';
   G.ctx.lineWidth = 1.6;
-  if (f === 'cry') {
+  for (const ex of [3, 7.5]) {
     G.ctx.beginPath();
-    G.ctx.moveTo(1, -42);
-    G.ctx.lineTo(4, -41);
-    G.ctx.moveTo(5, -42);
-    G.ctx.lineTo(8, -41);
-    G.ctx.stroke();
-    G.ctx.beginPath();
-    G.ctx.arc(5, -34, 2.4, Math.PI * 1.1, Math.PI * 1.9);
-    G.ctx.stroke();
+    if (fp.x > .5) {
+      G.ctx.moveTo(ex - 1.5, -42.5);
+      G.ctx.lineTo(ex + 1.5, -39.5);
+      G.ctx.moveTo(ex + 1.5, -42.5);
+      G.ctx.lineTo(ex - 1.5, -39.5);
+      G.ctx.stroke();
+    } else if (fp.eo < .35) {
+      if (fp.ec > 0) G.ctx.arc(ex - .5, -41, 1.6, Math.PI, 0);else {
+        G.ctx.moveTo(ex - 2, -42);
+        G.ctx.lineTo(ex + 1, -41);
+      }
+      G.ctx.stroke();
+    } else {
+      G.ctx.ellipse(ex, -41, 1.4, Math.max(.25, 1.4 * fp.eo * blink), 0, 0, 7);
+      G.ctx.fill();
+    }
+  }
+  // 입: 곡선(+웃음/-찡그림), 벌리면 아래쪽을 한 번 더 그려 채움
+  const my = -37,
+    cy = my + fp.mc * 2.6;
+  G.ctx.beginPath();
+  G.ctx.moveTo(2.4, my);
+  G.ctx.quadraticCurveTo(5, cy, 7.6, my);
+  if (fp.mo > .05) {
+    G.ctx.quadraticCurveTo(5, cy + fp.mo * 4, 2.4, my);
+    G.ctx.fill();
+  }
+  G.ctx.stroke();
+  if (fp.tr > .5) {
     G.ctx.fillStyle = '#4fc3f7';
     for (let k = 0; k < 2; k++) {
       const u = (performance.now() / 320 + k * .5) % 1;
@@ -100,46 +137,6 @@ export function face(f, tilt) {
       G.ctx.arc(3 + k * 4.5, -40 + u * 14, 1.8, 0, 7);
       G.ctx.fill();
     }
-  } else if (f === 'x') {
-    G.ctx.beginPath();
-    G.ctx.moveTo(1, -43);
-    G.ctx.lineTo(4, -40);
-    G.ctx.moveTo(4, -43);
-    G.ctx.lineTo(1, -40);
-    G.ctx.moveTo(5, -43);
-    G.ctx.lineTo(8, -40);
-    G.ctx.moveTo(8, -43);
-    G.ctx.lineTo(5, -40);
-    G.ctx.stroke();
-    G.ctx.beginPath();
-    G.ctx.arc(5, -35, 2, 0, 7);
-    G.ctx.stroke();
-  } else if (f === 'happy') {
-    G.ctx.beginPath();
-    G.ctx.arc(2.5, -41, 1.6, Math.PI, 0);
-    G.ctx.moveTo(9.1, -41);
-    G.ctx.arc(7.5, -41, 1.6, 0, Math.PI, true);
-    G.ctx.stroke();
-    G.ctx.beginPath();
-    G.ctx.arc(5, -37.5, 3.2, .05 * Math.PI, .95 * Math.PI);
-    G.ctx.fill();
-  } else if (f === 'focus') {
-    G.ctx.beginPath();
-    G.ctx.arc(3, -41, 1.4, 0, 7);
-    G.ctx.arc(7.5, -41, 1.4, 0, 7);
-    G.ctx.fill();
-    G.ctx.beginPath();
-    G.ctx.moveTo(3, -36);
-    G.ctx.lineTo(7.5, -36);
-    G.ctx.stroke();
-  } else {
-    G.ctx.beginPath();
-    G.ctx.arc(3, -41, 1.4, 0, 7);
-    G.ctx.arc(7.5, -41, 1.4, 0, 7);
-    G.ctx.fill();
-    G.ctx.beginPath();
-    G.ctx.arc(5, -38, 2.6, .15 * Math.PI, .85 * Math.PI);
-    G.ctx.stroke();
   }
   G.ctx.restore();
 }
@@ -672,7 +669,7 @@ export function drawPerson(px, py, r, o) {
     G.ctx.fill();
     G.ctx.fillRect(-9, -44, 5, 5);
     G.ctx.restore();
-    face(f, P.head);
+    face(f, P.head, an, r.i);
     if (hasScarf) scarf(an, r, spd, lv, sdt);
     hand = limb(1.5, -29, P.arms[1].u, ARM1, P.arms[1].u + P.arms[1].f, ARM2, 3.5, skin);
     G.ctx.restore();
