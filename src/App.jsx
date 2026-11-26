@@ -361,6 +361,12 @@ export default function App() {
     if (!confirmed) { setNotice(true); return; }
     game().setHover(-1);
     game().start();
+    // 화면이 낮으면(휴대폰 가로 등) 캔버스가 다 보이도록 스크롤
+    // 시작하면 설정 화면이 사라져 배치가 바뀌므로 다음 화면에서 잼
+    setTimeout(() => {
+      const r = canvasRef.current?.getBoundingClientRect();
+      if (r && (r.top < 0 || r.bottom > window.innerHeight)) canvasRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 60);
   };
   const openStop = () => { game().setPaused(true); setStopping(true); };
   const cancelStop = () => { game().setPaused(false); setStopping(false); };
