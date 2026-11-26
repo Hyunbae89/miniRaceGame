@@ -1,5 +1,7 @@
 import { AGEP, ARM1, ARM2, HAIR, HIPS, LEG, SKIN } from "../constants.js";
 import { cane, hat, shoe } from "./accessories.js";
+import { evNoCane, evPose, evProp } from "./events.js";
+import { reactPose } from "./reactions.js";
 import { robotBody } from "./robot.js";
 import { drawVeh } from "./vehicles.js";
 import { G } from "../state.js";
@@ -558,6 +560,9 @@ export function drawPerson(px, py, r, o) {
   if (an.w < 1 && an.prev) P = mixPose(an.prev, P, easeIO(an.w));
   an.brake = Math.max(0, an.brake - G.fdt);
   if (an.brake > 0) P.lean -= .3 * Math.sin(Math.PI * (1 - an.brake / .4));
+  // 랜덤 이벤트(o.ev)·편집 반응(o.rx): 자세를 덮어쓰고 표정을 정함(로봇의 놀람은 ERROR 화면)
+  const xf = o.ev ? evPose(o.ev.id, P, o.ev.q, now) : o.rx && o.rx.mv ? reactPose(o.rx.mv, P, o.rx.p, o.rx.a, now) : null;
+  if (xf) f = robo ? xf === 'x' ? 'error' : xf === 'n' ? f : xf : xf;
   an.cur = P;
   // 머리카락 스프링: 몸이 튀면 반대로 처지고, 빠를수록 뒤로 날림
   const lv = (P.lift - an.prevLift) / Math.max(G.fdt, 1e-3);
@@ -592,7 +597,7 @@ export function drawPerson(px, py, r, o) {
   }
   G.ctx.save();
   G.ctx.translate(px, py);
-  G.ctx.scale(sc, sc);
+  G.ctx.scale(o.flip ? -sc : sc, sc);
   G.ctx.lineCap = 'round';
   if (v) drawVeh(v, o.t || 0);
   G.ctx.translate(0, -({
@@ -680,12 +685,13 @@ export function drawPerson(px, py, r, o) {
     G.ctx.restore();
   }
   // 어르신 지팡이(걸어갈 때만): 앞손에서 땅까지
-  if (el && !v && !o.sad && !o.cheer) {
+  if (el && !v && !o.sad && !o.cheer && !(o.ev && evNoCane(o.ev.id, o.ev.q))) {
     const a = P.lean,
       hx = hand[0] * Math.cos(a) - (hand[1] + 14) * Math.sin(a),
       hy = hand[0] * Math.sin(a) + (hand[1] + 14) * Math.cos(a) - 14;
     cane(r.cane, r.caneC, hx, hy, hx + 3.5, P.lift / P.sy);
   }
+  if (o.ev) evProp(o.ev.id, P, o.ev.q, now, r, robo);
   G.ctx.restore();
   // 흙먼지: 발이 땅을 딛는 순간(허벅지가 뒤로 가기 시작) 월드 좌표에 생성
   // 과열·재부팅 연기

@@ -1,6 +1,8 @@
 // 시작 전 미리보기: 레인 구분선과 서 있는 캐릭터, 카드 호버 시 해당 캐릭터만 선명하게 강조.
 import { BACK, GT, OFF } from "../constants.js";
 import { drawPerson } from "./character.js";
+import { bubble } from "./events.js";
+import { reactView, stepReact } from "./reactions.js";
 import { drawHeli } from "./heli.js";
 import { drawRace } from "./race.js";
 import { G } from "../state.js";
@@ -52,15 +54,19 @@ export function drawPreview() {
   const fs = Math.max(11, Math.min(15, gap - 2));
   // 커스터마이징 카드에 마우스를 올린 캐릭터는 마지막에 따로 그림(focusOne)
   const hr = G.hover >= 0 ? G.racers.find(r => r.i === G.hover) : null;
+  stepReact(G.fdt);
   for (const r of G.racers.slice().sort((a, b) => a.d - b.d)) {
     if (r === hr) continue;
-    const base = GT + 16 + r.d;
+    const base = GT + 16 + r.d,
+      rv = reactView(r.i);
     G.ctx.fillStyle = 'rgba(30,43,51,.25)';
     G.ctx.beginPath();
     G.ctx.ellipse(OFF - BACK, base + 4, 13, 4, 0, 0, 7);
     G.ctx.fill();
-    drawPerson(OFF - BACK, base, r, {
-      run: false
+    drawPerson(OFF - BACK + (rv ? rv.dx : 0), base, r, {
+      run: false,
+      rx: rv,
+      flip: rv && rv.flip
     });
   }
   // 레인 번호는 화면 왼쪽 끝
@@ -73,6 +79,11 @@ export function drawPreview() {
     G.ctx.fillText(String(ln), 11, y);
   }
   if (hr) focusOne(hr);
+  // 편집 반응 말풍선(강조한 캐릭터 위에도 보이도록 마지막에)
+  for (const r of G.racers) {
+    const rv = reactView(r.i);
+    if (rv) bubble(OFF - BACK + rv.dx + 14, GT + 16 + r.d - (r.age === 'c' ? 64 : 76), rv.line, rv.alpha);
+  }
 }
 // 호버한 캐릭터 강조: 지금까지 그린 화면 전체를 흐리게 덮고, 그 캐릭터만 선명하게 + 흰 외곽선
 export function focusOne(r) {
@@ -102,8 +113,11 @@ export function focusOne(r) {
   const main = G.ctx;
   G.ctx = one;
   try {
-    drawPerson(OFF - BACK, base, r, {
-      run: false
+    const rv = reactView(r.i);
+    drawPerson(OFF - BACK + (rv ? rv.dx : 0), base, r, {
+      run: false,
+      rx: rv,
+      flip: rv && rv.flip
     });
   } finally {
     G.ctx = main;

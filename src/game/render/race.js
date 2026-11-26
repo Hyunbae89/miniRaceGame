@@ -2,7 +2,9 @@
 import { GT, ITEMS, OFF, TRACK } from "../constants.js";
 import { TH, cityBg, roadPools, stars } from "./background.js";
 import { focusR } from "../camera.js";
+import { EV } from "../events.js";
 import { drawPerson } from "./character.js";
+import { bubble as evBubble, evFx } from "./events.js";
 import { drawHeli } from "./heli.js";
 import { drawPodium } from "./podium.js";
 import { drawPreview } from "./preview.js";
@@ -287,8 +289,12 @@ export function drawRace() {
     G.ctx.ellipse(px, base + 4, 13 - r.h / 6, 4, 0, 0, 7);
     G.ctx.fill();
     const cry = r.fin && r.rank === G.n && G.n > 1 || !r.fin && (G.state === 'run' || G.state === 'replay') && r.cur === G.n && (r.x > TRACK - 1800 || G.fin.length >= G.n - 1);
-    const stop = r.fin && r.speed < 20;
+    const stop = r.fin && r.speed < 20,
+      e = r.ev && EV[r.ev],
+      eq = e ? Math.min(1, r.et / e.dur) : 0;
     drawPerson(px, py, r, {
+      ev: e ? { id: r.ev, q: eq } : null,
+      flip: !!(e && e.flip && e.flip(eq)),
       ph: r.x * .09,
       stun: r.stun > 0,
       cry: cry,
@@ -314,6 +320,7 @@ export function drawRace() {
       chg: r.chg,
       rp: r.stun > 0 ? 1 - r.stun / 3.6 : 0
     });
+    if (e) evFx(r.ev, px, py, eq, performance.now() / 1000);
     if (r.item) {
       G.ctx.font = '20px sans-serif';
       G.ctx.textAlign = 'center';
@@ -389,6 +396,7 @@ export function drawRace() {
   G.ctx.lineWidth = 4;
   G.ctx.strokeStyle = '#fff';
   for (const f of G.fx) {
+    if (f.b || f.cr) continue;
     const x = f.x - G.camX + OFF,
       y = GT + 16 + f.d - 70 - f.t * 24;
     G.ctx.globalAlpha = 1 - f.t;
@@ -397,6 +405,20 @@ export function drawRace() {
     G.ctx.fillText(f.s, x, y);
   }
   G.ctx.globalAlpha = 1;
+  // 말풍선: 주자 한마디는 그 주자 머리 위를 따라다니고, 관중 말은 위쪽 인도에
+  for (const f of G.fx) {
+    const al = Math.max(0, Math.min(1, (1 - f.t) / .25));
+    if (f.cr) evBubble(f.x - G.camX + OFF, GT - 34, f.s, al, true);
+    else if (f.b) {
+      const r = G.racers.find(o => o.i === f.ri);
+      if (r) evBubble(r.x - G.camX + OFF, GT + 16 + r.d - r.h - (r.age === 'c' ? 66 : 80), f.s, al);
+    }
+  }
+  // 개 산책 행인 말풍선(배경에서 모아 둔 것)
+  if (G.dogBub) {
+    for (const b of G.dogBub) evBubble(b[0], b[1], b[2], b[3]);
+    G.dogBub = [];
+  }
   // 실시간 순위(작은 1열): 6명 이하는 전원, 7명 이상은 1~4위 · '⋯ 외 N명' · 꼴찌만
   const lr = liveRank();
   if (lr.length) {
