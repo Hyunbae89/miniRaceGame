@@ -159,6 +159,23 @@ canvas{display:block;width:100%;height:auto;border-radius:var(--radius);border:1
   .rules .field:nth-child(3){grid-column:1/-1}
   .map-pick{gap:16px}
 }
+/* 낮은 가로 화면(휴대폰 가로): 제목을 줄이고 여백을 좁혀 캔버스가 한 화면에 더 많이 보이게 */
+@media (orientation:landscape) and (max-height:520px){
+  .wrap{gap:8px;padding-block:8px 16px}
+  .top h1{font-size:20px}
+  .tagline{display:none}
+  .race-bar{padding:6px 10px}
+  .race-bar button{padding:6px 12px;font-size:14px}
+}
+/* 넓은 화면: 페이지 폭을 조금 넓힘(캔버스는 960 해상도를 늘려 그리므로 1.25배까지만) */
+@media (min-width:1600px){.wrap{max-width:1200px}}
+/* 태블릿 세로(721~900px): 캔버스가 낮아 참가자 창을 넓히고 여백·안내 문구를 줄여 캔버스 안에 들어가게 */
+@media (min-width:721px) and (max-width:900px){
+  .roster{left:12%;right:1.5%;gap:7px;padding:10px 12px}
+  .roster .status{display:none}
+  .roster-foot{justify-content:flex-end}
+  .acc-row{gap:5px 8px}
+}
 @media (max-width:720px){
   .setup{grid-template-columns:1fr}
   .count-panel{flex-direction:row;flex-wrap:wrap;justify-content:space-between;text-align:left}
