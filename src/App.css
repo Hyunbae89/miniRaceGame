@@ -79,9 +79,14 @@ button.sq{width:48px;height:44px;padding:0;font-size:24px;background:var(--panel
 .chip.on button{color:var(--accent)}
 .chip .swatch{width:28px;height:28px}
 .card-main{display:flex;align-items:center;gap:8px}
-.card-segs{display:flex;gap:8px}
-.card-segs .seg{flex:1;display:grid;grid-auto-flow:column;grid-auto-columns:1fr}
-.card-segs .seg:first-child{flex:2}
+/* 기본 탭(PC): 왼쪽 [색·이름·성별] 아래 종류 2×2, 오른쪽에 종류 설명 */
+.card.base{display:grid;grid-template-columns:250px minmax(0,1fr);grid-template-rows:auto 1fr;gap:8px 14px}
+.card.base .card-main{grid-column:1}
+.card.base .name{flex:none;width:9.5em}
+.gender .seg{display:grid;grid-template-columns:1fr 1fr}
+.ages .seg{display:grid;grid-template-columns:1fr 1fr;width:100%}
+.desc{grid-column:2;grid-row:1/3;margin:0;padding:10px 12px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);color:var(--muted);font-size:13px;line-height:1.55}
+.desc strong{display:block;color:var(--ink);font-size:14px;margin-bottom:2px}
 .card .seg button{padding-inline:4px;white-space:nowrap}
 .card select{font:inherit;font-size:14px;padding:6px 4px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
 .m-only{display:none}
@@ -157,6 +162,8 @@ canvas{display:block;width:100%;height:auto;border-radius:var(--radius);border:1
   .roster-tools button{font-size:11px;padding:3px 7px}
   .card-row{gap:4px}
   .card{min-height:30px}
+  .card.base{display:flex}
+  .card.base .name{flex:1;width:auto}
   .tabs button{font-size:12px;padding:2px 10px}
   .chip button{font-size:12px;padding:3px 8px}
   .chip .swatch{width:22px;height:22px}

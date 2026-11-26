@@ -5,6 +5,14 @@ import './App.css';
 const TITLE = '미니 레이스 토너먼트';
 const GENDERS = [['m', '남'], ['f', '여']];
 const AGES = [['c', '어린이'], ['a', '성인'], ['e', '어르신'], ['r', '로봇']];
+// 참가자 창 설명: 사람 셋은 겉모습·걸음만 다르고 속도 계산은 같음(sim/race.js), 로봇만 능력이 다름(sim/robot.js)
+const HUMAN = ' 사람은 종류와 상관없이 달리기 실력이 같아요.';
+const AGE_DESC = {
+  c: '작은 몸으로 빠르게 종종걸음을 쳐요.' + HUMAN,
+  a: '큰 보폭으로 상체를 숙이고 달려요.' + HUMAN,
+  e: '작은 보폭으로 지팡이를 짚으며 걸어요.' + HUMAN,
+  r: '배터리로 일정한 속도를 내고, 배터리가 차면 부스터로 가속해요. 무리하면 과열되고, 다 닳으면 멈춰서 충전해요. 무거워서 진흙에 약하지만 허들·물웅덩이를 가끔 버티고 밀치기에 강해요. 넘어지면 재부팅이라 더 오래 쉬어요.',
+};
 const MODES = [['normal', '일반'], ['item', '아이템전']];
 const WANTS = [['first', '1등 원함'], ['last', '꼴등 원함']];
 // 장신구: [설정 키, 이름, 처음 켰을 때 색]
@@ -117,7 +125,7 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
             ))}
           </div>
         ) : (
-        <div className="card" role="tabpanel">
+        <div className="card base" role="tabpanel">
           <div className="card-main">
             <input type="color" className="swatch" value={c.color} aria-label={`${i + 1}번 옷 색`} onChange={(e) => game().setCfg(i, { color: e.target.value })} />
             <input className="name" key={`name-${i}-${c.age === 'r'}`} defaultValue={c.name} maxLength={c.age === 'r' ? 9 : 6} aria-label={`${i + 1}번 이름`}
@@ -131,11 +139,12 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
                 {GENDERS.map(([k, t]) => <option key={k} value={k}>{t}</option>)}
               </select>
             )}
+            {c.age !== 'r' && <div className="pc-only gender"><Seg small label={`${i + 1}번 성별`} value={c.gender} options={GENDERS} onChange={(g) => game().setCfg(i, { gender: g })} /></div>}
           </div>
-          <div className="pc-only card-segs">
+          <div className="pc-only ages">
             <Seg small label={`${i + 1}번 종류`} value={c.age} options={AGES} onChange={(a) => game().setCfg(i, { age: a })} />
-            {c.age !== 'r' && <Seg small label={`${i + 1}번 성별`} value={c.gender} options={GENDERS} onChange={(g) => game().setCfg(i, { gender: g })} />}
           </div>
+          <p className="pc-only desc"><strong>{AGES.find(([k]) => k === c.age)[1]}</strong>{AGE_DESC[c.age]}</p>
         </div>
         )}
       </div>
