@@ -81,7 +81,32 @@ export function offer(blob, name) {
     blob: blob,
     name: name
   };
-  G.msg = '파일이 준비됐어요. 저장 버튼을 눌러 주세요.';
+  G.msg = '파일이 준비됐어요. 보내기나 저장을 눌러 주세요.';
+  push();
+}
+// 보내기: 휴대폰·일부 PC 브라우저의 공유 창으로 파일을 넘기고, 공유를 지원하지 않으면 파일로 저장
+export async function shareReady() {
+  if (!G.ready) return;
+  const f = new File([G.ready.blob], G.ready.name, {
+    type: G.ready.blob.type
+  });
+  if (navigator.canShare && navigator.canShare({
+    files: [f]
+  })) {
+    try {
+      await navigator.share({
+        files: [f],
+        title: '미니 레이스 토너먼트 리플레이'
+      });
+      G.msg = '보냈어요!';
+    } catch (e) {
+      G.msg = e.name === 'AbortError' ? '보내기를 취소했어요.' : '보내지 못했어요. 저장 버튼으로 파일을 받아 직접 보내 주세요.';
+    }
+    push();
+    return;
+  }
+  saveReady();
+  G.msg = '이 브라우저는 바로 보내기를 지원하지 않아 파일로 저장했어요. 메신저에 첨부해 보내 주세요.';
   push();
 }
 export function saveReady() {
@@ -99,6 +124,7 @@ export function saveReady() {
 // GIF 저장: 카운트다운(3·2·1)부터 레이스 끝까지 리플레이 프레임을, 이어서 시상식을 결과산출 조명이 끝나고 2초 뒤까지
 // 0.1초 간격으로 직접 그려 담는다(폭 400px). 만드는 동안 G.exporting이 켜져 있어 메인 루프는 시간을 진행하지 않음
 export async function exportGif() {
+  if (G.state === 'replay' && !G.rec && !G.exporting) endReplay();
   if (G.state !== 'podium' || G.frames.length < 2) return;
   G.ready = null;
   startReplay();
@@ -163,6 +189,7 @@ export async function exportGif() {
   }), fileName('gif'));
 }
 export function exportVideo() {
+  if (G.state === 'replay' && !G.rec && !G.exporting) endReplay();
   if (G.state !== 'podium' || G.frames.length < 2) return;
   if (!window.MediaRecorder || !G.cv.captureStream) {
     G.msg = '이 브라우저는 영상 녹화를 지원하지 않아요. GIF로 만들어 보세요.';
@@ -189,7 +216,7 @@ export function exportVideo() {
     offer(new Blob(chunks, {
       type: mt.split(';')[0]
     }), fileName(ext));
-    if (ext !== 'mp4') G.msg = 'MP4 녹화를 지원하지 않는 브라우저라 WebM으로 만들었어요. 저장 버튼을 눌러 주세요.';
+    if (ext !== 'mp4') G.msg = 'MP4 녹화를 지원하지 않는 브라우저라 WebM으로 만들었어요. 보내기나 저장을 눌러 주세요.';
     push();
   };
   G.ready = null;

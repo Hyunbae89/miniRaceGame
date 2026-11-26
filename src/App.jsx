@@ -14,38 +14,51 @@ const AGE_DESC = {
 };
 const MODES = [['normal', '일반'], ['item', '아이템전']];
 const WANTS = [['first', '1등 원함'], ['last', '꼴등 원함']];
-// 장신구: [설정 키, 이름, 처음 켰을 때 색]
-// 장신구 칩: k 설정 키, t 이름, kinds 종류(없으면 값 자체가 색), def 켤 때 값, c 색 키,
-// fixed 끄기 없이 항상 보임, cWhen 색 칸을 보일 조건, ages 보이는 종류
+// 장신구 탭: 한 줄에 [이름 · 종류 알약 · 색 점]. k 설정 키, opts 종류([값, 이름]), wear 값 자체가 색인 장신구의 기본색,
+// ck 색 키, pal 색 점 목록, cWhen 색 점을 보일 조건(기본: 값이 있을 때), ages 보이는 종류
+const PALETTE = ['#e4572e', '#f2b705', '#2fb67c', '#2e86de', '#8e5ad6', '#ef6aa1', '#8e5b3a', '#2b2d42'];
+const NEON = ['#5ff5c8', '#39e6ff', '#7dff4a', '#ffd166', '#ff4fd8', '#ff6a5a'];
 const HUMAN_ACCS = [
-  { k: 'bag', t: '가방', def: '#8e5b3a' },
-  { k: 'scarf', t: '목도리', def: '#e74c3c' },
-  { k: 'hat', t: '모자', kinds: [['cap', '캡모자'], ['beanie', '비니'], ['goggle', '고글 모자']], c: 'hatC' },
-  { k: 'shoe', t: '신발', kinds: [['sneaker', '운동화'], ['boot', '장화']], c: 'shoeC' },
-  { k: 'cane', t: '지팡이', kinds: [['wood', '나무'], ['umbrella', '우산'], ['gold', '황금']], c: 'caneC', fixed: true, cWhen: (v) => v === 'umbrella', ages: ['e'] },
+  { t: '가방', k: 'bag', wear: '#8e5b3a' },
+  { t: '목도리', k: 'scarf', wear: '#e74c3c' },
+  { t: '모자', k: 'hat', opts: [['', '없음'], ['cap', '캡모자'], ['beanie', '비니'], ['goggle', '고글 모자']], ck: 'hatC' },
+  { t: '신발', k: 'shoe', opts: [['', '기본'], ['sneaker', '운동화'], ['boot', '장화']], ck: 'shoeC' },
+  { t: '지팡이', k: 'cane', opts: [['wood', '나무'], ['umbrella', '우산'], ['gold', '황금']], ck: 'caneC', cWhen: (v) => v === 'umbrella', ages: ['e'] },
 ];
 const ROBOT_ACCS = [
-  { c: 'eye', t: 'LED 눈', fixed: true },
-  { k: 'ant', t: '안테나', kinds: [['', '기본'], ['spring', '스프링'], ['dish', '위성 접시']], c: 'antC', fixed: true, cWhen: (v) => !!v },
-  { k: 'neck', t: '경고 띠', kinds: [['hazard', '경고 띠']], c: 'neckC' },
-  { k: 'back', t: '등', kinds: [['', '기본'], ['jet', '제트팩'], ['tank', '코어 탱크']], fixed: true },
-  { k: 'foot', t: '발', kinds: [['', '기본'], ['toe', '발가락'], ['rev', '역관절']], fixed: true },
+  { t: '눈 빛', ck: 'eye', pal: NEON },
+  { t: '안테나', k: 'ant', opts: [['', '기본'], ['spring', '스프링'], ['dish', '접시']], ck: 'antC' },
+  { t: '경고 띠', k: 'neck', opts: [['', '없음'], ['hazard', '두르기']], ck: 'neckC' },
+  { t: '등', k: 'back', opts: [['', '기본'], ['jet', '제트팩'], ['tank', '코어 탱크']] },
+  { t: '발', k: 'foot', opts: [['', '기본'], ['toe', '발가락'], ['rev', '역관절']] },
 ];
-function AccItem({ a, c, n, set }) {
-  const v = a.k ? c[a.k] : true,
-    on = a.fixed || !!v,
-    ck = a.kinds ? a.c : a.k || a.c,
-    showColor = ck && on && (!a.cWhen || a.cWhen(v));
+function AccRow({ a, c, n, set }) {
+  const v = a.k ? c[a.k] : 'on',
+    opts = a.wear ? [['', '없음'], [a.wear, '착용']] : a.opts,
+    cur = a.wear ? (v ? a.wear : '') : v,
+    ck = a.wear ? a.k : a.ck,
+    pal = a.pal || PALETTE,
+    own = ck && !pal.includes(c[ck]);
   return (
-    <div className={'chip' + (on ? ' on' : '')}>
-      {a.fixed ? <span className="chip-label">{a.t}</span>
-        : <button type="button" aria-pressed={on} onClick={() => set({ [a.k]: v ? '' : a.def || a.kinds[0][0] })}>{on ? '✓ ' : ''}{a.t}</button>}
-      {on && a.kinds && a.kinds.length > 1 && (
-        <select value={v} aria-label={`${n}번 ${a.t} 종류`} onChange={(e) => set({ [a.k]: e.target.value })}>
-          {a.kinds.map(([k, t]) => <option key={k} value={k}>{t}</option>)}
-        </select>
+    <div className="acc-row">
+      <span className="acc-name">{a.t}</span>
+      {opts && (
+        <div className="pills" role="radiogroup" aria-label={`${n}번 ${a.t}`}>
+          {opts.map(([o, l]) => (
+            <button type="button" key={o} role="radio" aria-checked={cur === o} className={cur === o ? 'on' : ''} onClick={() => cur !== o && set({ [a.k]: o })}>{l}</button>
+          ))}
+        </div>
       )}
-      {showColor && <input type="color" className="swatch" value={c[ck]} aria-label={`${n}번 ${a.t} 색`} onChange={(e) => set({ [ck]: e.target.value })} />}
+      {ck && (a.cWhen ? a.cWhen(v) : !!v) && (
+        <div className="dots" role="radiogroup" aria-label={`${n}번 ${a.t} 색`}>
+          {pal.map((col) => (
+            <button type="button" key={col} role="radio" aria-checked={c[ck] === col} aria-label={col} className={'dot' + (c[ck] === col ? ' on' : '')} style={{ background: col }} onClick={() => set({ [ck]: col })} />
+          ))}
+          <label className={'dot custom' + (own ? ' on' : '')} style={own ? { background: c[ck] } : undefined} title="다른 색 고르기">
+            <input type="color" value={c[ck]} aria-label={`${n}번 ${a.t} 다른 색`} onChange={(e) => set({ [ck]: e.target.value })} />
+          </label>
+        </div>
+      )}
     </div>
   );
 }
@@ -125,9 +138,14 @@ function RulesPanel({ v, game, onStart, confirmed }) {
 function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
   const i = Math.min(editing, v.n - 1), c = v.cfg[i];
   const shuffled = v.lanes.some((s, k) => s !== k);
-  const go = (d) => setEditing(Math.max(0, Math.min(v.n - 1, i + d)));
-  const touchX = useRef(null);
   const [tab, setTab] = useState('base');
+  // 다음: 기본 탭 → 장신구 탭 → 다음 사람 기본 탭. 이전: 장신구 탭 → 기본 탭, 기본 탭 → 이전 사람 기본 탭
+  const go = (d) => {
+    if (d > 0 && tab === 'base') setTab('acc');
+    else if (d < 0 && tab === 'acc') setTab('base');
+    else if (i + d >= 0 && i + d < v.n) { setEditing(i + d); setTab('base'); }
+  };
+  const touchX = useRef(null);
   return (
     <section className="roster" aria-labelledby="roster-h"
       onTouchStart={(e) => { touchX.current = e.touches[0].clientX; }}
@@ -150,7 +168,7 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
         {tab === 'acc' ? (
           <div className="card acc" role="tabpanel">
             {(c.age === 'r' ? ROBOT_ACCS : HUMAN_ACCS.filter((a) => !a.ages || a.ages.includes(c.age))).map((a) => (
-              <AccItem key={a.t} a={a} c={c} n={i + 1} set={(p) => game().setCfg(i, p)} />
+              <AccRow key={a.t} a={a} c={c} n={i + 1} set={(p) => game().setCfg(i, p)} />
             ))}
           </div>
         ) : (
@@ -178,28 +196,38 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
         )}
       </div>
       <div className="roster-foot">
-        <p className="status pc-only">{tab === 'acc' ? '장신구를 눌러 켜고 끄고, 종류와 색을 골라요.' : '어떤 종류를 골라도 이길 확률은 비슷해요.'}</p>
-        <button type="button" className="nav" aria-label="이전 참가자" disabled={i === 0} onClick={() => go(-1)}>◀ 이전</button>
-        <button type="button" className="nav" aria-label="다음 참가자" disabled={i === v.n - 1} onClick={() => go(1)}>다음 ▶</button>
+        <p className="status pc-only">{tab === 'acc' ? '종류를 누르고, 색 점을 골라요. 무지개 점은 다른 색이에요.' : '어떤 종류를 골라도 이길 확률은 비슷해요.'}</p>
+        <button type="button" className="nav" disabled={i === 0 && tab === 'base'} onClick={() => go(-1)}>{tab === 'acc' ? '◀ 기본' : '◀ 이전 사람'}</button>
+        <button type="button" className="nav" disabled={i === v.n - 1 && tab === 'acc'} onClick={() => go(1)}>{tab === 'base' ? '장신구 ▶' : '다음 사람 ▶'}</button>
       </div>
     </section>
   );
 }
 
 // 레이스 중·후 조작
-function RaceBar({ v, game, onStop }) {
+function RaceBar({ v, game, onStop, onNew }) {
   const done = v.canReplay;
+  // 보내기: 리플레이 중에 GIF(가벼움) 또는 영상(선명)을 만든 뒤, 준비되면 보내기·저장
+  const [pick, setPick] = useState(false);
+  const make = (gif) => { setPick(false); gif ? game().exportGif() : game().exportVideo(); };
   return (
     <div className="race-bar">
       <span className="hint">{v.msg}</span>
       {v.locked && <button type="button" className="stop" onClick={onStop}>■ 경기 중단</button>}
       {v.locked && <span className="tip">화면을 누른 채 끌면 원하는 곳을 보고, 놓으면 다시 1위를 따라가요</span>}
       {!v.locked && <button type="button" onClick={() => game().start()}>다시 시작</button>}
-      {!v.locked && <button type="button" className="ghost" onClick={() => game().reset()}>새로 하기</button>}
-      {done && <button type="button" className="ghost" onClick={() => game().toggleReplay()}>{v.replaying ? '■ 리플레이 종료' : '▶ 리플레이'}</button>}
-      {done && <button type="button" className="ghost" disabled={v.busy} onClick={() => game().exportVideo()}>MP4 만들기</button>}
-      {done && <button type="button" className="ghost" disabled={v.busy} onClick={() => game().exportGif()}>GIF 만들기</button>}
-      {v.file && <button type="button" onClick={() => game().saveReady()}>⬇ {v.file} 저장</button>}
+      {!v.locked && <button type="button" className="ghost" onClick={onNew}>새로 하기</button>}
+      {done && !v.busy && <button type="button" className="ghost" onClick={() => game().toggleReplay()}>{v.replaying ? '■ 리플레이 종료' : '▶ 리플레이'}</button>}
+      {v.replaying && !v.busy && !pick && <button type="button" onClick={() => setPick(true)}>📤 다른 사람에게 보내기</button>}
+      {v.replaying && !v.busy && pick && (
+        <span className="share-pick">
+          <button type="button" onClick={() => make(true)}>움짤(GIF)</button>
+          <button type="button" onClick={() => make(false)}>영상(MP4)</button>
+          <button type="button" className="ghost" onClick={() => setPick(false)}>취소</button>
+        </span>
+      )}
+      {v.file && !v.busy && <button type="button" onClick={() => game().shareReady()}>📤 보내기</button>}
+      {v.file && !v.busy && <button type="button" className="ghost" onClick={() => game().saveReady()}>⬇ 저장</button>}
     </div>
   );
 }
@@ -324,6 +352,8 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   const stopBack = () => { game().stop(); toSetup(); };
+  // 시상식 뒤 새로 하기: 같은 참가자로 준비 화면에 돌아가 참가자 창을 첫 사람부터 다시 띄움
+  const newRound = () => { game().reset(); setEditing(0); toSetup(); };
   const stopReset = () => { game().resetAll(); setEditing(0); setSeen([0]); setRosterKey((k) => k + 1); toSetup(); };
   const goConfirm = () => {
     setNotice(false);
@@ -345,7 +375,7 @@ export default function App() {
           </div>
         </>
       )}
-      {v && !setup && <RaceBar v={v} game={game} onStop={openStop} />}
+      {v && !setup && <RaceBar v={v} game={game} onStop={openStop} onNew={newRound} />}
       <div className={'stage' + (v && v.locked ? ' racing' : '') + (v && v.manual ? ' grabbing' : '')}>
         <canvas ref={canvasRef} id="cv" width="960" height="420" aria-label="레이스 화면" />
         {rosterOpen && (

@@ -75,7 +75,7 @@ const step = (k = 1) => { for (let i = 0; i < k; i++) { T += 1000 / 60; raf(T); 
   const req = createRequire(join(here, '../package.json'));
   const parser = req('@babel/parser'), traverse = req('@babel/traverse').default;
   const { readdirSync } = await import('node:fs');
-  const KNOWN = new Set(['window', 'document', 'Math', 'performance', 'requestAnimationFrame', 'cancelAnimationFrame', 'console', 'Blob', 'URL', 'MediaRecorder', 'Uint8Array', 'Uint8ClampedArray', 'setTimeout', 'Promise', 'Object', 'Array', 'String', 'Number', 'JSON', 'Date', 'Set', 'Map', 'Infinity', 'NaN', 'undefined', 'parseInt', 'isFinite', 'AbortController']);
+  const KNOWN = new Set(['window', 'document', 'Math', 'performance', 'requestAnimationFrame', 'cancelAnimationFrame', 'console', 'Blob', 'URL', 'MediaRecorder', 'Uint8Array', 'Uint8ClampedArray', 'setTimeout', 'Promise', 'Object', 'Array', 'String', 'Number', 'JSON', 'Date', 'Set', 'Map', 'Infinity', 'NaN', 'undefined', 'parseInt', 'isFinite', 'AbortController', 'navigator', 'File']);
   const walk = (d) => readdirSync(d, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? walk(join(d, e.name)) : e.name.endsWith('.js') ? [join(d, e.name)] : []);
   const missing = [];
   for (const f of walk(join(here, '../src/game'))) {
