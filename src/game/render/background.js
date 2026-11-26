@@ -485,6 +485,147 @@ export function glowStick(h) {
   G.ctx.stroke();
   G.ctx.restore();
 }
+// 개 산책 상태(k번 행인): st walk·loose·caught, ox 행인 이동, dx 강아지 위치(행인 기준), say 말, sayT 남은 시간
+export function dogState(k) {
+  if (!G.dogs) G.dogs = [];
+  return G.dogs[k] || (G.dogs[k] = { st: 'walk', taps: 0, ox: 0, dx: 24, t: 0, say: '', sayT: 0 });
+}
+export const walkerBase = k => 350 + k * 1700 + G.clock * 26 - G.camX + OFF;
+// 캔버스 좌표(x, y) 누름 처리. 처리했으면 true(카메라 조작 대신)
+export function dogTap(x, y) {
+  if (!G.mapId || !G.mapId.startsWith('city') || y < G.H - 40) return false;
+  for (let k = 0; k < 4; k++) {
+    const D = dogState(k),
+      b = walkerBase(k);
+    if (D.st === 'walk' && Math.abs(x - (b + D.ox)) < 16) {
+      D.taps++;
+      D.say = ['어? 왜 그러세요?', '간지러워요~', '앗! 멍멍아!!'][Math.min(D.taps, 3) - 1];
+      D.sayT = 1.6;
+      if (D.taps >= 3) {
+        D.st = 'loose';
+        D.t = 0;
+        D.dx = D.ox + 24;
+      }
+      return true;
+    }
+    if (D.st === 'loose' && Math.abs(x - (b + D.dx)) < 18) {
+      D.st = 'caught';
+      D.say = '옳지, 착하다! 기다려~';
+      D.sayT = 99;
+      return true;
+    }
+  }
+  return false;
+}
+// 행인과 강아지 그리기 + 상태 진행(그림 시간 G.fdt만 씀)
+export function dogWalk(k, now) {
+  const D = dogState(k),
+    b = walkerBase(k),
+    y = G.H - 4,
+    dt = G.fdt || 0,
+    still = G.state === 'run' ? 26 * dt : 0;
+  D.sayT -= dt;
+  if (D.st === 'walk') {
+    if (b + D.ox > -60 && b + D.ox < G.W + 60) walker(b + D.ox, y, k, now);
+  } else if (D.st === 'loose') {
+    D.t += dt;
+    D.dx += 140 * dt;
+    if (D.t > .6) D.ox += 90 * dt;
+    if (D.t > .6 && D.say !== '멍멍아~ 거기 서!!') {
+      D.say = '멍멍아~ 거기 서!!';
+      D.sayT = 99;
+    }
+    // 강아지가 화면 밖으로 멀리 가면 주인이 데리고 돌아옴
+    if (b + D.dx > G.W + 200 && b + D.ox > G.W + 60) {
+      D.st = 'walk';
+      D.taps = 0;
+      D.ox = D.dx - 24;
+      D.sayT = 0;
+    }
+    walkPerson(b + D.ox, y, k, now, D.t > .6);
+    walkDog(b + D.dx, y, k, now, 1);
+  } else {
+    // 붙잡힘: 강아지는 제자리(땅 기준)에서 기다리고 주인이 뛰어와 다시 목줄을 잡음
+    D.dx -= still;
+    D.ox += 90 * dt - still;
+    if (D.ox >= D.dx - 24) {
+      D.ox = D.dx - 24;
+      D.st = 'walk';
+      D.taps = 0;
+      D.say = '휴, 잡았다!';
+      D.sayT = 1.6;
+    }
+    walkPerson(b + D.ox, y, k, now, 1);
+    walkDog(b + D.dx, y, k, now, 0);
+  }
+  // 말풍선은 트랙·캐릭터보다 위에 보이도록 모아 두었다가 race.js에서 마지막에 그림
+  if (D.sayT > 0 && D.say) (G.dogBub || (G.dogBub = [])).push([b + D.ox, y - 32, D.say, Math.min(1, D.sayT / .3)]);
+}
+// 행인(달리기면 다리·팔을 빠르게)
+function walkPerson(x, y, k, now, run) {
+  const ph = now * (run ? 16 : 6) + k,
+    sw = Math.sin(ph) * (run ? 1.6 : 1),
+    c = COLORS[(k * 3 + 2) % COLORS.length],
+    sk = SKIN[k % SKIN.length];
+  G.ctx.strokeStyle = '#2c3e50';
+  G.ctx.lineWidth = 2.4;
+  G.ctx.lineCap = 'round';
+  G.ctx.beginPath();
+  G.ctx.moveTo(x - 1, y - 8);
+  G.ctx.lineTo(x - 1 + sw * 3, y);
+  G.ctx.moveTo(x + 1, y - 8);
+  G.ctx.lineTo(x + 1 - sw * 3, y);
+  G.ctx.stroke();
+  G.ctx.fillStyle = c;
+  rr(x - 4, y - 19, 8, 12, 3);
+  G.ctx.fill();
+  G.ctx.fillStyle = sk;
+  G.ctx.beginPath();
+  G.ctx.arc(x, y - 23, 4, 0, 7);
+  G.ctx.fill();
+  G.ctx.strokeStyle = sk;
+  G.ctx.lineWidth = 2;
+  G.ctx.beginPath();
+  G.ctx.moveTo(x + 2, y - 16);
+  G.ctx.lineTo(x + 7, run ? y - 19 - Math.abs(sw) * 2 : y - 11);
+  G.ctx.stroke();
+}
+// 강아지(달리면 다리를 빠르게, 혀를 내밂). 목줄은 뒤로 늘어뜨림
+function walkDog(dx, y, k, now, run) {
+  const ph = now * (run ? 16 : 6) + k,
+    dc = ['#c58b4e', '#f2e2c4', '#3b3b3b', '#e0b36a'][k % 4],
+    b = Math.abs(Math.sin(ph * 1.6)) * (run ? 2 : 1.2);
+  G.ctx.strokeStyle = '#e4572e';
+  G.ctx.lineWidth = 1;
+  G.ctx.beginPath();
+  G.ctx.moveTo(dx + 5, y - 8 - b);
+  G.ctx.lineTo(dx - 12, y - 1);
+  G.ctx.stroke();
+  G.ctx.strokeStyle = dc;
+  G.ctx.lineWidth = 1.8;
+  G.ctx.beginPath();
+  for (const [lx, o] of [[-4, 0], [-1, Math.PI], [3, Math.PI], [6, 0]]) {
+    const l = run ? Math.sin(ph * 1.6 + o) * 3 : 0;
+    G.ctx.moveTo(dx + lx, y - 4 - b);
+    G.ctx.lineTo(dx + lx + l, y);
+  }
+  G.ctx.stroke();
+  G.ctx.fillStyle = dc;
+  G.ctx.beginPath();
+  G.ctx.ellipse(dx + 1, y - 6 - b, 6, 3.4, 0, 0, 7);
+  G.ctx.fill();
+  G.ctx.beginPath();
+  G.ctx.arc(dx + 7, y - 9 - b, 3.2, 0, 7);
+  G.ctx.fill();
+  G.ctx.fillStyle = '#1e2b33';
+  G.ctx.beginPath();
+  G.ctx.arc(dx + 8.5, y - 9.5 - b, .8, 0, 7);
+  G.ctx.fill();
+  if (run) {
+    G.ctx.fillStyle = '#ef6aa1';
+    G.ctx.fillRect(dx + 9, y - 8 - b, 1.6, 2);
+  }
+}
 export function walker(x, y, k, now) {
   const ph = now * 6 + k,
     sw = Math.sin(ph),
@@ -742,10 +883,7 @@ export function cityBg(th) {
   G.ctx.fillRect(0, by, G.W, G.H - by);
   G.ctx.fillStyle = th.trad ? '#b9a98a' : '#a3abb2';
   G.ctx.fillRect(0, by, G.W, 3);
-  for (let k = 0; k < 4; k++) {
-    const wx = 350 + k * 1700 + G.clock * 26 - G.camX + OFF;
-    if (wx > -60 && wx < G.W + 60) walker(wx, G.H - 4, k, now);
-  }
+  for (let k = 0; k < 4; k++) dogWalk(k, now);
   // 밤: 인도와 사람들을 어둡게 덮고 조명만 밝게
   if (n8) {
     G.ctx.fillStyle = 'rgba(8,14,38,.5)';

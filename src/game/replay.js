@@ -46,7 +46,9 @@ export function record() {
       boost: r.boost,
       ovh: r.ovh,
       chg: r.chg,
-      pt: r.pull ? G.racers.indexOf(r.pull.v) : -1
+      pt: r.pull ? G.racers.indexOf(r.pull.v) : -1,
+      ev: r.ev,
+      et: r.et
     })),
     hd: G.traps.map(t => t.u ? t.u.map(u => u.down ? '1' : '0').join('') : '').join('|'),
     bx: G.boxes.map(b => b.t > 0 ? '0' : '1').join(''),
@@ -75,7 +77,10 @@ export function record() {
       x: f.x,
       d: f.d,
       t: f.t,
-      s: f.s
+      s: f.s,
+      b: f.b,
+      ri: f.ri,
+      cr: f.cr
     }))
   });
 }

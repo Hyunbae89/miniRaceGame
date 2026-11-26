@@ -5,6 +5,8 @@ import { ACC_KEYS, COLORS, HINT, MAXN, NAMES } from "./constants.js";
 import { exportGif, exportVideo, saveReady, shareReady } from "./export.js";
 import { podiumStep, podiumEnd } from "./render/podium.js";
 import { draw } from "./render/race.js";
+import { startReact } from "./render/reactions.js";
+import { dogTap } from "./render/background.js";
 import { applyFrame, endReplay, record, toggleReplay } from "./replay.js";
 import { setup, update } from "./sim/race.js";
 import { G } from "./state.js";
@@ -24,6 +26,8 @@ export function push() {
     want: G.want,
     locked: G.state === 'count' || G.state === 'run',
     map: G.mapId,
+    events: G.events,
+    obstacles: G.obstacles,
     lanes: G.lanes.slice(),
     cfg: G.cfg.map(c => Object.assign({}, c))
   });
@@ -130,6 +134,8 @@ export function resetAll() {
   G.paused = false;
   G.cfg = makeRoster();
   G.mode = 'normal';
+  G.events = true;
+  G.obstacles = true;
   G.want = 'first';
   G.mapId = 'city-day';
   G.lanes = [];
@@ -218,6 +224,8 @@ export function createGame(cv, ui) {
   G.portals = [];
   G.bolts = [];
   G.mode = 'normal';
+  G.events = true;
+  G.obstacles = true;
   G.winLine = '';
   G.frames = [];
   G.bk = null;
@@ -259,9 +267,11 @@ export function createGame(cv, ui) {
   // 레이스 중(카운트다운·달리기) 캔버스 조작: 위쪽 지도는 비율 위치로, 나머지는 누른 지점으로. 떼면 자동 카메라
   const camOK = () => G.state === 'count' || G.state === 'run';
   G.L('pointerdown', e => {
-    if (!camOK()) return;
     const b = G.cv.getBoundingClientRect(),
       y = (e.clientY - b.top) * G.cv.height / b.height;
+    // 아래쪽 인도의 개 산책 행인·강아지를 누르면 숨은 장면(카메라 조작보다 먼저)
+    if (dogTap((e.clientX - b.left) * G.W / b.width, y)) return;
+    if (!camOK()) return;
     G.drag = y <= 46 ? 'map' : 'view';
     G.cv.setPointerCapture?.(e.pointerId);
     if (G.drag === 'map') seek(e);else camDown(e);
@@ -310,6 +320,17 @@ export function createGame(cv, ui) {
       G.want = w;
       push();
     },
+    // 랜덤 이벤트 켜기/끄기, 장애물 있음/없음(장애물은 트랙을 다시 만듦)
+    setEvents: b => {
+      if (G.state === 'count' || G.state === 'run') return;
+      G.events = !!b;
+      push();
+    },
+    setObstacles: b => {
+      if (G.state === 'count' || G.state === 'run') return;
+      G.obstacles = !!b;
+      setN(G.n);
+    },
     setMap: m => {
       if (G.state === 'count' || G.state === 'run') return;
       G.mapId = m;
@@ -327,6 +348,10 @@ export function createGame(cv, ui) {
     resetAll: resetAll,
     setHover: i => {
       G.hover = i;
+    },
+    // 편집 반응: 준비 화면에서 i번 캐릭터가 한마디 하며 움직임(mood: mood·name·acc)
+    react: (i, mood) => {
+      if (G.state === 'idle') startReact(i, mood);
     },
     follow: () => {
       G.manual = false;

@@ -148,6 +148,14 @@ function RulesPanel({ v, game, onStart, confirmed }) {
             <Seg label="시간대" value={time} options={[['day', '☀ 낮'], ['night', '☾ 밤']]} onChange={(t) => game().setMap(place + '-' + t)} />
           </div>
         </div>
+        <div className="field">
+          <span className="label">랜덤 이벤트</span>
+          <Seg label="랜덤 이벤트" value={v.events ? 'on' : 'off'} options={[['on', '켜기'], ['off', '끄기']]} onChange={(x) => game().setEvents(x === 'on')} />
+        </div>
+        <div className="field">
+          <span className="label">장애물</span>
+          <Seg label="장애물" value={v.obstacles ? 'on' : 'off'} options={[['on', '있음'], ['off', '없음']]} onChange={(x) => game().setObstacles(x === 'on')} />
+        </div>
       </div>
       <button type="button" className={'start-big' + (confirmed ? '' : ' locked')} onClick={onStart}>
         {confirmed ? '▶ 경기 시작' : '🔒 경기 시작'}
@@ -188,13 +196,13 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
       </div>
       <div className="card-row">
         {tab === 'acc' ? (
-          <AccTab c={c} n={i + 1} set={(p) => game().setCfg(i, p)} />
+          <AccTab c={c} n={i + 1} set={(p) => { game().setCfg(i, p); game().react(i, 'acc'); }} />
         ) : (
         <div className="card base" role="tabpanel">
           <div className="card-main">
             <input type="color" className="swatch" value={c.color} aria-label={`${i + 1}번 옷 색`} onChange={(e) => game().setCfg(i, { color: e.target.value })} />
             <input className="name" key={`name-${i}-${c.age === 'r'}`} defaultValue={c.name} maxLength={c.age === 'r' ? 9 : 6} aria-label={`${i + 1}번 이름`}
-              onChange={(e) => game().setCfg(i, { name: e.target.value.trim() || `${i + 1}번` })} />
+              onChange={(e) => { game().setCfg(i, { name: e.target.value.trim() || `${i + 1}번` }); game().react(i, 'name'); }} />
             {/* 휴대폰: 캔버스가 낮아 종류·성별을 이름 옆 선택 상자로 */}
             <select className="m-only" value={c.age} aria-label={`${i + 1}번 종류`} onChange={(e) => game().setCfg(i, { age: e.target.value })}>
               {AGES.map(([k, t]) => <option key={k} value={k}>{t}</option>)}
@@ -352,6 +360,8 @@ export default function App() {
   // 참가자 창이 떠 있는 동안 편집 중인 캐릭터를 캔버스에서 강조
   const rosterOpen = !!v && setup && !confirmed;
   useEffect(() => { game()?.setHover(rosterOpen ? editing : -1); }, [rosterOpen, editing]);
+  // 참가자 창에서 그 사람으로 넘어오면 출발선의 캐릭터가 한마디(긴장·자신감·일상 중 하나)
+  useEffect(() => { if (rosterOpen) game()?.react(editing, 'mood'); }, [rosterOpen, editing]);
   useEffect(() => { if (rosterOpen) setSeen((s) => (s.includes(editing) ? s : [...s, editing])); }, [rosterOpen, editing]);
   const unseen = v ? Array.from({ length: v.n }, (_, k) => k).filter((k) => !seen.includes(k)) : [];
   const confirmNow = () => { setUnseenNotice(false); setConfirmedSig(rosterSig(v)); };

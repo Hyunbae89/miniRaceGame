@@ -2,6 +2,7 @@ import { ACC_KEYS, BACK, GT, ITEMS, JT, TRACK, WIN_LINES } from "../constants.js
 import { push } from "../engine.js";
 import { useItem } from "./items.js";
 import { robotStep } from "./robot.js";
+import { EV, eventPool, evCrowd, evLines } from "../events.js";
 import { G } from "../state.js";
 import { R } from "../util.js";
 export function say(r, t) {
@@ -53,6 +54,7 @@ export function setup() {
   G.betMsg = '';
   G.winLine = '';
   G.anim = [];
+  G.dogs = [];
   G.dust = [];
   G.quirks = Array.from({
     length: G.n
@@ -73,7 +75,8 @@ export function setup() {
       bx += R(650, 950);
     }
   }
-  let x = R(700, 850);
+  // 장애물을 끈 경기는 허들·물웅덩이·진흙·스프링 발판을 만들지 않음
+  let x = G.obstacles === false ? TRACK : R(700, 850);
   // 장애물: 허들(점프로 넘음), 물웅덩이(점프로 넘음, 빠지면 오래 멈춤)
   // 허들은 레인마다 한 칸씩 사선으로 늘어섬. 걸려 넘어진 칸은 쓰러져서 그 레인은 다음 사람부터 그냥 통과
   while (x < TRACK - 400) {
@@ -111,7 +114,7 @@ export function setup() {
   }
   // 스프링 발판 4개: 트랙 중반(40%)부터 결승 250 앞 사이 무작위 위치. 무작위 레인(맨 아래 포함)을 중심으로
   // 트랙 폭의 42%를 사선(s: 깊이 1당 x 이동량)으로 덮음. 밟으면 뒤로 튕겨 나감(발판마다 캐릭터당 한 번만 작동)
-  for (let tries = 0; G.springs.length < 4 && tries < 300; tries++) {
+  for (let tries = 0; G.obstacles !== false && G.springs.length < 4 && tries < 300; tries++) {
     const sx = R(TRACK * .4, TRACK - 250);
     if (G.traps.some(t => Math.abs(sx - t.x) < 140) || G.muds.some(z => sx > z.x0 - 70 && sx < z.x1 + 70) || G.springs.some(p => Math.abs(sx - p.x) < 300)) continue;
     const w = (G.GD + 20) * .42,
@@ -172,8 +175,20 @@ export function setup() {
       fin: false,
       rank: 0,
       time: 0,
-      cur: i + 1
+      cur: i + 1,
+      ev: '',
+      et: 0,
+      evL: 0,
+      evAt: -1,
+      evId: ''
     });
+  }
+  // 랜덤 이벤트: 약 60%가 트랙 15~80% 지점 중 한 곳에서 한 번. 좋은 일·나쁜 일 반반, 공통 + 자기 종류 중에서
+  if (G.events !== false) for (const r of G.racers) {
+    if (R(0, 1) >= .6) continue;
+    r.evAt = R(TRACK * .15, TRACK * .8);
+    const pool = eventPool(r.age, R(0, 1) < .5);
+    r.evId = pool[Math.min(pool.length - 1, Math.floor(R(0, pool.length)))].id;
   }
 }
 export function update(dt) {
@@ -197,6 +212,37 @@ export function update(dt) {
       r.h = 0;
       r.jt = -1;
     }
+    // 랜덤 이벤트: 정해 둔 지점에 오면 시작(넘어짐·탈것·점프 중이면 미룸). 진행 중에는 속도 배율을 이벤트가 정하고 말풍선을 띄움
+    let evm = null;
+    if (r.evAt >= 0 && r.x >= r.evAt && r.stun <= 0 && r.trip <= 0 && !r.veh && r.jt < 0) {
+      r.ev = r.evId;
+      r.et = 0;
+      r.evL = 0;
+      r.evAt = -1;
+      const cr = evCrowd(EV[r.ev], r);
+      if (cr) G.fx.push({
+        x: r.x + 40,
+        d: 0,
+        t: 0,
+        s: cr,
+        cr: 1
+      });
+    }
+    if (r.ev) {
+      const e = EV[r.ev],
+        q = (r.et += dt) / e.dur,
+        ls = evLines(e, r);
+      // 같은 주자의 새 말풍선은 앞 말풍선을 바로 지움(겹치지 않게)
+      while (r.evL < ls.length && q >= ls[r.evL][0]) (G.fx = G.fx.filter(f => !(f.b && f.ri === r.i))).push({
+        x: r.x,
+        d: r.d,
+        t: 0,
+        s: ls[r.evL++][1],
+        b: 1,
+        ri: r.i
+      });
+      if (q >= 1) r.ev = '';else evm = e.spd(q);
+    }
     if (r.trip > 0) r.trip -= dt;else {
       r.change -= dt;
       if (r.change <= 0) {
@@ -216,6 +262,7 @@ export function update(dt) {
         if (!r.inMud) say(r, r.age === 'r' ? '오작동!' : '진흙!');
       }
       r.inMud = mud;
+      if (evm !== null) m = evm;
       r.speed += (r.base * m - r.speed) * Math.min(1, dt * 4);
     }
     r.x += (r.speed + r.kx) * dt;
@@ -442,7 +489,8 @@ export function update(dt) {
   }
   for (const sp of G.springs) if (sp.t > 0) sp.t -= dt;
   for (const t of G.traps) if (t.u) for (const u of t.u) if (u.down && u.ft < 1) u.ft = Math.min(1, u.ft + dt * 4);
-  for (const f of G.fx) f.t += dt;
+  // 말풍선(b: 주자, cr: 관중)은 약 1.8초, 떠오르는 글자는 1초
+  for (const f of G.fx) f.t += dt * (f.b || f.cr ? .55 : 1);
   for (const o of G.portals) o.t -= dt;
   for (const o of G.bolts) o.t -= dt;
   G.portals = G.portals.filter(o => o.t > 0);
