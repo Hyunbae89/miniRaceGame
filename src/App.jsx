@@ -5,7 +5,7 @@ import './App.css';
 const TITLE = '미니 레이스 토너먼트';
 const GENDERS = [['m', '남'], ['f', '여']];
 const AGES = [['c', '어린이'], ['a', '성인'], ['e', '어르신'], ['r', '로봇']];
-// 참가자 창 짧은 설명(자세한 동작은 가이드 페이지에서). 사람 셋은 겉모습·걸음만 다르고 속도 계산은 같음, 로봇만 능력이 다름(sim/robot.js)
+// 참가자 창 짧은 설명(자세한 동작은 가이드 페이지에서). 사람 셋은 속도 계산이 같고, 로봇은 방식이 달라도 평균 순위가 비슷하게 맞춰져 있음(npm run check -- --balance)
 const AGE_DESC = {
   c: '작은 몸으로 종종걸음을 쳐요.',
   a: '큰 보폭으로 힘차게 달려요.',
@@ -105,10 +105,7 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
         <div className="roster-tools">
           <button type="button" className="ghost" onClick={() => game().shuffleLanes()}>🔀 자리 섞기</button>
           {shuffled && <button type="button" className="ghost" onClick={() => game().resetLanes()}>원래 자리</button>}
-          <div className="confirm-box">
-            <button type="button" ref={confirmRef} className="confirm pulse" onClick={onConfirm}>최종 결정</button>
-            <small className="pc-only">한 명씩 확인한 뒤 눌러 주세요</small>
-          </div>
+          <button type="button" ref={confirmRef} className="confirm pulse" onClick={onConfirm}>최종 결정</button>
         </div>
       </div>
       <div className="tabs" role="tablist" aria-label="편집 항목">
@@ -146,12 +143,12 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
           <div className="pc-only ages">
             <Seg small label={`${i + 1}번 종류`} value={c.age} options={AGES} onChange={(a) => game().setCfg(i, { age: a })} />
           </div>
-          <p className="pc-only desc"><strong>{AGES.find(([k]) => k === c.age)[1]}</strong>{AGE_DESC[c.age]}</p>
+          <p className="pc-only desc">{AGE_DESC[c.age]}</p>
         </div>
         )}
       </div>
       <div className="roster-foot">
-        <p className="status pc-only">{tab === 'acc' ? '장신구를 눌러 켜고 끄고, 옆의 색 칸으로 색을 바꿔요.' : c.age === 'r' ? '로봇은 사람과 능력이 달라요.' : '사람은 종류와 상관없이 달리기 실력이 같아요.'}</p>
+        <p className="status pc-only">{tab === 'acc' ? '장신구를 눌러 켜고 끄고, 옆의 색 칸으로 색을 바꿔요.' : '어떤 종류를 골라도 이길 확률은 비슷해요.'}</p>
         <button type="button" className="nav" aria-label="이전 참가자" disabled={i === 0} onClick={() => go(-1)}>◀ 이전</button>
         <button type="button" className="nav" aria-label="다음 참가자" disabled={i === v.n - 1} onClick={() => go(1)}>다음 ▶</button>
       </div>
