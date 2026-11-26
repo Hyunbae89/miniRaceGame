@@ -72,15 +72,25 @@ button.sq{width:48px;height:44px;padding:0;font-size:24px;background:var(--panel
 .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line)}
 .tabs button{background:transparent;color:var(--muted);border-radius:8px 8px 0 0;padding:6px 16px;font-size:14px;border-bottom:2px solid transparent;margin-bottom:-1px}
 .tabs button.on{color:var(--accent);border-bottom-color:var(--accent)}
-/* 장신구 탭: 줄마다 [이름 · 종류 알약 · 색 점] */
-.card.acc{gap:6px}
-.acc-row{display:flex;align-items:center;gap:6px 12px;flex-wrap:wrap}
-.acc-name{flex:none;width:3.8em;font-size:13px;font-weight:700;color:var(--muted)}
+/* 장신구 탭: 왼쪽 장신구 줄 + 오른쪽 끝 공용 색 칸(2열). 누른 장신구가 강조되고 색 칸이 그 장신구 색을 바꿈 */
+.card.acc{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:start}
+.acc-rows{display:flex;flex-direction:column;gap:6px;min-width:0}
+.acc-row{display:flex;flex-wrap:wrap;gap:6px 14px}
+.acc-item{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:2px 6px 2px 2px;border-radius:999px;border:1px solid transparent;cursor:pointer}
+.acc-item.sel{border-color:var(--accent);background:var(--accent-soft)}
+.acc-name{flex:none;min-width:3.6em;background:transparent;color:var(--muted);font-size:13px;font-weight:700;padding:4px 6px;text-align:left}
+.acc-item.sel .acc-name{color:var(--accent)}
 .pills{display:inline-flex;gap:2px;padding:2px;border-radius:999px;background:var(--panel2);border:1px solid var(--line)}
-.pills button{background:transparent;color:var(--muted);font-size:13px;font-weight:600;padding:4px 12px;border-radius:999px}
+.pills button{white-space:nowrap;background:transparent;color:var(--muted);font-size:13px;font-weight:600;padding:4px 12px;border-radius:999px}
 .pills button.on{background:var(--accent);color:var(--onaccent)}
-.dots{display:flex;align-items:center;gap:6px}
-.dot{position:relative;flex:none;width:20px;height:20px;padding:0;border-radius:50%;border:2px solid var(--panel);box-shadow:0 0 0 1px var(--line);cursor:pointer}
+.palette{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 10px;border-radius:12px;background:var(--panel2);border:1px solid var(--line)}
+.pal-title{font-size:12px;font-weight:700;color:var(--accent);white-space:nowrap}
+.pal-grid{display:grid;grid-template-columns:repeat(2,22px);gap:7px}
+.palette.off .pal-grid{opacity:.35}
+.palette.off .pal-title{color:var(--muted)}
+.pal-hint{max-width:6.5em;font-size:11px;line-height:1.35;color:var(--muted);text-align:center}
+.dot{position:relative;width:22px;height:22px;padding:0;border-radius:50%;border:2px solid var(--panel);box-shadow:0 0 0 1px var(--line);cursor:pointer}
+.dot:disabled{cursor:default}
 .dot.on{box-shadow:0 0 0 2px var(--accent)}
 .dot.custom{background:conic-gradient(#e4572e,#f2b705,#2fb67c,#2e86de,#8e5ad6,#e4572e)}
 .dot.custom input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
@@ -172,12 +182,17 @@ canvas{display:block;width:100%;height:auto;border-radius:var(--radius);border:1
   .card.base{display:flex}
   .card.base .name{flex:1;width:auto}
   .tabs button{font-size:12px;padding:2px 10px}
-  /* 휴대폰 장신구 탭: 줄을 작게, 넘치면 창 안에서 스크롤 */
-  .card.acc{gap:4px;max-height:118px;overflow-y:auto}
+  /* 휴대폰 장신구 탭: 작게, 넘치면 창 안에서 스크롤 */
+  .card.acc{gap:6px;max-height:122px;overflow-y:auto}
+  .acc-rows{gap:3px}
   .acc-row{gap:3px 6px}
-  .acc-name{width:3.2em;font-size:11px}
-  .pills button{font-size:11px;padding:2px 7px}
-  .dots{gap:4px}
+  .acc-name{min-width:2.8em;font-size:11px;padding:2px 3px}
+  .pills button{font-size:11px;padding:2px 6px}
+  .acc-item{gap:2px 4px}
+  .palette{padding:4px 6px;gap:3px}
+  .pal-title{font-size:10px}
+  .pal-grid{grid-template-columns:repeat(2,15px);gap:4px}
+  .pal-hint{display:none}
   .dot{width:15px;height:15px}
   .nav{flex:1;font-size:12px;padding:5px 8px}
   .card-main{gap:4px}
