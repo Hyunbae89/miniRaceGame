@@ -6,7 +6,7 @@
 
 - `npm run dev` 개발 서버(`http://localhost:5173/miniRaceGame/`)
 - `npm run build` 빌드
-- `npm run check` 엔진 자동 점검: 정의되지 않은 이름 검사 + 고정 난수 시나리오의 그리기 명령 해시를 `scripts/check-baseline.json`과 비교
+- `npm run check` 엔진 자동 점검: 정의되지 않은 이름 검사 + 고정 난수 시나리오의 그리기 명령 해시와 레이스 기록 해시(`sim`)를 `scripts/check-baseline.json`과 비교
 - `npm run check -- --update` 그림·동작을 일부러 바꿨을 때만 기준 갱신
 - `npm run check -- --balance` 로봇·사람 평균 순위 측정
 
@@ -32,6 +32,7 @@
 - 게임 코드를 바꾸면 `npm run build`와 `npm run check`를 통과시킨다.
   - 동작이 바뀌면 안 되는 작업(리팩터링 등): 기준과 해시가 같아야 한다.
   - 그림·동작을 의도해 바꾼 작업: 바뀐 시나리오가 의도한 것만인지 확인한 뒤 `--update`.
+  - 그림만 바꾼 작업(렌더링 교체 포함): 실패 목록이 모두 "그림만 다름"이어야 한다(`sim`·순위·시간 동일).
 - 화면이 바뀌면 실제 브라우저로 캡처해서 본다. 빌드 통과만으로 "된다"고 하지 않는다.
 
 ## 프로젝트 규칙

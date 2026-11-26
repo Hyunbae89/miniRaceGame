@@ -7,6 +7,8 @@
 // 원리: Math.random과 시간을 고정한 채 가짜 캔버스로 게임을 돌리면서, 캔버스에 내린 모든 명령과
 // 설정값을 순서대로 해시로 기록한다. 리팩터링처럼 동작이 바뀌면 안 되는 작업 전후에 해시가 같으면
 // 화면에 그려지는 내용이 한 획도 달라지지 않았다는 뜻이다.
+// 레이스 시나리오는 그리기와 별도로 리플레이 기록(G.frames: 매 프레임 위치·순위·장애물 등)을 sim 해시로
+// 남긴다. 그리는 방식을 바꾸는 작업(예: PixiJS)에서는 그리기 해시는 달라져도 sim 해시는 같아야 한다.
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -83,6 +85,8 @@ const step = (k = 1) => { for (let i = 0; i < k; i++) { T += 1000 / 60; raf(T); 
   console.log('✓ 모든 게임 모듈의 이름이 정의돼 있음');
 }
 const { createGame } = await import(pathToFileURL(join(here, '../src/game/engine.js')).href);
+const { G } = await import(pathToFileURL(join(here, '../src/game/state.js')).href);
+const fnv = (s) => { let x = 2166136261; for (let i = 0; i < s.length; i++) { x ^= s.charCodeAt(i); x = Math.imul(x, 16777619); } return (x >>> 0).toString(16); };
 
 // ---- 시나리오 ----
 function run(name, setup) {
@@ -100,8 +104,9 @@ function race(g, v, limit = 60 * 240) {
   if (v().state !== 'podium') throw new Error('레이스가 ' + limit / 60 + '초 안에 끝나지 않음');
   step(500); // 시상식(조명·말풍선 포함)
   const winner = v().result.rank[0].name;
+  const sim = fnv(JSON.stringify(G.frames));
   g.toggleReplay(); step(300);
-  return { sec: Math.round(s / 60), winner };
+  return { sec: Math.round(s / 60), winner, sim };
 }
 const scenarios = {
   '미리보기(호버·헬기 마우스)': (g, v) => { g.setN(12); g.setCfg(2, { age: 'r' }); handlers.pointermove?.({ clientX: 700, clientY: 100 }); step(30); g.setHover(3); step(30); g.setHover(-1); g.shuffleLanes(); step(10); return { names: v().cfg.slice(0, 12).map((c) => c.name).join(',') }; },
@@ -178,7 +183,9 @@ if (args.includes('--update') || !existsSync(BASE)) {
   const diff = Object.keys(results).filter((k) => JSON.stringify(results[k]) !== JSON.stringify(base[k]));
   if (diff.length) {
     console.log('\n✗ 기준과 다른 시나리오: ' + diff.join(', '));
-    for (const k of diff) console.log(`  ${k}\n    기준 ${JSON.stringify(base[k])}\n    현재 ${JSON.stringify(results[k])}`);
+    // hash·calls(그리기)를 뺀 나머지가 같으면 레이스는 그대로이고 그림만 바뀐 것
+    const core = (o) => JSON.stringify({ ...o, hash: 0, calls: 0 });
+    for (const k of diff) console.log(`  ${k}  [${core(results[k]) === core(base[k]) ? '그림만 다름' : '레이스 결과·동작도 다름'}]\n    기준 ${JSON.stringify(base[k])}\n    현재 ${JSON.stringify(results[k])}`);
     console.log('의도한 변경이면 npm run check -- --update 로 기준을 갱신하세요.');
     process.exit(1);
   }
