@@ -2,7 +2,7 @@
 // 상태 초기화, 메인 루프, 입력 처리, UI로 상태 전달(push)을 맡는다.
 import { camDown, camMove, camUp, seek, updateCam } from "./camera.js";
 import { ACC_KEYS, COLORS, HINT, MAXN, NAMES } from "./constants.js";
-import { exportGif, exportVideo, saveReady } from "./export.js";
+import { exportGif, exportVideo, saveReady, shareReady } from "./export.js";
 import { podiumStep, podiumEnd } from "./render/podium.js";
 import { draw } from "./render/race.js";
 import { applyFrame, endReplay, record, toggleReplay } from "./replay.js";
@@ -335,6 +335,7 @@ export function createGame(cv, ui) {
     exportGif: exportGif,
     exportVideo: exportVideo,
     saveReady: saveReady,
+    shareReady: shareReady,
     destroy: () => {
       G.dead = true;
       cancelAnimationFrame(G.raf);
