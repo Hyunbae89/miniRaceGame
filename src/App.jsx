@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createGame } from './game/engine.js';
 import './App.css';
 
@@ -79,81 +79,51 @@ function RulesPanel({ v, game, onStart, confirmed }) {
   );
 }
 
-// 참가자 카드 목록 + 최종 결정
-function Roster({ v, game, editing, setEditing, confirmed, onConfirm, confirmRef }) {
-  const shuffled = v.lanes.some((s, i) => s !== i);
-  // 캔버스 강조: 마우스를 올린 카드, 없으면 입력 중(포커스)인 카드
-  const focused = useRef(-1);
-  // 카드 목록 높이 고정: PC 2줄·휴대폰 3장까지만 보이고 나머지는 목록 안에서 스크롤(전체 보기로 펼침)
-  const listRef = useRef(null);
-  const [fit, setFit] = useState({ h: null, hidden: 0 });
-  const [expanded, setExpanded] = useState(false);
-  const [atEnd, setAtEnd] = useState(false);
-  useLayoutEffect(() => {
-    const el = listRef.current;
-    if (!el) return;
-    const calc = () => {
-      const cards = [...el.children];
-      const rows = window.matchMedia('(max-width:720px)').matches ? 3 : 2;
-      const tops = [...new Set(cards.map((c) => c.offsetTop))].sort((a, b) => a - b);
-      if (tops.length <= rows) { setFit((f) => (f.h === null ? f : { h: null, hidden: 0 })); return; }
-      const lastTop = tops[rows - 1];
-      const bottom = Math.max(...cards.filter((c) => c.offsetTop === lastTop).map((c) => c.offsetTop + c.offsetHeight));
-      const h = bottom + 6, hidden = cards.filter((c) => c.offsetTop > lastTop).length;
-      setFit((f) => (f.h === h && f.hidden === hidden ? f : { h, hidden }));
-    };
-    calc();
-    const ro = new ResizeObserver(calc);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [v.n]);
-  const clipped = fit.h !== null && !expanded;
-  const onScroll = (e) => { const t = e.currentTarget; setAtEnd(t.scrollTop + t.clientHeight >= t.scrollHeight - 4); };
-  const show = (i) => game().setHover(i);
+// 캔버스 위 참가자 창: 한 명씩 이전/다음으로 넘기며 편집하고 최종 결정
+function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
+  const i = Math.min(editing, v.n - 1), c = v.cfg[i];
+  const shuffled = v.lanes.some((s, k) => s !== k);
+  const go = (d) => setEditing(Math.max(0, Math.min(v.n - 1, i + d)));
+  const touchX = useRef(null);
   return (
-    <section className="panel roster" aria-labelledby="roster-h">
+    <section className="roster" aria-labelledby="roster-h"
+      onTouchStart={(e) => { touchX.current = e.touches[0].clientX; }}
+      onTouchEnd={(e) => { const dx = e.changedTouches[0].clientX - touchX.current; if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1); }}>
       <div className="roster-head">
-        <h2 id="roster-h" className="eyebrow">참가자 {v.n}명</h2>
+        <h2 id="roster-h" className="eyebrow">참가자 <strong>{i + 1}</strong> / {v.n}</h2>
+        <span className="lane" title="출발 레인(위에서부터)">{v.lanes[i] + 1}레인</span>
         <div className="roster-tools">
           <button type="button" className="ghost" onClick={() => game().shuffleLanes()}>🔀 자리 섞기</button>
           {shuffled && <button type="button" className="ghost" onClick={() => game().resetLanes()}>원래 자리</button>}
-          {fit.h !== null && (
-            <button type="button" className="ghost" aria-expanded={expanded} onClick={() => setExpanded((x) => !x)}>
-              {expanded ? '접기' : `전체 보기 · +${fit.hidden}명`}
-            </button>
-          )}
         </div>
       </div>
-      <div ref={listRef} className={'cards' + (clipped ? ' clipped' : '') + (clipped && !atEnd ? ' more' : '')}
-        style={clipped ? { maxHeight: fit.h } : undefined} onScroll={onScroll} onMouseLeave={() => show(focused.current)}>
-        {v.cfg.slice(0, v.n).map((c, i) => (
-          <div key={i} className={'card' + (editing === i ? ' editing' : '')}
-            onMouseEnter={() => show(i)}
-            onFocus={() => { focused.current = i; setEditing(i); show(i); }}
-            onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) { focused.current = -1; show(-1); } }}
-            onClick={() => setEditing(i)}>
-            <div className="card-top">
-              <span className="num">{i + 1}</span>
-              <span className="lane" title="출발 레인(위에서부터)">{v.lanes[i] + 1}레인</span>
-              {editing === i && <span className="tag">편집 중</span>}
-            </div>
-            <div className="card-main">
-              <input type="color" className="swatch" value={c.color} aria-label={`${i + 1}번 옷 색`} onChange={(e) => game().setCfg(i, { color: e.target.value })} />
-              <input className="name" key={`name-${c.age === 'r'}`} defaultValue={c.name} maxLength={c.age === 'r' ? 9 : 6} aria-label={`${i + 1}번 이름`}
-                onChange={(e) => game().setCfg(i, { name: e.target.value.trim() || `${i + 1}번` })} />
-            </div>
+      <div className="card-row">
+        <button type="button" className="nav" aria-label="이전 참가자" disabled={i === 0} onClick={() => go(-1)}>◀</button>
+        <div className="card">
+          <div className="card-main">
+            <input type="color" className="swatch" value={c.color} aria-label={`${i + 1}번 옷 색`} onChange={(e) => game().setCfg(i, { color: e.target.value })} />
+            <input className="name" key={`name-${i}-${c.age === 'r'}`} defaultValue={c.name} maxLength={c.age === 'r' ? 9 : 6} aria-label={`${i + 1}번 이름`}
+              onChange={(e) => game().setCfg(i, { name: e.target.value.trim() || `${i + 1}번` })} />
+            {/* 휴대폰: 캔버스가 낮아 종류·성별을 이름 옆 선택 상자로 */}
+            <select className="m-only" value={c.age} aria-label={`${i + 1}번 종류`} onChange={(e) => game().setCfg(i, { age: e.target.value })}>
+              {AGES.map(([k, t]) => <option key={k} value={k}>{t}</option>)}
+            </select>
+            {c.age !== 'r' && (
+              <select className="m-only" value={c.gender} aria-label={`${i + 1}번 성별`} onChange={(e) => game().setCfg(i, { gender: e.target.value })}>
+                {GENDERS.map(([k, t]) => <option key={k} value={k}>{t}</option>)}
+              </select>
+            )}
+          </div>
+          <div className="pc-only card-segs">
             <Seg small label={`${i + 1}번 종류`} value={c.age} options={AGES} onChange={(a) => game().setCfg(i, { age: a })} />
             {c.age !== 'r' && <Seg small label={`${i + 1}번 성별`} value={c.gender} options={GENDERS} onChange={(g) => game().setCfg(i, { gender: g })} />}
           </div>
-        ))}
+        </div>
+        <button type="button" className="nav" aria-label="다음 참가자" disabled={i === v.n - 1} onClick={() => go(1)}>▶</button>
       </div>
       <div className="roster-foot">
-        <p className={'status' + (confirmed ? ' ok' : '')} aria-live="polite">
-          {confirmed ? '✓ 참가자 구성이 확정됐습니다. 경기를 시작할 수 있어요.' : '이름과 종류를 확인한 뒤 최종 결정을 눌러 주세요.'}
-        </p>
-        <button type="button" ref={confirmRef} className={'confirm' + (confirmed ? ' done' : ' pulse')} onClick={onConfirm} disabled={confirmed}>
-          {confirmed ? '✓ 결정 완료' : '최종 결정'}
-        </button>
+        <p className="status pc-only">이름과 종류를 확인한 뒤 최종 결정을 눌러 주세요.</p>
+        <button type="button" ref={confirmRef} className="confirm pulse" onClick={onConfirm}>최종 결정</button>
       </div>
     </section>
   );
@@ -240,7 +210,7 @@ function Notice({ onClose, onGo }) {
     <div className="modal-back" onClick={onClose}>
       <div className="modal" role="alertdialog" aria-modal="true" aria-labelledby="notice-h" aria-describedby="notice-p" onClick={(e) => e.stopPropagation()}>
         <h2 id="notice-h">참가자를 먼저 확정해 주세요</h2>
-        <p id="notice-p">참가자 목록 오른쪽 아래의 <strong>최종 결정</strong>을 누르면 경기를 시작할 수 있어요.</p>
+        <p id="notice-p">캔버스 위 참가자 창의 <strong>최종 결정</strong>을 누르면 경기를 시작할 수 있어요.</p>
         <div className="modal-btns">
           <button type="button" className="ghost" onClick={onClose}>닫기</button>
           <button type="button" ref={okRef} onClick={onGo}>최종 결정으로 이동</button>
@@ -273,6 +243,9 @@ export default function App() {
   }, []);
   // 인원이 줄어 편집 중 카드가 사라지면 첫 카드로
   useEffect(() => { if (v && editing >= v.n) setEditing(0); }, [v, editing]);
+  // 참가자 창이 떠 있는 동안 편집 중인 캐릭터를 캔버스에서 강조
+  const rosterOpen = !!v && setup && !confirmed;
+  useEffect(() => { game()?.setHover(rosterOpen ? editing : -1); }, [rosterOpen, editing]);
 
   const onStart = () => {
     if (!confirmed) { setNotice(true); return; }
@@ -306,17 +279,20 @@ export default function App() {
             <CountPanel v={v} game={game} />
             <RulesPanel v={v} game={game} onStart={onStart} confirmed={confirmed} />
           </div>
-          <Roster key={rosterKey} v={v} game={game} editing={editing} setEditing={setEditing}
-            confirmed={confirmed} onConfirm={() => setConfirmedSig(rosterSig(v))} confirmRef={confirmRef} />
         </>
       )}
       {v && !setup && <RaceBar v={v} game={game} onStop={openStop} />}
       <div className={'stage' + (v && v.locked ? ' racing' : '') + (v && v.manual ? ' grabbing' : '')}>
         <canvas ref={canvasRef} id="cv" width="960" height="420" aria-label="레이스 화면" />
-        {v && setup && (
-          <button type="button" className={'stage-start' + (confirmed ? '' : ' locked')} onClick={onStart}>
-            {confirmed ? '▶ 시작' : '🔒 시작'}
-          </button>
+        {rosterOpen && (
+          <Roster key={rosterKey} v={v} game={game} editing={editing} setEditing={setEditing}
+            onConfirm={() => setConfirmedSig(rosterSig(v))} confirmRef={confirmRef} />
+        )}
+        {v && setup && confirmed && (
+          <>
+            <button type="button" className="stage-start" onClick={onStart}>▶ 시작</button>
+            <button type="button" className="stage-edit" onClick={() => setConfirmedSig(null)}>✎ 참가자 수정</button>
+          </>
         )}
       </div>
       {v && v.result && <Result r={v.result} />}
