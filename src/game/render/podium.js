@@ -3,7 +3,7 @@ import { COLORS } from "../constants.js";
 import { drawPerson } from "./character.js";
 import { bubble } from "./race.js";
 import { G } from "../state.js";
-import { R, fitText, ink, rr } from "../util.js";
+import { R, fitText, ink, rr, backOut, bounceOut, lerp } from "../util.js";
 export function podiumStep(dt) {
   if (G.pt > 2.9) for (let k = 0; k < 3; k++) G.conf.push({
     x: R(0, G.W),
@@ -168,13 +168,17 @@ export function drawPodium() {
     fitText(r.name, sl.x, top + 43, 16, 112);
     const a = G.pt - sl.d;
     if (a < 0) return;
-    const u = Math.min(1, a / .7);
-    let off = -320 * (1 - u) * (1 - u);
-    if (a > .7) off -= Math.abs(Math.sin((a - .7) * 9)) * Math.max(0, 1 - (a - .7) * 1.4) * 16;
-    drawPerson(sl.x, top + off, r, {
+    // 떨어져 튕기며 착지(bounce.out), 착지 직후 0.4초 눌렸다가 넘치며 펴짐(back.out)
+    const off = -320 * (1 - bounceOut(Math.min(1, a / .7))),
+      sq = a > .7 ? backOut(Math.min(1, (a - .7) / .4), 3) : 1;
+    G.ctx.save();
+    G.ctx.translate(sl.x, top + off);
+    G.ctx.scale(lerp(1.15, 1, sq), lerp(.75, 1, sq));
+    drawPerson(0, 0, r, {
       cheer: a > .7,
       run: false
     });
+    G.ctx.restore();
     if (a > .7) {
       G.ctx.font = '19px Jua,sans-serif';
       const tw = G.ctx.measureText(r.name).width + 16;
@@ -184,8 +188,13 @@ export function drawPodium() {
       G.ctx.fillStyle = ink(r.color);
       G.ctx.fillText(r.name, sl.x, top + off - 63);
       if (k === 0) {
+        // 트로피가 커지며 튀어나옴(back.out)
+        G.ctx.save();
+        G.ctx.translate(sl.x + 30, top + off - 30);
+        G.ctx.scale(backOut(Math.min(1, (a - .7) / .6), 2.5), backOut(Math.min(1, (a - .7) / .6), 2.5));
         G.ctx.font = '30px sans-serif';
-        G.ctx.fillText('🏆', sl.x + 30, top + off - 20);
+        G.ctx.fillText('🏆', 0, 10);
+        G.ctx.restore();
         G.podBub = {
           x: sl.x,
           y: top + off - 88
