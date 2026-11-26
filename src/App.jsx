@@ -5,13 +5,12 @@ import './App.css';
 const TITLE = '미니 레이스 토너먼트';
 const GENDERS = [['m', '남'], ['f', '여']];
 const AGES = [['c', '어린이'], ['a', '성인'], ['e', '어르신'], ['r', '로봇']];
-// 참가자 창 설명: 사람 셋은 겉모습·걸음만 다르고 속도 계산은 같음(sim/race.js), 로봇만 능력이 다름(sim/robot.js)
-const HUMAN = ' 사람은 종류와 상관없이 달리기 실력이 같아요.';
+// 참가자 창 짧은 설명(자세한 동작은 가이드 페이지에서). 사람 셋은 겉모습·걸음만 다르고 속도 계산은 같음, 로봇만 능력이 다름(sim/robot.js)
 const AGE_DESC = {
-  c: '작은 몸으로 빠르게 종종걸음을 쳐요.' + HUMAN,
-  a: '큰 보폭으로 상체를 숙이고 달려요.' + HUMAN,
-  e: '작은 보폭으로 지팡이를 짚으며 걸어요.' + HUMAN,
-  r: '배터리로 일정한 속도를 내고, 배터리가 차면 부스터로 가속해요. 무리하면 과열되고, 다 닳으면 멈춰서 충전해요. 무거워서 진흙에 약하지만 허들·물웅덩이를 가끔 버티고 밀치기에 강해요. 넘어지면 재부팅이라 더 오래 쉬어요.',
+  c: '작은 몸으로 종종걸음을 쳐요.',
+  a: '큰 보폭으로 힘차게 달려요.',
+  e: '작은 보폭으로 지팡이를 짚고 걸어요.',
+  r: '배터리와 부스터로 달려요. 진흙엔 약하고 밀치기엔 강해요.',
 };
 const MODES = [['normal', '일반'], ['item', '아이템전']];
 const WANTS = [['first', '1등 원함'], ['last', '꼴등 원함']];
@@ -106,7 +105,10 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
         <div className="roster-tools">
           <button type="button" className="ghost" onClick={() => game().shuffleLanes()}>🔀 자리 섞기</button>
           {shuffled && <button type="button" className="ghost" onClick={() => game().resetLanes()}>원래 자리</button>}
-          <button type="button" ref={confirmRef} className="confirm pulse" onClick={onConfirm}>최종 결정</button>
+          <div className="confirm-box">
+            <button type="button" ref={confirmRef} className="confirm pulse" onClick={onConfirm}>최종 결정</button>
+            <small className="pc-only">한 명씩 확인한 뒤 눌러 주세요</small>
+          </div>
         </div>
       </div>
       <div className="tabs" role="tablist" aria-label="편집 항목">
@@ -149,7 +151,7 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
         )}
       </div>
       <div className="roster-foot">
-        <p className="status pc-only">{tab === 'acc' ? '장신구를 눌러 켜고 끄고, 옆의 색 칸으로 색을 바꿔요.' : '한 명씩 확인한 뒤 최종 결정을 눌러 주세요.'}</p>
+        <p className="status pc-only">{tab === 'acc' ? '장신구를 눌러 켜고 끄고, 옆의 색 칸으로 색을 바꿔요.' : c.age === 'r' ? '로봇은 사람과 능력이 달라요.' : '사람은 종류와 상관없이 달리기 실력이 같아요.'}</p>
         <button type="button" className="nav" aria-label="이전 참가자" disabled={i === 0} onClick={() => go(-1)}>◀ 이전</button>
         <button type="button" className="nav" aria-label="다음 참가자" disabled={i === v.n - 1} onClick={() => go(1)}>다음 ▶</button>
       </div>
