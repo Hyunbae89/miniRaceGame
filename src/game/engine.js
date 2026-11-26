@@ -27,6 +27,7 @@ export function push() {
     locked: G.state === 'count' || G.state === 'run',
     map: G.mapId,
     events: G.events,
+    rate: G.rate,
     obstacles: G.obstacles,
     lanes: G.lanes.slice(),
     cfg: G.cfg.map(c => Object.assign({}, c))
@@ -63,7 +64,8 @@ export function loop(ts) {
     }
   } else if (G.state === 'run') {
     G.rt += dt;
-    update(dt * sc);
+    // 배속(G.rate): 레이스 진행만 느리게. 기록 시각(rt)은 실제 시간이라 리플레이는 본 그대로 재생됨
+    update(dt * sc * G.rate);
     if (G.state === 'run') record();
   } else if (G.state === 'podium') {
     // GIF를 만드는 동안에는 export.js가 시상식 시간을 직접 진행
@@ -91,7 +93,7 @@ export function loop(ts) {
       }
     }
   }
-  G.fdt = dt * (G.state === 'run' ? sc : 1);
+  G.fdt = dt * (G.state === 'run' ? sc * G.rate : 1);
   if (G.state !== 'replay' && (G.state !== 'idle' && G.state !== 'podium' || G.manual)) updateCam(dt);
   draw();
   G.raf = requestAnimationFrame(loop);
@@ -226,6 +228,8 @@ export function createGame(cv, ui) {
   G.mode = 'normal';
   G.events = true;
   G.obstacles = true;
+  // 레이스 배속: 느리게 .65 · 보통 .8(기본) · 빠르게 1(예전 속도)
+  G.rate = .8;
   G.winLine = '';
   G.frames = [];
   G.bk = null;
@@ -349,9 +353,15 @@ export function createGame(cv, ui) {
     setHover: i => {
       G.hover = i;
     },
-    // 편집 반응: 준비 화면에서 i번 캐릭터가 한마디 하며 움직임(mood: mood·name·acc)
-    react: (i, mood) => {
-      if (G.state === 'idle') startReact(i, mood);
+    // 편집 반응: 준비 화면에서 i번 캐릭터가 한마디 하며 움직임(mood: mood·name·acc, force: 하던 반응을 끊고 새로)
+    react: (i, mood, force) => {
+      if (G.state !== 'idle') return;
+      if (force && G.react) G.react[i] = null;
+      startReact(i, mood);
+    },
+    setRate: r => {
+      G.rate = r;
+      push();
     },
     follow: () => {
       G.manual = false;
