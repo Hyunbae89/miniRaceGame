@@ -1,7 +1,7 @@
 // 게임 엔진 진입점: createGame(canvas, { onChange })가 게임을 만들고 조작 API를 돌려준다.
 // 상태 초기화, 메인 루프, 입력 처리, UI로 상태 전달(push)을 맡는다.
 import { camDown, camMove, camUp, seek, updateCam } from "./camera.js";
-import { COLORS, HINT, MAXN, NAMES } from "./constants.js";
+import { ACC_KEYS, COLORS, HINT, MAXN, NAMES } from "./constants.js";
 import { exportGif, exportVideo, saveReady } from "./export.js";
 import { podiumStep, podiumEnd } from "./render/podium.js";
 import { draw } from "./render/race.js";
@@ -107,7 +107,21 @@ export function makeRoster() {
       age: 'a',
       // 장신구 색(''이면 없음). 처음 값은 캐릭터 번호로 고정(약 40%씩)
       bag: hsh(i * 7 + 2) < .4 ? COLORS[(i * 7 + 5) % COLORS.length] : '',
-      scarf: hsh(i * 7 + 1) < .4 ? COLORS[(i * 7 + 3) % COLORS.length] : ''
+      scarf: hsh(i * 7 + 1) < .4 ? COLORS[(i * 7 + 3) % COLORS.length] : '',
+      // 모자·신발('' 없음), 어르신 지팡이, 로봇 부품('' 기본). 색은 켰을 때 쓰는 값
+      hat: '',
+      hatC: '#1f6fb2',
+      shoe: '',
+      shoeC: '#e4572e',
+      cane: 'wood',
+      caneC: '#c0392b',
+      eye: '#5ff5c8',
+      ant: '',
+      antC: '#e4572e',
+      neck: '',
+      neckC: '#f2b705',
+      back: '',
+      foot: ''
     };
   });
 }
@@ -163,8 +177,7 @@ export function setCfg(i, p) {
     r.color = G.cfg[i].color;
     r.gender = G.cfg[i].gender;
     r.age = G.cfg[i].age;
-    r.bag = G.cfg[i].bag;
-    r.scarf = G.cfg[i].scarf;
+    for (const k of ACC_KEYS) r[k] = G.cfg[i][k];
   }
   push();
 }

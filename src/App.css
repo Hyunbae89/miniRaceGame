@@ -78,6 +78,8 @@ button.sq{width:48px;height:44px;padding:0;font-size:24px;background:var(--panel
 .chip.on{border-color:var(--accent);background:var(--accent-soft)}
 .chip.on button{color:var(--accent)}
 .chip .swatch{width:28px;height:28px}
+.chip-label{font-size:14px;font-weight:600;color:var(--accent);padding:6px 4px 6px 10px}
+.chip select{font-size:13px;padding:4px 2px}
 .card-main{display:flex;align-items:center;gap:8px}
 /* 기본 탭(PC): 왼쪽 [색·이름·성별] 아래 종류 2×2, 오른쪽에 종류 설명 */
 .card.base{display:grid;grid-template-columns:250px minmax(0,1fr);grid-template-rows:auto 1fr;gap:8px 14px}
@@ -197,3 +199,7 @@ canvas{display:block;width:100%;height:auto;border-radius:var(--radius);border:1
 .stop-opts .opt:hover{border-color:var(--accent)}
 .stop-opts .opt.danger strong{color:#c0392b}
 .stop-opts .opt.danger:hover{border-color:#c0392b}
+
+/* 저작권·저장소 표시(페이지 맨 아래 가운데) */
+.credit{margin-top:8px;text-align:center;font-size:12px;color:var(--muted)}
+.credit a{color:inherit}
