@@ -95,10 +95,10 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
         <div className="roster-tools">
           <button type="button" className="ghost" onClick={() => game().shuffleLanes()}>🔀 자리 섞기</button>
           {shuffled && <button type="button" className="ghost" onClick={() => game().resetLanes()}>원래 자리</button>}
+          <button type="button" ref={confirmRef} className="confirm pulse" onClick={onConfirm}>최종 결정</button>
         </div>
       </div>
       <div className="card-row">
-        <button type="button" className="nav" aria-label="이전 참가자" disabled={i === 0} onClick={() => go(-1)}>◀</button>
         <div className="card">
           <div className="card-main">
             <input type="color" className="swatch" value={c.color} aria-label={`${i + 1}번 옷 색`} onChange={(e) => game().setCfg(i, { color: e.target.value })} />
@@ -119,11 +119,11 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
             {c.age !== 'r' && <Seg small label={`${i + 1}번 성별`} value={c.gender} options={GENDERS} onChange={(g) => game().setCfg(i, { gender: g })} />}
           </div>
         </div>
-        <button type="button" className="nav" aria-label="다음 참가자" disabled={i === v.n - 1} onClick={() => go(1)}>▶</button>
       </div>
       <div className="roster-foot">
-        <p className="status pc-only">이름과 종류를 확인한 뒤 최종 결정을 눌러 주세요.</p>
-        <button type="button" ref={confirmRef} className="confirm pulse" onClick={onConfirm}>최종 결정</button>
+        <p className="status pc-only">한 명씩 확인한 뒤 최종 결정을 눌러 주세요.</p>
+        <button type="button" className="nav" aria-label="이전 참가자" disabled={i === 0} onClick={() => go(-1)}>◀ 이전</button>
+        <button type="button" className="nav" aria-label="다음 참가자" disabled={i === v.n - 1} onClick={() => go(1)}>다음 ▶</button>
       </div>
     </section>
   );
@@ -197,8 +197,8 @@ function StopDialog({ onBack, onReset, onCancel }) {
   );
 }
 
-// 최종 결정 전에 시작을 누르면 뜨는 안내 창
-function Notice({ onClose, onGo }) {
+// 안내 창: 최종 결정 전에 시작을 누를 때, 확인하지 않은 참가자가 남았는데 최종 결정을 누를 때
+function Notice({ title, children, closeText = '닫기', goText, onClose, onAlt = onClose, onGo }) {
   const okRef = useRef(null);
   useEffect(() => {
     okRef.current?.focus();
@@ -209,11 +209,11 @@ function Notice({ onClose, onGo }) {
   return (
     <div className="modal-back" onClick={onClose}>
       <div className="modal" role="alertdialog" aria-modal="true" aria-labelledby="notice-h" aria-describedby="notice-p" onClick={(e) => e.stopPropagation()}>
-        <h2 id="notice-h">참가자를 먼저 확정해 주세요</h2>
-        <p id="notice-p">캔버스 위 참가자 창의 <strong>최종 결정</strong>을 누르면 경기를 시작할 수 있어요.</p>
+        <h2 id="notice-h">{title}</h2>
+        <p id="notice-p">{children}</p>
         <div className="modal-btns">
-          <button type="button" className="ghost" onClick={onClose}>닫기</button>
-          <button type="button" ref={okRef} onClick={onGo}>최종 결정으로 이동</button>
+          <button type="button" className="ghost" onClick={onAlt}>{closeText}</button>
+          <button type="button" ref={okRef} onClick={onGo}>{goText}</button>
         </div>
       </div>
     </div>
@@ -229,6 +229,9 @@ export default function App() {
   const [confirmedSig, setConfirmedSig] = useState(null);
   const [notice, setNotice] = useState(false);
   const [stopping, setStopping] = useState(false);
+  // 참가자 창에서 한 번이라도 본 참가자 번호(최종 결정 때 안 본 사람이 있으면 알림)
+  const [seen, setSeen] = useState([0]);
+  const [unseenNotice, setUnseenNotice] = useState(false);
   // 완전 초기화 때 참가자 카드(이름 입력칸)를 새로 그리기 위한 번호
   const [rosterKey, setRosterKey] = useState(0);
   const game = () => gameRef.current;
@@ -246,6 +249,10 @@ export default function App() {
   // 참가자 창이 떠 있는 동안 편집 중인 캐릭터를 캔버스에서 강조
   const rosterOpen = !!v && setup && !confirmed;
   useEffect(() => { game()?.setHover(rosterOpen ? editing : -1); }, [rosterOpen, editing]);
+  useEffect(() => { if (rosterOpen) setSeen((s) => (s.includes(editing) ? s : [...s, editing])); }, [rosterOpen, editing]);
+  const unseen = v ? Array.from({ length: v.n }, (_, k) => k).filter((k) => !seen.includes(k)) : [];
+  const confirmNow = () => { setUnseenNotice(false); setConfirmedSig(rosterSig(v)); };
+  const onConfirm = () => (unseen.length ? setUnseenNotice(true) : confirmNow());
 
   const onStart = () => {
     if (!confirmed) { setNotice(true); return; }
@@ -260,7 +267,7 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   const stopBack = () => { game().stop(); toSetup(); };
-  const stopReset = () => { game().resetAll(); setEditing(0); setRosterKey((k) => k + 1); toSetup(); };
+  const stopReset = () => { game().resetAll(); setEditing(0); setSeen([0]); setRosterKey((k) => k + 1); toSetup(); };
   const goConfirm = () => {
     setNotice(false);
     confirmRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -286,7 +293,7 @@ export default function App() {
         <canvas ref={canvasRef} id="cv" width="960" height="420" aria-label="레이스 화면" />
         {rosterOpen && (
           <Roster key={rosterKey} v={v} game={game} editing={editing} setEditing={setEditing}
-            onConfirm={() => setConfirmedSig(rosterSig(v))} confirmRef={confirmRef} />
+            onConfirm={onConfirm} confirmRef={confirmRef} />
         )}
         {v && setup && confirmed && (
           <>
@@ -296,7 +303,18 @@ export default function App() {
         )}
       </div>
       {v && v.result && <Result r={v.result} />}
-      {notice && <Notice onClose={() => setNotice(false)} onGo={goConfirm} />}
+      {notice && (
+        <Notice title="참가자를 먼저 확정해 주세요" goText="최종 결정으로 이동" onClose={() => setNotice(false)} onGo={goConfirm}>
+          캔버스 위 참가자 창의 <strong>최종 결정</strong>을 누르면 경기를 시작할 수 있어요.
+        </Notice>
+      )}
+      {unseenNotice && (
+        <Notice title="아직 확인하지 않은 참가자가 있어요" closeText="그대로 결정" goText="확인하러 가기"
+          onClose={() => setUnseenNotice(false)} onAlt={confirmNow}
+          onGo={() => { setUnseenNotice(false); setEditing(unseen[0]); }}>
+          {unseen.map((k) => k + 1).join(', ')}번 참가자를 아직 보지 않았어요. 이름·종류를 바꾸지 않고 그대로 결정할까요?
+        </Notice>
+      )}
       {stopping && <StopDialog onBack={stopBack} onReset={stopReset} onCancel={cancelStop} />}
     </div>
   );
