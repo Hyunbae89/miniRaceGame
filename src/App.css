@@ -49,9 +49,11 @@ button.sq{width:48px;height:44px;padding:0;font-size:24px;background:var(--panel
 /* 경기 설정: 한 줄 [모드 | 결과산출 | 맵(장소·시간대)]을 버튼 수 비율 2:2:4로 나눠 버튼 8개가 모두 같은 크기.
    900px 미만은 두 줄(1줄 모드·결과산출, 2줄 맵), 720px 이하는 한 줄씩 */
 .rules{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,2fr) minmax(0,4fr);gap:14px 12px;align-items:start;flex:1}
-.map-pick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.map-pick{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px;align-items:start}
 .rules .seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;width:100%}
 .rules .seg button{padding:9px 4px;font-size:14px;text-align:center;white-space:nowrap}
+.rules .seg.map-locations{display:flex;flex-wrap:wrap}
+.rules .seg.map-locations button{flex:1 1 30%;min-width:0;white-space:normal;line-height:1.25}
 .field{display:flex;flex-direction:column;gap:6px;min-width:0}
 .label{font-size:13px;font-weight:600}
 .seg{display:inline-flex;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px;flex-wrap:wrap}

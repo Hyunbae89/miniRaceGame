@@ -5,7 +5,8 @@ import { hsh, rr } from "../util.js";
 export function TH() {
   return {
     night: G.mapId.endsWith('night'),
-    trad: G.mapId.startsWith('trad')
+    trad: G.mapId.startsWith('trad'),
+    place: G.mapId.split('-')[0]
   };
 }
 export function stars() {
@@ -808,6 +809,10 @@ export function cityBg(th) {
   const now = performance.now() / 1000,
     top = GT - 30,
     n8 = th.night;
+  if (th.place === 'busan' || th.place === 'hangang' || th.place === 'stone') {
+    newPlaceBg(th, now, top);
+    return;
+  }
   if (n8) fireworks(now);
   if (th.trad) {
     ridge(.05, 1, top + 4, 120, n8 ? '#2a3650' : '#aebccb', true);
@@ -892,4 +897,47 @@ export function cityBg(th) {
     nightLights(th);
     for (const h of hands) glowStick(h);
   }
+}
+
+// 새 장소는 카메라 위치만으로 풍경을 배치해 경기 계산에 영향을 주지 않는다.
+function newPlaceBg(th, now, top) {
+  const c = G.ctx, n = th.night, p = th.place, off = G.camX;
+  const colors = p === 'busan' ? ['#9fd3f0', '#e6f4fb'] : p === 'hangang' ? ['#bfe3f2', '#eef6fa'] : ['#f5c58a', '#fbe6c4'];
+  if (p === 'stone') colors[1] = n ? '#483f46' : colors[1];
+  // 낮은 바다/강/화산 지형으로 먼 배경을 채운다.
+  if (p === 'busan') {
+    c.fillStyle = n ? '#163650' : '#2e86de'; c.fillRect(0, top - 40, G.W, 108);
+    ridge(.04, 2, top + 4, 62, n ? '#20364b' : '#8fb3a0', false);
+    const sp = 900, a = Math.floor((off * .12 - 220) / sp), b = Math.ceil((off * .12 + G.W + 220) / sp);
+    for (let i = a; i <= b; i++) { const x = i * sp + 450 - off * .12; c.strokeStyle = n ? '#8999a7' : '#e8eef2'; c.lineWidth = 3; c.beginPath(); c.moveTo(x-110,top-28);c.lineTo(x-110,top-88);c.moveTo(x+110,top-28);c.lineTo(x+110,top-88);c.moveTo(x-260,top-38);c.quadraticCurveTo(x-170,top-42,x-110,top-88);c.quadraticCurveTo(x,top-40,x+110,top-88);c.quadraticCurveTo(x+180,top-42,x+260,top-38);c.stroke(); }
+  } else if (p === 'hangang') {
+    c.fillStyle = n ? '#214c68' : '#4b9cc7'; c.fillRect(0, top - 20, G.W, 88);
+    const sp=700,a=Math.floor((off*.15-200)/sp),b=Math.ceil((off*.15+G.W+200)/sp);
+    for(let i=a;i<=b;i++){const x=i*sp+350-off*.15;c.strokeStyle=n?'#77889d':'#d6452b';c.lineWidth=3;c.beginPath();c.moveTo(x-200,top-20);c.quadraticCurveTo(x,top-94,x+200,top-20);c.stroke();c.strokeStyle=n?'#94b6c9':'#e8eef2';c.lineWidth=4;c.beginPath();c.moveTo(x-230,top-18);c.lineTo(x+230,top-18);c.stroke();for(let k=-160;k<=160;k+=40){const y=top-20-74*(1-(k/200)**2);c.strokeStyle=n?'#77889d':'#d6452b';c.lineWidth=1;c.beginPath();c.moveTo(x+k,y);c.lineTo(x+k,top-20);c.stroke();}}
+  } else {
+    ridge(.04, 1, top + 8, 150, n ? '#3e3542' : '#8a6a58', true);
+    const sp=800,a=Math.floor((off*.04-200)/sp),b=Math.ceil((off*.04+G.W+200)/sp);
+    for(let i=a;i<=b;i++){const x=i*sp+400-off*.04;c.fillStyle=n?'#5c4a4b':'#8a6a58';c.beginPath();c.moveTo(x-180,top+8);c.lineTo(x-26,top-142);c.lineTo(x+26,top-142);c.lineTo(x+180,top+8);c.fill();c.fillStyle='#e4572e';c.beginPath();c.moveTo(x-26,top-142);c.lineTo(x-14,top-120);c.lineTo(x,top-138);c.lineTo(x+12,top-118);c.lineTo(x+26,top-142);c.fill();}
+  }
+  // 가까운 식생과 반복 관람객을 고정된 해시 위치에 둔다.
+  c.fillStyle = p === 'stone' ? n ? '#292d2b' : '#587448' : p === 'hangang' ? n ? '#244332' : '#8fc06a' : n ? '#193d50' : '#f1dfb4'; c.fillRect(0, top + 4, G.W, 26);
+  const sp=72,s0=Math.floor((off-OFF-100)/sp),s1=Math.ceil((off-OFF+G.W+100)/sp);
+  for(let i=s0;i<=s1;i++){const x=i*sp+hsh(i)*20-off+OFF;if(p==='stone'){c.fillStyle=n?'#326042':'#4f8f3a';c.beginPath();c.ellipse(x,top+5,5,19,Math.sin(i)*.2,0,7);c.ellipse(x+6,top+5,4,15,-.4,0,7);c.fill();}else tree(x,top+24);}
+  if(p==='stone'){
+    const x=G.W*.34 + Math.sin(now*1.8)*12, worldX=G.camX+x-OFF, rockSpacing=260,
+      rock0=Math.floor((G.camX-OFF-40)/rockSpacing),rock1=Math.ceil((G.camX-OFF+G.W+40)/rockSpacing);
+    for(let i=rock0;i<=rock1;i++){const rx=i*rockSpacing-G.camX+OFF;c.fillStyle=n?'#736b68':'#9a8a7a';c.beginPath();c.ellipse(rx,top+18,13,7,0,0,7);c.fill();}
+    const nearRock=Math.round(worldX/rockSpacing)*rockSpacing,delta=nearRock-worldX,
+      jumpPhase=(delta<=35&&delta>=-35)?(35-delta)/70:-1,
+      jump=jumpPhase>=0?30*Math.sin(Math.PI*jumpPhase):0;
+    c.save();c.translate(x,top+4-jump);c.fillStyle='#3fae8e';c.beginPath();c.ellipse(0,-10,15,10,0,0,7);c.ellipse(13,-22,9,8,0,0,7);c.moveTo(-12,-10);c.quadraticCurveTo(-28,-12,-30,-4);c.lineTo(-12,-5);c.fill();c.strokeStyle='#3fae8e';c.lineWidth=4;c.beginPath();c.moveTo(-6,-3);c.lineTo(-9,2);c.moveTo(5,-3);c.lineTo(8,2);c.stroke();c.fillStyle='#fff';c.beginPath();c.arc(15,-24,2.5,0,7);c.fill();c.fillStyle='#10202a';c.beginPath();c.arc(16,-24,1.2,0,7);c.fill();c.restore();
+  }
+  const hands=[];for(let i=s0;i<=s1;i++){const x=i*sp+hsh(i+8)*20-off+OFF;if(hsh(i*3)>.25){const h=spectator(x,GT-6,i,now,false,n);if(n&&h)hands.push(h);}}
+  // 산책로 가장자리의 낮은 펜스와 상하 보도를 그린다.
+  c.fillStyle=n?'#4b5057':p==='busan'?'#d4c39b':p==='hangang'?'#9aa88b':'#9a8060';c.fillRect(0,top+30,G.W,GT-top-30);
+  c.fillStyle=n?'#242c34':p==='busan'?'#b69a67':p==='hangang'?'#63885e':'#715437';c.fillRect(0,GT-16,G.W,4);
+  const fence0=Math.floor((G.camX-OFF)/48);
+  for(let i=fence0;i<=fence0+G.W/48+1;i++)c.fillRect(i*48-G.camX+OFF,GT-16,2,13);
+  const by=GT+G.GD+20;c.fillStyle=n?'#34383c':p==='busan'?'#d8c69f':p==='hangang'?'#d8dfcb':'#9d876c';c.fillRect(0,by,G.W,G.H-by);c.fillStyle=n?'#55575a':'rgba(255,255,255,.6)';c.fillRect(0,by,G.W,2);
+  if(n){c.fillStyle='rgba(8,14,38,.42)';c.fillRect(0,top-60,G.W,GT-top+60);c.fillRect(0,by,G.W,G.H-by);nightLights(th);for(const h of hands)glowStick(h);}
 }
