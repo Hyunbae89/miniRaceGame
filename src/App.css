@@ -66,7 +66,7 @@ button.sq{width:48px;height:44px;padding:0;font-size:24px;background:var(--panel
 .roster-tools button{font-size:13px;padding:6px 12px}
 .lane{font-size:12px;color:var(--muted)}
 .card-row{display:flex;align-items:center;gap:10px}
-.nav{flex:none;width:40px;height:40px;padding:0;border-radius:50%;font-size:15px;background:var(--panel2);color:var(--ink);border:1px solid var(--line)}
+.nav{flex:none;font-size:14px;padding:8px 16px;background:var(--panel2);color:var(--ink);border:1px solid var(--line)}
 .card{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
 .card-main{display:flex;align-items:center;gap:8px}
 .card-segs{display:flex;gap:8px}
@@ -80,9 +80,9 @@ button.sq{width:48px;height:44px;padding:0;font-size:24px;background:var(--panel
 .swatch::-webkit-color-swatch{border:0;border-radius:7px}
 .name{flex:1;min-width:0;font:inherit;font-size:16px;font-weight:600;padding:7px 10px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
 .name:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
-.roster-foot{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.status{margin:0;color:var(--muted);font-size:14px}
-.confirm{margin-left:auto;font-size:16px;padding:10px 22px;border-radius:12px}
+.roster-foot{display:flex;align-items:center;gap:8px}
+.status{flex:1;margin:0;color:var(--muted);font-size:14px}
+.confirm{font-size:14px;padding:6px 16px}
 .confirm.pulse{animation:pulse 1.8s ease-in-out infinite}
 @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(31,111,178,.45)}50%{box-shadow:0 0 0 8px rgba(31,111,178,0)}}
 /* 최종 결정 뒤: 참가자 창으로 돌아가는 버튼 */
@@ -146,14 +146,14 @@ canvas{display:block;width:100%;height:auto;border-radius:var(--radius);border:1
   .roster-tools{gap:4px}
   .roster-tools button{font-size:11px;padding:3px 7px}
   .card-row{gap:4px}
-  .nav{width:26px;height:26px;font-size:11px}
+  .nav{flex:1;font-size:12px;padding:5px 8px}
   .card-main{gap:4px}
   .swatch{width:26px;height:26px}
   .name{font-size:13px;padding:4px 6px}
   .card select{font-size:12px;padding:4px 2px}
   .pc-only{display:none}
   .m-only{display:block}
-  .confirm{font-size:13px;padding:5px 14px}
+  .confirm{font-size:11px;padding:3px 8px}
   .stage-edit{right:6px;bottom:6px;font-size:12px;padding:5px 10px}
 }
 @media (prefers-reduced-motion:reduce){.confirm.pulse{animation:none}}
