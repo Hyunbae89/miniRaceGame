@@ -135,6 +135,8 @@ export function setup() {
       color: G.cfg[i].color,
       gender: G.cfg[i].gender,
       age: G.cfg[i].age,
+      bag: G.cfg[i].bag,
+      scarf: G.cfg[i].scarf,
       veh: null,
       item: null,
       x: -BACK,

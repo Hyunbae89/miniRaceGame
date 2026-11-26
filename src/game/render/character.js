@@ -1,8 +1,8 @@
-import { AGEP, ARM1, ARM2, COLORS, HAIR, HIPS, LEG, SKIN } from "../constants.js";
+import { AGEP, ARM1, ARM2, HAIR, HIPS, LEG, SKIN } from "../constants.js";
 import { robotBody } from "./robot.js";
 import { drawVeh } from "./vehicles.js";
 import { G } from "../state.js";
-import { R, easeIO, hsh, lerp, rr, shade } from "../util.js";
+import { R, easeIO, lerp, rr, shade } from "../util.js";
 // 각도는 아래 방향이 0, 앞(+x)이 양수. 정강이 = 허벅지 - 무릎(뒤로 접힘), 아래팔 = 위팔 + 팔꿈치(앞으로 접힘)
 // fk: 관절 두 마디의 끝점 계산(무릎·발 또는 팔꿈치·손)
 export function fk(x, y, a1, l1, a2, l2) {
@@ -186,7 +186,7 @@ function scarf(an, r, spd, lv, dt) {
       b.y -= dy * f * .5;
     }
   }
-  G.ctx.strokeStyle = COLORS[(r.i * 7 + 3) % COLORS.length];
+  G.ctx.strokeStyle = r.scarf;
   G.ctx.lineCap = 'round';
   G.ctx.lineJoin = 'round';
   G.ctx.lineWidth = 2.6;
@@ -565,9 +565,9 @@ export function drawPerson(px, py, r, o) {
     target = .15 + .55 * spd + lv * .012;
   an.hv += (140 * (target - an.hair) - 11 * an.hv) * Math.min(G.fdt, .05);
   an.hair += an.hv * Math.min(G.fdt, .05);
-  // 2차 동작 장신구: 캐릭터 번호로 고정(난수를 쓰지 않음). 가방은 몸이 튈 때 한 박자 늦게 출렁임
-  const hasBag = !robo && hsh(r.i * 7 + 2) < .4,
-    hasScarf = !robo && hsh(r.i * 7 + 1) < .4,
+  // 2차 동작 장신구(참가자 설정의 색, ''이면 없음). 가방은 몸이 튈 때 한 박자 늦게 출렁임
+  const hasBag = !robo && !!r.bag,
+    hasScarf = !robo && !!r.scarf,
     sdt = Math.min(G.fdt, 1 / 30);
   if (hasBag) {
     an.bv += (160 * (-lv * .02 - an.bag) - 9 * an.bv) * sdt;
@@ -626,7 +626,7 @@ export function drawPerson(px, py, r, o) {
       G.ctx.save();
       G.ctx.translate(-8, -27 + an.bag);
       G.ctx.rotate(an.bag * .04);
-      G.ctx.fillStyle = COLORS[(r.i * 7 + 5) % COLORS.length];
+      G.ctx.fillStyle = r.bag;
       rr(-4, -6, 7, 12, 2);
       G.ctx.fill();
       G.ctx.fillStyle = 'rgba(0,0,0,.2)';

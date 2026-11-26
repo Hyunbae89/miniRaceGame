@@ -17,6 +17,8 @@ export function record() {
       color: r.color,
       gender: r.gender,
       age: r.age,
+      bag: r.bag,
+      scarf: r.scarf,
       x: r.x,
       d: r.d,
       h: r.h,
