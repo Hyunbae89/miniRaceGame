@@ -55,7 +55,7 @@ function AccTab({ c, n, set }) {
                 opts = a.wear ? [['', '없음'], [a.wear, '착용']] : a.opts,
                 cur = a.wear ? (v ? a.wear : '') : v;
               return (
-                <div key={a.t} className={'acc-item' + (a === sel ? ' sel' : '')} onClick={() => setPickT(a.t)}>
+                <div key={a.t} className={'acc-item' + (a === sel ? ' sel' : '')} style={accColorOn(a, c) ? { '--ac': c[accColorKey(a)] } : undefined} onClick={() => setPickT(a.t)}>
                   <button type="button" className="acc-name" aria-pressed={a === sel}>{a.t}</button>
                   {opts && (
                     <div className="pills" role="radiogroup" aria-label={`${n}번 ${a.t}`}>
@@ -71,7 +71,7 @@ function AccTab({ c, n, set }) {
         ))}
       </div>
       <div className={'palette' + (on ? '' : ' off')} role="radiogroup" aria-label={`${n}번 ${sel.t} 색`}>
-        <span className="pal-title">{sel.t}{on ? ' 색' : ''}</span>
+        <span className="pal-title">색상</span>
         <div className="pal-grid">
           {pal.map((col) => (
             <button type="button" key={col} role="radio" aria-checked={on && c[ck] === col} aria-label={col} disabled={!on} className={'dot' + (on && c[ck] === col ? ' on' : '')} style={{ background: col }} onClick={() => set({ [ck]: col })} />
@@ -80,7 +80,6 @@ function AccTab({ c, n, set }) {
             <input type="color" value={ck ? c[ck] : '#000000'} disabled={!on} aria-label={`${n}번 ${sel.t} 다른 색`} onChange={(e) => set({ [ck]: e.target.value })} />
           </label>
         </div>
-        {!on && <span className="pal-hint">{ck ? '착용하면 색을 고를 수 있어요' : '색이 없는 장신구예요'}</span>}
       </div>
     </div>
   );
