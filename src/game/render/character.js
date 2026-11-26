@@ -1,4 +1,5 @@
 import { AGEP, ARM1, ARM2, HAIR, HIPS, LEG, SKIN } from "../constants.js";
+import { cane, hat, shoe } from "./accessories.js";
 import { robotBody } from "./robot.js";
 import { drawVeh } from "./vehicles.js";
 import { G } from "../state.js";
@@ -569,10 +570,9 @@ export function drawPerson(px, py, r, o) {
   const hasBag = !robo && !!r.bag,
     hasScarf = !robo && !!r.scarf,
     sdt = Math.min(G.fdt, 1 / 30);
-  if (hasBag) {
-    an.bv += (160 * (-lv * .02 - an.bag) - 9 * an.bv) * sdt;
-    an.bag += an.bv * sdt;
-  }
+  // 이 스프링 값은 가방 말고도 비니 방울, 로봇 안테나·푯말·탱크 액체 흔들림에 같이 씀
+  an.bv += (160 * (-lv * .02 - an.bag) - 9 * an.bv) * sdt;
+  an.bag += an.bv * sdt;
   const sc = 1.15 * (ch ? .82 : 1);
   // 속도선: 질주 중 몸 뒤로
   if (o.sprint && o.run && !seat) {
@@ -615,6 +615,10 @@ export function drawPerson(px, py, r, o) {
       G.ctx.beginPath();
       G.ctx.ellipse(e[0] + 1.6, e[1], 4.5, 2, (lg.t - lg.k) * -.35, 0, 7);
       G.ctx.fill();
+      if (r.shoe) {
+        const k = fk(HIPS[s], -14, lg.t, LEG, lg.t - lg.k, LEG);
+        shoe(r.shoe, r.shoeC, k[0], k[1], k[2], k[3], (lg.t - lg.k) * -.35, !s);
+      }
       feet.push(e);
     }
     G.ctx.save();
@@ -668,6 +672,7 @@ export function drawPerson(px, py, r, o) {
     G.ctx.arc(0, -43, 9, Math.PI * 1.02, Math.PI * 1.98);
     G.ctx.fill();
     G.ctx.fillRect(-9, -44, 5, 5);
+    if (r.hat) hat(r.hat, r.hatC, Math.max(-4, Math.min(4, an.bag * 6)));
     G.ctx.restore();
     face(f, P.head, an, r.i);
     if (hasScarf) scarf(an, r, spd, lv, sdt);
@@ -679,12 +684,7 @@ export function drawPerson(px, py, r, o) {
     const a = P.lean,
       hx = hand[0] * Math.cos(a) - (hand[1] + 14) * Math.sin(a),
       hy = hand[0] * Math.sin(a) + (hand[1] + 14) * Math.cos(a) - 14;
-    G.ctx.strokeStyle = '#6b4a2f';
-    G.ctx.lineWidth = 2.5;
-    G.ctx.beginPath();
-    G.ctx.moveTo(hx, hy);
-    G.ctx.lineTo(hx + 3.5, P.lift / P.sy);
-    G.ctx.stroke();
+    cane(r.cane, r.caneC, hx, hy, hx + 3.5, P.lift / P.sy);
   }
   G.ctx.restore();
   // 흙먼지: 발이 땅을 딛는 순간(허벅지가 뒤로 가기 시작) 월드 좌표에 생성

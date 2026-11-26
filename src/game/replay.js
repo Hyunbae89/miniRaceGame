@@ -1,5 +1,6 @@
 // 리플레이: 레이스를 프레임 단위로 기록하고 다시 재생.
 import { push } from "./engine.js";
+import { ACC_KEYS } from "./constants.js";
 import { G } from "./state.js";
 export function record() {
   if (G.frames.length && G.rt - G.frames[G.frames.length - 1].t < 1 / 40) return;
@@ -81,6 +82,8 @@ export function record() {
 export function applyFrame(f) {
   G.racers = f.r.map(o => Object.assign({}, o));
   G.racers.forEach((r, k) => {
+    // 장신구는 프레임에 다 담지 않고 참가자 설정에서 다시 읽음(리플레이 중에는 바뀌지 않음)
+    for (const a of ACC_KEYS) r[a] = G.cfg[r.i][a];
     r.pull = f.r[k].pt >= 0 ? {
       v: G.racers[f.r[k].pt]
     } : null;

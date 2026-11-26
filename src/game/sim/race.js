@@ -1,4 +1,4 @@
-import { BACK, GT, ITEMS, JT, TRACK, WIN_LINES } from "../constants.js";
+import { ACC_KEYS, BACK, GT, ITEMS, JT, TRACK, WIN_LINES } from "../constants.js";
 import { push } from "../engine.js";
 import { useItem } from "./items.js";
 import { robotStep } from "./robot.js";
@@ -135,8 +135,7 @@ export function setup() {
       color: G.cfg[i].color,
       gender: G.cfg[i].gender,
       age: G.cfg[i].age,
-      bag: G.cfg[i].bag,
-      scarf: G.cfg[i].scarf,
+      ...Object.fromEntries(ACC_KEYS.map(k => [k, G.cfg[i][k]])),
       veh: null,
       item: null,
       x: -BACK,

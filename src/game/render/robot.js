@@ -1,9 +1,10 @@
 import { ARM1, ARM2, COLORS, HIPS, LEG } from "../constants.js";
+import { antenna, backUnit, hazard, robotFoot } from "./accessories.js";
 import { fk, limb } from "./character.js";
 import { G } from "../state.js";
 import { rr, shade } from "../util.js";
-export function led(f, now, o) {
-  const c = f === 'hot' || f === 'sad' ? '#ff6a5a' : f === 'low' || f === 'error' ? '#ffd166' : '#5ff5c8';
+export function led(f, now, o, eye) {
+  const c = f === 'hot' || f === 'sad' ? '#ff6a5a' : f === 'low' || f === 'error' ? '#ffd166' : eye || '#5ff5c8';
   G.ctx.fillStyle = c;
   G.ctx.strokeStyle = c;
   G.ctx.lineWidth = 1.1;
@@ -76,23 +77,49 @@ export function led(f, now, o) {
 export function robotBody(P, r, o, f, now) {
   const metal = '#b4c0ca',
     dark = '#7d8a95',
-    joint = '#4b5863';
+    joint = '#4b5863',
+    an = G.anim[r.i],
+    sp = an ? an.bag : 0;
   for (let s = 0; s < 2; s++) {
     const lg = P.legs[s],
-      kn = fk(HIPS[s], -14, lg.t, LEG, lg.t - lg.k, LEG),
-      e = limb(HIPS[s], -14, lg.t, LEG, lg.t - lg.k, LEG, 5, s ? dark : shade('#7d8a95', .3));
+      legCol = s ? dark : shade('#7d8a95', .3),
+      kn = fk(HIPS[s], -14, lg.t, LEG, lg.t - lg.k, LEG);
+    let e;
+    if (r.foot === 'rev') {
+      // 역관절: 발 위치는 그대로 두고 조금 긴 마디로 다시 풀어 무릎이 뒤로 접히게
+      const hx = HIPS[s],
+        dx = kn[2] - hx,
+        dy = kn[3] + 14,
+        dd = Math.hypot(dx, dy) || 1,
+        l = LEG * 1.18,
+        hh = Math.sqrt(l * l - Math.min(dd, 2 * l - .01) ** 2 / 4);
+      kn[0] = hx + dx / 2 - dy / dd * hh;
+      kn[1] = -14 + dy / 2 + dx / dd * hh;
+      G.ctx.strokeStyle = legCol;
+      G.ctx.lineWidth = 5;
+      G.ctx.lineJoin = 'round';
+      G.ctx.beginPath();
+      G.ctx.moveTo(hx, -14);
+      G.ctx.lineTo(kn[0], kn[1]);
+      G.ctx.lineTo(kn[2], kn[3]);
+      G.ctx.stroke();
+      e = [kn[2], kn[3]];
+    } else e = limb(HIPS[s], -14, lg.t, LEG, lg.t - lg.k, LEG, 5, legCol);
     G.ctx.fillStyle = joint;
     G.ctx.beginPath();
     G.ctx.arc(kn[0], kn[1], 1.8, 0, 7);
     G.ctx.fill();
-    rr(e[0] - 3, e[1] - 2.4, 8.5, 3.6, 1);
-    G.ctx.fill();
+    if (r.foot) robotFoot(r.foot, e[0], e[1], Math.max(0, Math.min(1, (P.lift - e[1] - .5) / 4)), s ? joint : shade(joint, .25), legCol);else {
+      rr(e[0] - 3, e[1] - 2.4, 8.5, 3.6, 1);
+      G.ctx.fill();
+    }
   }
   G.ctx.save();
   G.ctx.translate(0, -14);
   G.ctx.rotate(P.lean);
   G.ctx.translate(0, 14);
   limb(-1.5, -29, P.arms[0].u, ARM1, P.arms[0].u + P.arms[0].f, ARM2, 4, shade(metal, .35));
+  if (r.back) backUnit(r.back, r, sp, o.run, now, joint);
   if (o.boost > 0) {
     const fl = 9 + Math.random() * 7;
     G.ctx.fillStyle = '#ff9f1c';
@@ -129,24 +156,27 @@ export function robotBody(P, r, o, f, now) {
   G.ctx.translate(0, -45);
   G.ctx.rotate(P.head + (o.cheer ? now * 6 % (Math.PI * 2) : 0));
   G.ctx.translate(0, 45);
-  G.ctx.strokeStyle = joint;
-  G.ctx.lineWidth = 1.4;
-  G.ctx.beginPath();
-  G.ctx.moveTo(0, -53);
-  G.ctx.lineTo(0, -57.5);
-  G.ctx.stroke();
-  G.ctx.fillStyle = now * 2 % 1 < .5 ? r.color : '#fff';
-  G.ctx.beginPath();
-  G.ctx.arc(0, -58.5, 1.7, 0, 7);
-  G.ctx.fill();
+  if (r.ant) antenna(r.ant, r.antC, Math.max(-6, Math.min(6, sp * 8 - (o.run ? 2.5 : 0))), now, joint);else {
+    G.ctx.strokeStyle = joint;
+    G.ctx.lineWidth = 1.4;
+    G.ctx.beginPath();
+    G.ctx.moveTo(0, -53);
+    G.ctx.lineTo(0, -57.5);
+    G.ctx.stroke();
+    G.ctx.fillStyle = now * 2 % 1 < .5 ? r.color : '#fff';
+    G.ctx.beginPath();
+    G.ctx.arc(0, -58.5, 1.7, 0, 7);
+    G.ctx.fill();
+  }
   G.ctx.fillStyle = metal;
   rr(-9, -53, 18, 15, 4);
   G.ctx.fill();
   G.ctx.fillStyle = '#0f1a20';
   rr(-7, -51, 14, 11, 2);
   G.ctx.fill();
-  led(f, now, o);
+  led(f, now, o, r.eye);
   G.ctx.restore();
+  if (r.neck) hazard(r.neckC, sp, o.run ? 1 : 0);
   const hand = limb(1.5, -29, P.arms[1].u, ARM1, P.arms[1].u + P.arms[1].f, ARM2, 4, metal);
   G.ctx.fillStyle = joint;
   G.ctx.beginPath();

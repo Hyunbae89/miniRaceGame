@@ -15,10 +15,43 @@ const AGE_DESC = {
 const MODES = [['normal', '일반'], ['item', '아이템전']];
 const WANTS = [['first', '1등 원함'], ['last', '꼴등 원함']];
 // 장신구: [설정 키, 이름, 처음 켰을 때 색]
-const ACCS = [['bag', '가방', '#8e5b3a'], ['scarf', '목도리', '#e74c3c']];
+// 장신구 칩: k 설정 키, t 이름, kinds 종류(없으면 값 자체가 색), def 켤 때 값, c 색 키,
+// fixed 끄기 없이 항상 보임, cWhen 색 칸을 보일 조건, ages 보이는 종류
+const HUMAN_ACCS = [
+  { k: 'bag', t: '가방', def: '#8e5b3a' },
+  { k: 'scarf', t: '목도리', def: '#e74c3c' },
+  { k: 'hat', t: '모자', kinds: [['cap', '캡모자'], ['beanie', '비니'], ['goggle', '고글 모자']], c: 'hatC' },
+  { k: 'shoe', t: '신발', kinds: [['sneaker', '운동화'], ['boot', '장화']], c: 'shoeC' },
+  { k: 'cane', t: '지팡이', kinds: [['wood', '나무'], ['umbrella', '우산'], ['gold', '황금']], c: 'caneC', fixed: true, cWhen: (v) => v === 'umbrella', ages: ['e'] },
+];
+const ROBOT_ACCS = [
+  { c: 'eye', t: 'LED 눈', fixed: true },
+  { k: 'ant', t: '안테나', kinds: [['', '기본'], ['spring', '스프링'], ['dish', '위성 접시']], c: 'antC', fixed: true, cWhen: (v) => !!v },
+  { k: 'neck', t: '경고 띠', kinds: [['hazard', '경고 띠']], c: 'neckC' },
+  { k: 'back', t: '등', kinds: [['', '기본'], ['jet', '제트팩'], ['tank', '코어 탱크']], fixed: true },
+  { k: 'foot', t: '발', kinds: [['', '기본'], ['toe', '발가락'], ['rev', '역관절']], fixed: true },
+];
+function AccItem({ a, c, n, set }) {
+  const v = a.k ? c[a.k] : true,
+    on = a.fixed || !!v,
+    ck = a.kinds ? a.c : a.k || a.c,
+    showColor = ck && on && (!a.cWhen || a.cWhen(v));
+  return (
+    <div className={'chip' + (on ? ' on' : '')}>
+      {a.fixed ? <span className="chip-label">{a.t}</span>
+        : <button type="button" aria-pressed={on} onClick={() => set({ [a.k]: v ? '' : a.def || a.kinds[0][0] })}>{on ? '✓ ' : ''}{a.t}</button>}
+      {on && a.kinds && a.kinds.length > 1 && (
+        <select value={v} aria-label={`${n}번 ${a.t} 종류`} onChange={(e) => set({ [a.k]: e.target.value })}>
+          {a.kinds.map(([k, t]) => <option key={k} value={k}>{t}</option>)}
+        </select>
+      )}
+      {showColor && <input type="color" className="swatch" value={c[ck]} aria-label={`${n}번 ${a.t} 색`} onChange={(e) => set({ [ck]: e.target.value })} />}
+    </div>
+  );
+}
 
 // 참가자 구성(인원·이름·색·성별·종류)을 한 줄 문자열로: 최종 결정 뒤 바뀌었는지 비교용
-const rosterSig = (v) => v.n + '|' + v.cfg.slice(0, v.n).map((c) => [c.name, c.color, c.gender, c.age, c.bag, c.scarf].join(',')).join('|');
+const rosterSig = (v) => v.n + '|' + JSON.stringify(v.cfg.slice(0, v.n));
 
 // 버튼 여러 개 중 하나를 고르는 선택 상자
 function Seg({ label, value, options, onChange, disabled, small }) {
@@ -116,11 +149,8 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
       <div className="card-row">
         {tab === 'acc' ? (
           <div className="card acc" role="tabpanel">
-            {c.age === 'r' ? <p className="status">로봇 장신구는 준비 중이에요.</p> : ACCS.map(([k, t, def]) => (
-              <div key={k} className={'chip' + (c[k] ? ' on' : '')}>
-                <button type="button" aria-pressed={!!c[k]} onClick={() => game().setCfg(i, { [k]: c[k] ? '' : def })}>{c[k] ? '✓ ' : ''}{t}</button>
-                {c[k] && <input type="color" className="swatch" value={c[k]} aria-label={`${i + 1}번 ${t} 색`} onChange={(e) => game().setCfg(i, { [k]: e.target.value })} />}
-              </div>
+            {(c.age === 'r' ? ROBOT_ACCS : HUMAN_ACCS.filter((a) => !a.ages || a.ages.includes(c.age))).map((a) => (
+              <AccItem key={a.t} a={a} c={c} n={i + 1} set={(p) => game().setCfg(i, p)} />
             ))}
           </div>
         ) : (
@@ -148,7 +178,7 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
         )}
       </div>
       <div className="roster-foot">
-        <p className="status pc-only">{tab === 'acc' ? '장신구를 눌러 켜고 끄고, 옆의 색 칸으로 색을 바꿔요.' : '어떤 종류를 골라도 이길 확률은 비슷해요.'}</p>
+        <p className="status pc-only">{tab === 'acc' ? '장신구를 눌러 켜고 끄고, 종류와 색을 골라요.' : '어떤 종류를 골라도 이길 확률은 비슷해요.'}</p>
         <button type="button" className="nav" aria-label="이전 참가자" disabled={i === 0} onClick={() => go(-1)}>◀ 이전</button>
         <button type="button" className="nav" aria-label="다음 참가자" disabled={i === v.n - 1} onClick={() => go(1)}>다음 ▶</button>
       </div>
@@ -343,6 +373,9 @@ export default function App() {
         </Notice>
       )}
       {stopping && <StopDialog onBack={stopBack} onReset={stopReset} onCancel={cancelStop} />}
+      <footer className="credit">
+        © 2026 Hyunbae Jeon · <a href="https://github.com/Hyunbae89/miniRaceGame" target="_blank" rel="noreferrer">github.com/Hyunbae89/miniRaceGame</a>
+      </footer>
     </div>
   );
 }
