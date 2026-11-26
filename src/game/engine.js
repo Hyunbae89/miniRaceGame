@@ -8,7 +8,7 @@ import { draw } from "./render/race.js";
 import { applyFrame, endReplay, record, toggleReplay } from "./replay.js";
 import { setup, update } from "./sim/race.js";
 import { G } from "./state.js";
-import { shuffle } from "./util.js";
+import { hsh, shuffle } from "./util.js";
 export function push() {
   G.ui.onChange({
     state: G.state,
@@ -104,7 +104,10 @@ export function makeRoster() {
       name: pool[g].pop(),
       color: c,
       gender: g,
-      age: 'a'
+      age: 'a',
+      // 장신구 색(''이면 없음). 처음 값은 캐릭터 번호로 고정(약 40%씩)
+      bag: hsh(i * 7 + 2) < .4 ? COLORS[(i * 7 + 5) % COLORS.length] : '',
+      scarf: hsh(i * 7 + 1) < .4 ? COLORS[(i * 7 + 3) % COLORS.length] : ''
     };
   });
 }
@@ -160,6 +163,8 @@ export function setCfg(i, p) {
     r.color = G.cfg[i].color;
     r.gender = G.cfg[i].gender;
     r.age = G.cfg[i].age;
+    r.bag = G.cfg[i].bag;
+    r.scarf = G.cfg[i].scarf;
   }
   push();
 }

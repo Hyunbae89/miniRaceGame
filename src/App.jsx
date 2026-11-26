@@ -7,9 +7,11 @@ const GENDERS = [['m', '남'], ['f', '여']];
 const AGES = [['c', '어린이'], ['a', '성인'], ['e', '어르신'], ['r', '로봇']];
 const MODES = [['normal', '일반'], ['item', '아이템전']];
 const WANTS = [['first', '1등 원함'], ['last', '꼴등 원함']];
+// 장신구: [설정 키, 이름, 처음 켰을 때 색]
+const ACCS = [['bag', '가방', '#8e5b3a'], ['scarf', '목도리', '#e74c3c']];
 
 // 참가자 구성(인원·이름·색·성별·종류)을 한 줄 문자열로: 최종 결정 뒤 바뀌었는지 비교용
-const rosterSig = (v) => v.n + '|' + v.cfg.slice(0, v.n).map((c) => [c.name, c.color, c.gender, c.age].join(',')).join('|');
+const rosterSig = (v) => v.n + '|' + v.cfg.slice(0, v.n).map((c) => [c.name, c.color, c.gender, c.age, c.bag, c.scarf].join(',')).join('|');
 
 // 버튼 여러 개 중 하나를 고르는 선택 상자
 function Seg({ label, value, options, onChange, disabled, small }) {
@@ -85,6 +87,7 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
   const shuffled = v.lanes.some((s, k) => s !== k);
   const go = (d) => setEditing(Math.max(0, Math.min(v.n - 1, i + d)));
   const touchX = useRef(null);
+  const [tab, setTab] = useState('base');
   return (
     <section className="roster" aria-labelledby="roster-h"
       onTouchStart={(e) => { touchX.current = e.touches[0].clientX; }}
@@ -98,8 +101,23 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
           <button type="button" ref={confirmRef} className="confirm pulse" onClick={onConfirm}>최종 결정</button>
         </div>
       </div>
+      <div className="tabs" role="tablist" aria-label="편집 항목">
+        {[['base', '기본'], ['acc', '장신구']].map(([k, t]) => (
+          <button type="button" key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{t}</button>
+        ))}
+      </div>
       <div className="card-row">
-        <div className="card">
+        {tab === 'acc' ? (
+          <div className="card acc" role="tabpanel">
+            {c.age === 'r' ? <p className="status">로봇 장신구는 준비 중이에요.</p> : ACCS.map(([k, t, def]) => (
+              <div key={k} className={'chip' + (c[k] ? ' on' : '')}>
+                <button type="button" aria-pressed={!!c[k]} onClick={() => game().setCfg(i, { [k]: c[k] ? '' : def })}>{c[k] ? '✓ ' : ''}{t}</button>
+                {c[k] && <input type="color" className="swatch" value={c[k]} aria-label={`${i + 1}번 ${t} 색`} onChange={(e) => game().setCfg(i, { [k]: e.target.value })} />}
+              </div>
+            ))}
+          </div>
+        ) : (
+        <div className="card" role="tabpanel">
           <div className="card-main">
             <input type="color" className="swatch" value={c.color} aria-label={`${i + 1}번 옷 색`} onChange={(e) => game().setCfg(i, { color: e.target.value })} />
             <input className="name" key={`name-${i}-${c.age === 'r'}`} defaultValue={c.name} maxLength={c.age === 'r' ? 9 : 6} aria-label={`${i + 1}번 이름`}
@@ -119,9 +137,10 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
             {c.age !== 'r' && <Seg small label={`${i + 1}번 성별`} value={c.gender} options={GENDERS} onChange={(g) => game().setCfg(i, { gender: g })} />}
           </div>
         </div>
+        )}
       </div>
       <div className="roster-foot">
-        <p className="status pc-only">한 명씩 확인한 뒤 최종 결정을 눌러 주세요.</p>
+        <p className="status pc-only">{tab === 'acc' ? '장신구를 눌러 켜고 끄고, 옆의 색 칸으로 색을 바꿔요.' : '한 명씩 확인한 뒤 최종 결정을 눌러 주세요.'}</p>
         <button type="button" className="nav" aria-label="이전 참가자" disabled={i === 0} onClick={() => go(-1)}>◀ 이전</button>
         <button type="button" className="nav" aria-label="다음 참가자" disabled={i === v.n - 1} onClick={() => go(1)}>다음 ▶</button>
       </div>
