@@ -14,6 +14,16 @@ export function shuffle(a) {
 }
 // 천천히 시작해 천천히 끝나는 곡선(0~1 → 0~1)
 export const easeIO = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+// GSAP의 bounce.out·back.out과 같은 곡선(시상식 착지·트로피)
+export function bounceOut(t) {
+  const n = 7.5625,
+    d = 2.75;
+  if (t < 1 / d) return n * t * t;
+  if (t < 2 / d) return n * (t -= 1.5 / d) * t + .75;
+  if (t < 2.5 / d) return n * (t -= 2.25 / d) * t + .9375;
+  return n * (t -= 2.625 / d) * t + .984375;
+}
+export const backOut = (t, c = 1.70158) => 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2);
 export function lerp(a, b, w) {
   return a + (b - a) * w;
 }
