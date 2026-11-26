@@ -14,51 +14,74 @@ const AGE_DESC = {
 };
 const MODES = [['normal', '일반'], ['item', '아이템전']];
 const WANTS = [['first', '1등 원함'], ['last', '꼴등 원함']];
-// 장신구 탭: 한 줄에 [이름 · 종류 알약 · 색 점]. k 설정 키, opts 종류([값, 이름]), wear 값 자체가 색인 장신구의 기본색,
-// ck 색 키, pal 색 점 목록, cWhen 색 점을 보일 조건(기본: 값이 있을 때), ages 보이는 종류
+// 장신구 탭: 왼쪽은 장신구 줄(이름 · 종류 알약), 오른쪽 끝은 모든 장신구가 같이 쓰는 색 칸(2열).
+// 장신구를 누르면 그 장신구가 선택되고 색 칸이 그 장신구의 색을 바꿈.
+// k 설정 키, opts 종류([값, 이름]), wear 값 자체가 색인 장신구의 기본색, ck 색 키, pal 색 목록,
+// cWhen 색을 고를 수 있는 조건(기본: 값이 있을 때), ages 보이는 종류
 const PALETTE = ['#e4572e', '#f2b705', '#2fb67c', '#2e86de', '#8e5ad6', '#ef6aa1', '#8e5b3a', '#2b2d42'];
 const NEON = ['#5ff5c8', '#39e6ff', '#7dff4a', '#ffd166', '#ff4fd8', '#ff6a5a'];
-const HUMAN_ACCS = [
-  { t: '가방', k: 'bag', wear: '#8e5b3a' },
-  { t: '목도리', k: 'scarf', wear: '#e74c3c' },
-  { t: '모자', k: 'hat', opts: [['', '없음'], ['cap', '캡모자'], ['beanie', '비니'], ['goggle', '고글 모자']], ck: 'hatC' },
-  { t: '신발', k: 'shoe', opts: [['', '기본'], ['sneaker', '운동화'], ['boot', '장화']], ck: 'shoeC' },
-  { t: '지팡이', k: 'cane', opts: [['wood', '나무'], ['umbrella', '우산'], ['gold', '황금']], ck: 'caneC', cWhen: (v) => v === 'umbrella', ages: ['e'] },
+const HUMAN_ROWS = [
+  [{ t: '가방', k: 'bag', wear: '#8e5b3a' }, { t: '목도리', k: 'scarf', wear: '#e74c3c' }],
+  [{ t: '모자', k: 'hat', opts: [['', '없음'], ['cap', '캡모자'], ['beanie', '비니'], ['goggle', '고글 모자']], ck: 'hatC' }],
+  [{ t: '신발', k: 'shoe', opts: [['', '기본'], ['sneaker', '운동화'], ['boot', '장화']], ck: 'shoeC' }],
+  [{ t: '지팡이', k: 'cane', opts: [['wood', '나무'], ['umbrella', '우산'], ['gold', '황금']], ck: 'caneC', cWhen: (v) => v === 'umbrella', ages: ['e'] }],
 ];
-const ROBOT_ACCS = [
-  { t: '눈 빛', ck: 'eye', pal: NEON },
-  { t: '안테나', k: 'ant', opts: [['', '기본'], ['spring', '스프링'], ['dish', '접시']], ck: 'antC' },
-  { t: '경고 띠', k: 'neck', opts: [['', '없음'], ['hazard', '두르기']], ck: 'neckC' },
-  { t: '등', k: 'back', opts: [['', '기본'], ['jet', '제트팩'], ['tank', '코어 탱크']] },
-  { t: '발', k: 'foot', opts: [['', '기본'], ['toe', '발가락'], ['rev', '역관절']] },
+const ROBOT_ROWS = [
+  [{ t: '눈 빛', ck: 'eye', pal: NEON }, { t: '경고 띠', k: 'neck', opts: [['', '없음'], ['hazard', '두르기']], ck: 'neckC' }],
+  [{ t: '안테나', k: 'ant', opts: [['', '기본'], ['spring', '스프링'], ['dish', '접시']], ck: 'antC' }],
+  [{ t: '등', k: 'back', opts: [['', '기본'], ['jet', '제트팩'], ['tank', '코어 탱크']] }],
+  [{ t: '발', k: 'foot', opts: [['', '기본'], ['toe', '발가락'], ['rev', '역관절']] }],
 ];
-function AccRow({ a, c, n, set }) {
-  const v = a.k ? c[a.k] : 'on',
-    opts = a.wear ? [['', '없음'], [a.wear, '착용']] : a.opts,
-    cur = a.wear ? (v ? a.wear : '') : v,
-    ck = a.wear ? a.k : a.ck,
-    pal = a.pal || PALETTE,
-    own = ck && !pal.includes(c[ck]);
+const accVal = (a, c) => (a.k ? c[a.k] : 'on');
+const accColorKey = (a) => (a.wear ? a.k : a.ck);
+const accColorOn = (a, c) => !!accColorKey(a) && (a.cWhen ? a.cWhen(accVal(a, c)) : !!accVal(a, c));
+function AccTab({ c, n, set }) {
+  const rows = (c.age === 'r' ? ROBOT_ROWS : HUMAN_ROWS).map((r) => r.filter((a) => !a.ages || a.ages.includes(c.age))).filter((r) => r.length);
+  const items = rows.flat();
+  const [pickT, setPickT] = useState(null);
+  // 선택된 장신구: 마지막으로 누른 것, 없으면 색을 고를 수 있는 첫 장신구
+  const sel = items.find((a) => a.t === pickT) || items.find((a) => accColorOn(a, c)) || items[0];
+  const ck = accColorKey(sel),
+    on = accColorOn(sel, c),
+    pal = sel.pal || PALETTE,
+    own = on && !pal.includes(c[ck]);
   return (
-    <div className="acc-row">
-      <span className="acc-name">{a.t}</span>
-      {opts && (
-        <div className="pills" role="radiogroup" aria-label={`${n}번 ${a.t}`}>
-          {opts.map(([o, l]) => (
-            <button type="button" key={o} role="radio" aria-checked={cur === o} className={cur === o ? 'on' : ''} onClick={() => cur !== o && set({ [a.k]: o })}>{l}</button>
-          ))}
-        </div>
-      )}
-      {ck && (a.cWhen ? a.cWhen(v) : !!v) && (
-        <div className="dots" role="radiogroup" aria-label={`${n}번 ${a.t} 색`}>
+    <div className="card acc" role="tabpanel">
+      <div className="acc-rows">
+        {rows.map((r, k) => (
+          <div className="acc-row" key={k}>
+            {r.map((a) => {
+              const v = accVal(a, c),
+                opts = a.wear ? [['', '없음'], [a.wear, '착용']] : a.opts,
+                cur = a.wear ? (v ? a.wear : '') : v;
+              return (
+                <div key={a.t} className={'acc-item' + (a === sel ? ' sel' : '')} onClick={() => setPickT(a.t)}>
+                  <button type="button" className="acc-name" aria-pressed={a === sel}>{a.t}</button>
+                  {opts && (
+                    <div className="pills" role="radiogroup" aria-label={`${n}번 ${a.t}`}>
+                      {opts.map(([o, l]) => (
+                        <button type="button" key={o} role="radio" aria-checked={cur === o} className={cur === o ? 'on' : ''} onClick={() => cur !== o && set({ [a.k]: o })}>{l}</button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+      <div className={'palette' + (on ? '' : ' off')} role="radiogroup" aria-label={`${n}번 ${sel.t} 색`}>
+        <span className="pal-title">{sel.t}{on ? ' 색' : ''}</span>
+        <div className="pal-grid">
           {pal.map((col) => (
-            <button type="button" key={col} role="radio" aria-checked={c[ck] === col} aria-label={col} className={'dot' + (c[ck] === col ? ' on' : '')} style={{ background: col }} onClick={() => set({ [ck]: col })} />
+            <button type="button" key={col} role="radio" aria-checked={on && c[ck] === col} aria-label={col} disabled={!on} className={'dot' + (on && c[ck] === col ? ' on' : '')} style={{ background: col }} onClick={() => set({ [ck]: col })} />
           ))}
           <label className={'dot custom' + (own ? ' on' : '')} style={own ? { background: c[ck] } : undefined} title="다른 색 고르기">
-            <input type="color" value={c[ck]} aria-label={`${n}번 ${a.t} 다른 색`} onChange={(e) => set({ [ck]: e.target.value })} />
+            <input type="color" value={ck ? c[ck] : '#000000'} disabled={!on} aria-label={`${n}번 ${sel.t} 다른 색`} onChange={(e) => set({ [ck]: e.target.value })} />
           </label>
         </div>
-      )}
+        {!on && <span className="pal-hint">{ck ? '착용하면 색을 고를 수 있어요' : '색이 없는 장신구예요'}</span>}
+      </div>
     </div>
   );
 }
@@ -166,11 +189,7 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
       </div>
       <div className="card-row">
         {tab === 'acc' ? (
-          <div className="card acc" role="tabpanel">
-            {(c.age === 'r' ? ROBOT_ACCS : HUMAN_ACCS.filter((a) => !a.ages || a.ages.includes(c.age))).map((a) => (
-              <AccRow key={a.t} a={a} c={c} n={i + 1} set={(p) => game().setCfg(i, p)} />
-            ))}
-          </div>
+          <AccTab c={c} n={i + 1} set={(p) => game().setCfg(i, p)} />
         ) : (
         <div className="card base" role="tabpanel">
           <div className="card-main">
@@ -196,7 +215,7 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
         )}
       </div>
       <div className="roster-foot">
-        <p className="status pc-only">{tab === 'acc' ? '종류를 누르고, 색 점을 골라요. 무지개 점은 다른 색이에요.' : '어떤 종류를 골라도 이길 확률은 비슷해요.'}</p>
+        <p className="status pc-only">{tab === 'acc' ? '장신구를 누르면 오른쪽 색 칸에서 그 장신구의 색을 골라요.' : '어떤 종류를 골라도 이길 확률은 비슷해요.'}</p>
         <button type="button" className="nav" disabled={i === 0 && tab === 'base'} onClick={() => go(-1)}>{tab === 'acc' ? '◀ 기본' : '◀ 이전 사람'}</button>
         <button type="button" className="nav" disabled={i === v.n - 1 && tab === 'acc'} onClick={() => go(1)}>{tab === 'base' ? '장신구 ▶' : '다음 사람 ▶'}</button>
       </div>
