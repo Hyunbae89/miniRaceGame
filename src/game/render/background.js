@@ -133,16 +133,14 @@ export function namsanTower(x, base, scale, night) {
   }
   c.restore();
 }
-function namsanLandmark(x, base, night, layer = 'all') {
+function namsanLandmark(x, base, night) {
   const c = G.ctx;
-  if (layer !== 'tower') {
-    c.fillStyle = night ? '#1a2a3c' : '#7fa87a';
-    c.beginPath();
-    c.moveTo(x - 190, base);
-    c.quadraticCurveTo(x, base - 150, x + 190, base);
-    c.fill();
-  }
-  if (layer !== 'hill') namsanTower(x, base - 74, 1, night);
+  c.fillStyle = night ? '#1a2a3c' : '#7fa87a';
+  c.beginPath();
+  c.moveTo(x - 190, base);
+  c.quadraticCurveTo(x, base - 150, x + 190, base);
+  c.fill();
+  namsanTower(x, base - 74, 1, night);
 }
 // 서울 랜드마크: 남산(N서울타워), 롯데월드타워, 63빌딩 — 시차 공간에서 700 간격으로 번갈아 등장
 export function landmarks(par, base, night, phase) {
@@ -1194,7 +1192,10 @@ function newPlaceBg(th, now, top) {
       }
     }
   } else if (p === 'hangang') {
-    // 강 건너 아파트와 언덕 위 탑을 멀리 배치한다.
+    // 가장 먼 남산(언덕+타워)을 먼저 그려, 앞에 있는 빌딩이 겹치면 가리게 함
+    const hill = 330 - off * .08;
+    namsanLandmark(hill, top, n);
+    // 강 건너 아파트
     for (const [par, seed, step, minH, maxH, col] of [[.08, 31, 112, 32, 72, n ? '#26374f' : '#a7bdc5'], [.13, 35, 82, 40, 92, n ? '#1d2e47' : '#8ca7b6']]) {
       const i0 = Math.floor((off * par - 100) / step), i1 = Math.ceil((off * par + G.W + 100) / step);
       for (let i = i0; i <= i1; i++) {
@@ -1218,8 +1219,6 @@ function newPlaceBg(th, now, top) {
         }
       }
     }
-    const hill = 330 - off * .08;
-    namsanLandmark(hill, top, n, 'hill');
     // 강 건너 가까운 빌딩층: 언덕과 타워 앞, 다리 뒤에 놓인다.
     const nearPar = .10, nearStep = 62, nearOff = off * nearPar;
     const ni0 = Math.floor((nearOff - 100) / nearStep), ni1 = Math.ceil((nearOff + G.W + 100) / nearStep);
@@ -1237,8 +1236,6 @@ function newPlaceBg(th, now, top) {
         }
       }
     }
-    // 도심과 같은 타워 기준점을 사용하고, 건물 앞에 겹치지 않도록 마지막에 올린다.
-    namsanLandmark(hill, top, n, 'tower');
     const step = 760, lo = Math.floor((off * .15 - 240) / step), hi = Math.ceil((off * .15 + G.W + 240) / step);
     for (let i = lo; i <= hi; i++) {
       const x = i * step + 380 - off * .15;
