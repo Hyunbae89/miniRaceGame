@@ -165,19 +165,20 @@ export function robotBody(P, r, o, f, now) {
     rr(-8, -34, 16, 21, 3);
     G.ctx.fill();
   }
+  // 목과 목 장식은 몸에 붙어 머리가 회전해도 움직이지 않는다.
+  G.ctx.fillStyle = dark;
+  rr(-2.8, -41.5, 5.6, 8.5, 2);
+  G.ctx.fill();
+  G.ctx.fillStyle = '#c5cdd2';
+  G.ctx.fillRect(-.7, -40.5, 1, 5.2);
+  G.ctx.fillStyle = joint;
+  G.ctx.fillRect(-2.2, -34.5, 4.4, 1.2);
+  if (r.neck) hazard(r.neckC, sp, o.run ? 1 : 0);
   // 머리(환호 때 360도 회전)
   G.ctx.save();
   G.ctx.translate(0, -45);
   G.ctx.rotate(P.head + (o.cheer || o.win || o.swagger ? now * 6 % (Math.PI * 2) : 0));
   G.ctx.translate(0, 45);
-  // 목은 머리와 함께 회전하며 머리 아래와 몸통 위에 살짝 겹친다.
-  G.ctx.fillStyle = dark;
-  rr(-2.8, -40, 5.6, 8, 2);
-  G.ctx.fill();
-  G.ctx.fillStyle = '#c5cdd2';
-  G.ctx.fillRect(-.7, -38.5, 1, 5.2);
-  G.ctx.fillStyle = joint;
-  G.ctx.fillRect(-2.2, -34.5, 4.4, 1.2);
   if (r.ant) antenna(r.ant, r.antC, Math.max(-6, Math.min(6, sp * 8 - (o.run ? 2.5 : 0))), now, joint);else {
     G.ctx.strokeStyle = joint;
     G.ctx.lineWidth = 1.4;
@@ -197,7 +198,6 @@ export function robotBody(P, r, o, f, now) {
   rr(-7, -51, 14, 11, 2);
   G.ctx.fill();
   led(f, now, o, r.eye);
-  if (r.neck) hazard(r.neckC, sp, o.run ? 1 : 0);
   G.ctx.restore();
   const hand = limb(1.5, -29, P.arms[1].u, ARM1, P.arms[1].u + P.arms[1].f, ARM2, 4, metal);
   G.ctx.fillStyle = joint;

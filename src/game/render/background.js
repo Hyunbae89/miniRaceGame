@@ -1153,8 +1153,10 @@ function newPlaceBg(th, now, top) {
   if (p === 'stone') return stoneMap(th, now, top);
   // 부산은 수평선을 올리고 그 앞에 넓은 육지를 둬, 건물이 바다가 아닌 땅 위에 서게 함
   const sea = p === 'busan' ? top - 46 : p === 'hangang' ? top - 86 : top - 28;
-  c.fillStyle = p === 'stone' ? (n ? '#26383b' : '#b7d7b0') : p === 'hangang' ? (n ? '#193d57' : '#5aafd0') : (n ? '#123b56' : '#318bc2');
-  c.fillRect(0, sea, G.W, p === 'hangang' ? 116 : 58);
+  if (p !== 'hangang') {
+    c.fillStyle = p === 'stone' ? (n ? '#26383b' : '#b7d7b0') : (n ? '#123b56' : '#318bc2');
+    c.fillRect(0, sea, G.W, 58);
+  }
   if (p === 'busan') {
     // 광안대교와 바다는 가장 뒤에 두고, 다리보다 앞에 낮은 해안 건물을 둔다.
     const step = 940, lo = Math.floor((off * .055 - 260) / step), hi = Math.ceil((off * .055 + G.W + 260) / step);
@@ -1224,7 +1226,7 @@ function newPlaceBg(th, now, top) {
     }
   } else if (p === 'hangang') {
     // 가장 먼 남산(언덕+타워)을 먼저 그려, 앞에 있는 빌딩이 겹치면 가리게 함
-    const bank = top - 50;
+    const bank = top - 56;
     const hill = 330 - off * .035;
     namsanLandmark(hill, top + 12, n);
     // 강 건너편 빌딩은 서로 다른 시차의 두 층으로, 모두 강둑 위에 세운다.
@@ -1251,9 +1253,11 @@ function newPlaceBg(th, now, top) {
         }
       }
     }
-    // 강둑은 건물 발밑에만 얇게 이어져, 넓은 강물이 앞쪽까지 드러난다.
+    // 먼 강둑과 빌딩 아래의 지면을 먼저 그린다.
     c.fillStyle = n ? '#4c5a53' : '#8a9b78'; c.fillRect(0, bank, G.W, 8);
     c.fillStyle = n ? '#75816f' : '#b5b891'; c.fillRect(0, bank, G.W, 4);
+    // 물은 강둑 아래에서 산책로까지 이어져 빌딩 뒤로 비치지 않는다.
+    c.fillStyle = n ? '#193d57' : '#5aafd0'; c.fillRect(0, bank + 8, G.W, top - (bank + 8));
     const step = 760, lo = Math.floor((off * .15 - 240) / step), hi = Math.ceil((off * .15 + G.W + 240) / step);
     for (let i = lo; i <= hi; i++) {
       const x = i * step + 380 - off * .15;
@@ -1274,12 +1278,12 @@ function newPlaceBg(th, now, top) {
     }
     for (let i = Math.floor((off * .25 - 80) / 270); i <= Math.ceil((off * .25 + G.W + 80) / 270); i++) {
       const x = i * 270 + 100 - off * .25 + now * 4 % 270;
-      c.fillStyle = n ? '#e7e9df' : '#fff'; c.beginPath(); c.ellipse(x, top + 13, 13, 5, 0, 0, 7); c.fill(); c.strokeStyle = n ? '#ddd6b9' : '#b7c5c4'; c.lineWidth = 2; c.beginPath(); c.moveTo(x + 4, top + 12); c.quadraticCurveTo(x + 1, top - 6, x - 6, top + 1); c.stroke();
+      c.fillStyle = n ? '#e7e9df' : '#fff'; c.beginPath(); c.ellipse(x, top - 13, 13, 5, 0, 0, 7); c.fill(); c.strokeStyle = n ? '#ddd6b9' : '#b7c5c4'; c.lineWidth = 2; c.beginPath(); c.moveTo(x + 4, top - 14); c.quadraticCurveTo(x + 1, top - 32, x - 6, top - 25); c.stroke();
     }
-    for (let i = Math.floor((off * .3 - 50) / 85); i <= Math.ceil((off * .3 + G.W + 50) / 85); i++) { const x = i * 85 - off * .3 + hsh(i * 2) * 38, y = top + 15 + hsh(i * 3) * 11; c.strokeStyle = n ? 'rgba(204,226,231,.5)' : 'rgba(255,255,255,.62)'; c.beginPath(); c.moveTo(x - 10, y); c.lineTo(x + 10, y); c.stroke(); }
+    for (let i = Math.floor((off * .3 - 50) / 85); i <= Math.ceil((off * .3 + G.W + 50) / 85); i++) { const x = i * 85 - off * .3 + hsh(i * 2) * 38, y = top - 8 - hsh(i * 3) * 28; c.strokeStyle = n ? 'rgba(204,226,231,.5)' : 'rgba(255,255,255,.62)'; c.beginPath(); c.moveTo(x - 10, y); c.lineTo(x + 10, y); c.stroke(); }
   }
 
-  c.fillStyle = p === 'stone' ? (n ? '#223c32' : '#50733d') : p === 'hangang' ? (n ? '#244332' : '#8fc06a') : (n ? '#193d50' : '#f1dfb4'); c.fillRect(0, top + 4, G.W, 26);
+  c.fillStyle = p === 'stone' ? (n ? '#223c32' : '#50733d') : p === 'hangang' ? (n ? '#244332' : '#8fc06a') : (n ? '#193d50' : '#f1dfb4'); c.fillRect(0, p === 'hangang' ? top : top + 4, G.W, p === 'hangang' ? 30 : 26);
   const spacing = 72, s0 = Math.floor((off - 120) / spacing), s1 = Math.ceil((off + G.W + 120) / spacing);
   for (let i = s0; i <= s1; i++) {
     const x = i * spacing + hsh(i) * 20 - off;
@@ -1299,8 +1303,8 @@ function newPlaceBg(th, now, top) {
     }
   }
   if (p === 'hangang') for (let i = Math.floor((off - 90) / 380); i <= Math.ceil((off + G.W + 90) / 380); i++) {
-    const x = i * 380 + 100 - off; c.fillStyle = n ? '#553f44' : '#d66b67'; c.fillRect(x, top + 12, 34, 13); c.fillStyle = n ? '#c9b98e' : '#f5e4c5'; c.fillRect(x + 6, top + 6, 21, 7); c.fillStyle = n ? '#ffe19a' : '#8ea6a4'; c.fillRect(x + 9, top + 8, 5, 4); c.fillRect(x + 19, top + 8, 5, 4);
-    if (i % 2 === 0) { c.fillStyle = n ? '#bd6770' : '#d95950'; c.save(); c.translate(x - 26, top + 23); c.rotate(-.12); c.fillRect(-22, -7, 44, 11); c.restore(); c.fillStyle = n ? '#443e3a' : '#5d6359'; c.beginPath(); c.arc(x - 29, top + 27, 4, 0, 7); c.arc(x - 7, top + 27, 4, 0, 7); c.fill(); }
+    const x = i * 380 + 100 - off; c.fillStyle = n ? '#553f44' : '#d66b67'; c.fillRect(x, top - 18, 34, 13); c.fillStyle = n ? '#c9b98e' : '#f5e4c5'; c.fillRect(x + 6, top - 24, 21, 7); c.fillStyle = n ? '#ffe19a' : '#8ea6a4'; c.fillRect(x + 9, top - 22, 5, 4); c.fillRect(x + 19, top - 22, 5, 4);
+    if (i % 2 === 0) { c.fillStyle = n ? '#bd6770' : '#d95950'; c.save(); c.translate(x - 26, top - 7); c.rotate(-.12); c.fillRect(-22, -7, 44, 11); c.restore(); c.fillStyle = n ? '#443e3a' : '#5d6359'; c.beginPath(); c.arc(x - 29, top - 3, 4, 0, 7); c.arc(x - 7, top - 3, 4, 0, 7); c.fill(); }
   }
 
   const hands = [];
