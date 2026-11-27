@@ -142,6 +142,21 @@ function namsanLandmark(x, base, night) {
   c.fill();
   namsanTower(x, base - 74, 1, night);
 }
+function hangangNamsanLandmark(x, base, night) {
+  const c = G.ctx;
+  c.fillStyle = night ? '#172c32' : '#294f39';
+  c.beginPath();
+  c.moveTo(x - 330, base);
+  c.bezierCurveTo(x - 220, base - 170, x + 220, base - 170, x + 330, base);
+  c.fill();
+  c.strokeStyle = night ? 'rgba(74,112,85,.58)' : 'rgba(93,132,82,.72)'; c.lineWidth = 12;
+  c.beginPath(); c.moveTo(x - 276, base - 12); c.bezierCurveTo(x - 190, base - 88, x - 95, base - 130, x, base - 138); c.bezierCurveTo(x + 130, base - 130, x + 220, base - 78, x + 286, base - 10); c.stroke();
+  for (const dx of [-72, 76]) {
+    c.strokeStyle = night ? '#b9c3bf' : '#d8ded4'; c.lineWidth = 1.2;
+    c.beginPath(); c.moveTo(x + dx, base - 78); c.lineTo(x + dx, base - 107); c.moveTo(x + dx - 3, base - 98); c.lineTo(x + dx + 3, base - 98); c.stroke();
+  }
+  namsanTower(x, base - 126, .43, night);
+}
 // 서울 랜드마크: 남산(N서울타워), 롯데월드타워, 63빌딩 — 시차 공간에서 700 간격으로 번갈아 등장
 export function landmarks(par, base, night, phase) {
   const off = G.camX * par,
@@ -1225,72 +1240,88 @@ function newPlaceBg(th, now, top) {
       }
     }
   } else if (p === 'hangang') {
-    // 가장 먼 남산(언덕+타워)을 먼저 그려, 앞에 있는 빌딩이 겹치면 가리게 함
-    const bank = top - 56;
-    const hill = 330 - off * .035;
-    namsanLandmark(hill, top + 12, n);
-    // 강 건너편 빌딩은 서로 다른 시차의 두 층으로, 모두 강둑 위에 세운다.
-    for (const [par, seed, step, minH, maxH, col] of [[.045, 31, 132, 38, 76, n ? '#26374f' : '#a7bdc5'], [.18, 35, 104, 44, 96, n ? '#1d2e47' : '#8ca7b6']]) {
-      const i0 = Math.floor((off * par - 100) / step), i1 = Math.ceil((off * par + G.W + 100) / step);
+    // 남산과 타워는 가장 느린 시차로 움직인다.
+    const hillStep = 1120, hillOff = off * .035;
+    for (let i = Math.floor((hillOff - 500) / hillStep); i <= Math.ceil((hillOff + G.W + 500) / hillStep); i++) {
+      hangangNamsanLandmark(i * hillStep + 330 - hillOff, top + 12, n);
+    }
+    // 강 건너편에는 낮은 아파트를 촘촘히 세워 능선 아래를 채운다.
+    const bank = top - 35;
+    for (const [par, seed, step, minH, maxH] of [[.065, 31, 39, 22, 48], [.14, 57, 48, 28, 57]]) {
+      const layerOff = off * par, i0 = Math.floor((layerOff - 70) / step), i1 = Math.ceil((layerOff + G.W + 70) / step);
       for (let i = i0; i <= i1; i++) {
-        if (hsh(i * 9 + seed) < .36) continue;
-        const x = i * step - off * par, bw = 42 + hsh(i * 3 + seed) * 26, bh = minH + hsh(i * 7 + seed) * (maxH - minH);
-        c.fillStyle = col; c.fillRect(x, bank - bh, bw, bh);
-        let floor = 0;
-        for (let wy = bank - bh + 6; wy < bank - 4; wy += 12, floor++) {
-          let column = 0;
-          for (let wx = x + 6; wx < x + bw - 5; wx += 12, column++) {
-            if (!n) c.fillStyle = '#dbe1dc';
-            else {
-              const floorLight = hsh(i * 101 + floor * 17 + seed),
-                columnLight = hsh(i * 43 + column * 31 + seed),
-                windowLight = hsh(i * 31 + floor * 1.7 + column * .37 + seed),
-                lit = floorLight * .45 + columnLight * .35 + windowLight * .2 > .56;
-              c.fillStyle = lit ? '#ffd17a' : '#34404d';
-            }
-            c.fillRect(wx, wy, 5, 5);
+        const x = i * step - layerOff, bw = 31 + hsh(i * 3 + seed) * 22,
+          bh = minH + hsh(i * 7 + seed) * (maxH - minH), by = bank + (hsh(i * 13 + seed) > .82 ? 4 : 0);
+        c.fillStyle = n ? (par < .1 ? '#344352' : '#29384a') : (par < .1 ? '#e8e5d9' : '#d5d9d4');
+        c.fillRect(x, by - bh, bw, bh);
+        c.fillStyle = n ? '#ffd58a' : '#aab7b4';
+        for (let wy = by - bh + 5, floor = 0; wy < by - 3; wy += 9, floor++) {
+          for (let wx = x + 4, col = 0; wx < x + bw - 3; wx += 7, col++) {
+            if (!n || hsh(i * 31 + floor * 17 + col * 3 + seed) > .48) c.fillRect(wx, wy, 3, 4);
           }
         }
+        c.fillStyle = n ? '#202e3d' : '#bbc3bd'; c.fillRect(x - 1, by - bh, bw + 2, 2);
       }
     }
-    // 먼 강둑과 빌딩 아래의 지면을 먼저 그린다.
-    c.fillStyle = n ? '#4c5a53' : '#8a9b78'; c.fillRect(0, bank, G.W, 8);
-    c.fillStyle = n ? '#75816f' : '#b5b891'; c.fillRect(0, bank, G.W, 4);
-    // 물은 강둑 아래에서 산책로까지 이어져 빌딩 뒤로 비치지 않는다.
-    c.fillStyle = n ? '#193d57' : '#5aafd0'; c.fillRect(0, bank + 8, G.W, top - (bank + 8));
-    const step = 760, lo = Math.floor((off * .15 - 240) / step), hi = Math.ceil((off * .15 + G.W + 240) / step);
-    for (let i = lo; i <= hi; i++) {
-      const x = i * step + 380 - off * .15;
-      c.strokeStyle = n ? '#8799ad' : '#d54d36'; c.lineWidth = 3; c.beginPath(); c.moveTo(x - 210, top - 18); c.quadraticCurveTo(x, top - 98, x + 210, top - 18); c.stroke();
-      c.strokeStyle = n ? '#ced8dc' : '#edf1ed'; c.lineWidth = 4; c.beginPath(); c.moveTo(x - 238, top - 16); c.lineTo(x + 238, top - 16); c.stroke();
-      for (let k = -180; k <= 180; k += 40) { const y = top - 18 - 80 * (1 - (k / 210) ** 2); c.strokeStyle = n ? '#778ba0' : '#cc4b35'; c.lineWidth = 1; c.beginPath(); c.moveTo(x + k, y); c.lineTo(x + k, top - 18); c.stroke(); }
-      if (n) for (let k = -200; k <= 200; k += 20) { c.fillStyle = '#ffd77c'; c.fillRect(x + k, top - 14, 4, 2); }
-      const phase = ((now + i * 8) % 24 + 24) % 24;
-      if (phase < 4.5) {
-        const tx = x - 215 + phase / 4.5 * 430, cars = 3, carW = 30;
-        for (let car = 0; car < cars; car++) {
-          const cx = tx + car * (carW + 3);
-          c.fillStyle = n ? '#f4d78a' : '#f4f1e5'; rr(cx - carW / 2, top - 29, carW, 10, 3); c.fill();
-          c.fillStyle = n ? '#e9a95c' : '#d85a43'; c.fillRect(cx - 9, top - 27, 18, 3);
-          c.fillStyle = n ? '#fff1c1' : '#a7cce0'; c.fillRect(cx - 11, top - 24, 5, 3); c.fillRect(cx + 6, top - 24, 5, 3);
-        }
+    // 넓은 강물은 강둑 아래부터 산책로 위까지 이어진다.
+    c.fillStyle = n ? '#102d49' : '#315f87'; c.fillRect(0, top - 45, G.W, 75);
+    const waterOff = off * .42;
+    for (let i = Math.floor((waterOff - 30) / 76); i <= Math.ceil((waterOff + G.W + 30) / 76); i++) {
+      const x = i * 76 - waterOff + hsh(i * 2) * 24, y = top - 40 + hsh(i * 3) * 64;
+      c.strokeStyle = n ? 'rgba(159,190,207,.4)' : 'rgba(190,220,231,.58)'; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(x + 8, y - 1, x + 17, y); c.stroke();
+    }
+    // 아파트 앞 붉은 철제 트러스교.
+    const redPar = .2, redOff = off * redPar, redStep = 190;
+    c.strokeStyle = n ? '#b66a61' : '#c94737'; c.lineWidth = 2.4;
+    for (let i = Math.floor((redOff - 20) / redStep); i <= Math.ceil((redOff + G.W + 20) / redStep); i++) {
+      const x = i * redStep - redOff, y = top - 24;
+      c.beginPath(); c.moveTo(x, y); c.lineTo(x + redStep, y); c.lineTo(x + redStep, y - 16); c.lineTo(x, y - 16); c.closePath(); c.stroke();
+      for (let k = 0; k < redStep; k += 19) {
+        c.beginPath(); c.moveTo(x + k, y - 16); c.lineTo(x + k + 19, y); c.moveTo(x + k + 19, y - 16); c.lineTo(x + k, y); c.stroke();
       }
     }
-    for (let i = Math.floor((off * .25 - 80) / 270); i <= Math.ceil((off * .25 + G.W + 80) / 270); i++) {
-      const x = i * 270 + 100 - off * .25 + now * 4 % 270;
-      c.fillStyle = n ? '#e7e9df' : '#fff'; c.beginPath(); c.ellipse(x, top - 13, 13, 5, 0, 0, 7); c.fill(); c.strokeStyle = n ? '#ddd6b9' : '#b7c5c4'; c.lineWidth = 2; c.beginPath(); c.moveTo(x + 4, top - 14); c.quadraticCurveTo(x + 1, top - 32, x - 6, top - 25); c.stroke();
+    c.fillStyle = n ? '#d5b1a2' : '#e6d3bd'; c.fillRect(0, top - 25, G.W, 3);
+    if (n) for (let x = 10; x < G.W; x += 28) { c.fillStyle = '#ffd27c'; c.fillRect(x, top - 29, 3, 2); }
+    // 강물 앞쪽의 회색 교량은 일정 간격 V형 교각과 한 줄 조명으로 그린다.
+    c.fillStyle = n ? '#8393a0' : '#c8d0d2'; c.fillRect(0, top + 1, G.W, 4);
+    c.fillStyle = n ? '#dce0dc' : '#edf0ed'; c.fillRect(0, top, G.W, 2);
+    const pierStep = 150, pierOff = off * .28;
+    for (let i = Math.floor((pierOff - 30) / pierStep); i <= Math.ceil((pierOff + G.W + 30) / pierStep); i++) {
+      const x = i * pierStep - pierOff + 70;
+      c.strokeStyle = n ? '#aeb9bd' : '#9aa8ad'; c.lineWidth = 3;
+      c.beginPath(); c.moveTo(x - 14, top + 28); c.lineTo(x, top + 5); c.lineTo(x + 14, top + 28); c.stroke();
+      c.fillStyle = n ? '#bfc8c9' : '#84939a'; c.fillRect(x - 17, top + 27, 34, 3);
+      if (n) { c.fillStyle = '#ffd77e'; c.fillRect(x - 2, top + 3, 4, 2); }
     }
-    for (let i = Math.floor((off * .3 - 50) / 85); i <= Math.ceil((off * .3 + G.W + 50) / 85); i++) { const x = i * 85 - off * .3 + hsh(i * 2) * 38, y = top - 8 - hsh(i * 3) * 28; c.strokeStyle = n ? 'rgba(204,226,231,.5)' : 'rgba(255,255,255,.62)'; c.beginPath(); c.moveTo(x - 10, y); c.lineTo(x + 10, y); c.stroke(); }
+    if (n) for (let x = 18; x < G.W; x += 42) { c.fillStyle = '#ffe19a'; c.fillRect(x, top - 3, 3, 2); }
+    // 가끔 2~3량 전철이 회색 교량 위를 지난다.
+    const trainPhase = (now * 18) % (G.W + 180);
+    if (trainPhase < G.W + 90) {
+      const tx = trainPhase - 90;
+      for (let car = 0; car < 3; car++) {
+        const x = tx + car * 36;
+        c.fillStyle = n ? '#e5dfca' : '#f1f2ec'; rr(x, top - 10, 33, 9, 2); c.fill();
+        c.fillStyle = n ? '#d5a951' : '#d14f43'; c.fillRect(x + 2, top - 6, 29, 2);
+        c.fillStyle = n ? '#ffe19a' : '#a9cfdd'; c.fillRect(x + 5, top - 9, 5, 4); c.fillRect(x + 19, top - 9, 5, 4);
+      }
+    }
+    // 오리배는 다리 아래 물 위를 천천히 오간다.
+    for (let i = Math.floor((off * .24 - 80) / 300); i <= Math.ceil((off * .24 + G.W + 80) / 300); i++) {
+      const x = i * 300 + 120 - off * .24 + now * 5 % 300, y = top + 18 + hsh(i * 7) * 5;
+      c.fillStyle = n ? '#e6e2d5' : '#fff'; c.beginPath(); c.ellipse(x, y, 12, 4, 0, 0, 7); c.fill();
+      c.fillStyle = n ? '#c8a95f' : '#f3bd3e'; c.beginPath(); c.arc(x + 1, y - 4, 4, Math.PI, 0); c.fill();
+      c.strokeStyle = n ? 'rgba(255,220,145,.45)' : 'rgba(255,255,255,.7)'; c.beginPath(); c.moveTo(x - 14, y + 4); c.lineTo(x + 14, y + 4); c.stroke();
+    }
   }
 
-  c.fillStyle = p === 'stone' ? (n ? '#223c32' : '#50733d') : p === 'hangang' ? (n ? '#244332' : '#8fc06a') : (n ? '#193d50' : '#f1dfb4'); c.fillRect(0, p === 'hangang' ? top : top + 4, G.W, p === 'hangang' ? 30 : 26);
+  if (p !== 'hangang') { c.fillStyle = p === 'stone' ? (n ? '#223c32' : '#50733d') : (n ? '#193d50' : '#f1dfb4'); c.fillRect(0, top + 4, G.W, 26); }
   const spacing = 72, s0 = Math.floor((off - 120) / spacing), s1 = Math.ceil((off + G.W + 120) / spacing);
   for (let i = s0; i <= s1; i++) {
     const x = i * spacing + hsh(i) * 20 - off;
     if (p === 'stone') { c.fillStyle = n ? '#326042' : '#4f8f3a'; c.beginPath(); c.ellipse(x, top + 5, 5, 19, Math.sin(i) * .2, 0, 7); c.ellipse(x + 6, top + 5, 4, 15, -.4, 0, 7); c.fill(); }
     else if (p === 'busan' && i % 4 === 0) { c.fillStyle = n ? '#493c3b' : '#846f53'; c.fillRect(x, top - 2, 3, 23); c.fillStyle = n ? '#dfaa79' : '#e5a948'; c.beginPath(); c.moveTo(x - 15, top - 2); c.lineTo(x + 17, top - 2); c.lineTo(x + 8, top - 13); c.lineTo(x - 7, top - 13); c.fill(); }
-    else if (p === 'hangang' && i % 5 === 0) { c.strokeStyle = n ? '#b5b5a1' : '#53604b'; c.lineWidth = 2; c.beginPath(); c.moveTo(x, top + 8); c.lineTo(x, top - 10); c.lineTo(x + 9, top - 10); c.stroke(); c.fillStyle = n ? '#ffe19a' : '#fff1c3'; rr(x + 6, top - 13, 9, 6, 2); c.fill(); }
-    else if (p !== 'stone') tree(x, top + 24);
+    else if (p !== 'stone' && p !== 'hangang') tree(x, top + 24);
   }
   if (p === 'busan') {
     for (let i = Math.floor((off - 90) / 330); i <= Math.ceil((off + G.W + 90) / 330); i++) {
@@ -1302,11 +1333,6 @@ function newPlaceBg(th, now, top) {
       c.fillStyle = '#25313b'; c.font = 'bold 8px sans-serif'; c.textAlign = 'center'; c.fillText(label, x, top + 6);
     }
   }
-  if (p === 'hangang') for (let i = Math.floor((off - 90) / 380); i <= Math.ceil((off + G.W + 90) / 380); i++) {
-    const x = i * 380 + 100 - off; c.fillStyle = n ? '#553f44' : '#d66b67'; c.fillRect(x, top - 18, 34, 13); c.fillStyle = n ? '#c9b98e' : '#f5e4c5'; c.fillRect(x + 6, top - 24, 21, 7); c.fillStyle = n ? '#ffe19a' : '#8ea6a4'; c.fillRect(x + 9, top - 22, 5, 4); c.fillRect(x + 19, top - 22, 5, 4);
-    if (i % 2 === 0) { c.fillStyle = n ? '#bd6770' : '#d95950'; c.save(); c.translate(x - 26, top - 7); c.rotate(-.12); c.fillRect(-22, -7, 44, 11); c.restore(); c.fillStyle = n ? '#443e3a' : '#5d6359'; c.beginPath(); c.arc(x - 29, top - 3, 4, 0, 7); c.arc(x - 7, top - 3, 4, 0, 7); c.fill(); }
-  }
-
   const hands = [];
   for (let i = s0; i <= s1; i++) { const x = i * spacing + hsh(i + 8) * 20 - off; if (hsh(i * 3) > .25) { const h = spectator(x, GT - 6, i, now, false, n, undefined, undefined, p); if (n && h) hands.push(h); } }
   c.fillStyle = n ? '#4b5057' : p === 'busan' ? '#d4c39b' : p === 'hangang' ? '#9aa88b' : '#9a8060'; c.fillRect(0, top + 30, G.W, GT - top - 30);
