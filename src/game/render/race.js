@@ -37,7 +37,7 @@ export function draw() {
 // 레이스 화면 한 프레임: 하늘·배경 → 도로 → 장애물 → 캐릭터 → 지도·순위·연출
 export function drawRace() {
   const th = TH(),
-    sky = th.night ? ['#0b1530', '#2b3d6e'] : th.trad ? ['#cfe6f0', '#f4efe0'] : ['#bfe3f2', '#eaf5ee'];
+    sky = th.night ? ['#0b1530', '#2b3d6e'] : th.place === 'busan' ? ['#9fd3f0', '#e6f4fb'] : th.place === 'hangang' ? ['#bfe3f2', '#eef6fa'] : th.place === 'stone' ? ['#f5c58a', '#fbe6c4'] : th.trad ? ['#cfe6f0', '#f4efe0'] : ['#bfe3f2', '#eaf5ee'];
   const g = G.ctx.createLinearGradient(0, 0, 0, GT);
   g.addColorStop(0, sky[0]);
   g.addColorStop(1, sky[1]);
@@ -46,7 +46,7 @@ export function drawRace() {
   if (th.night) stars();
   cityBg(th);
   // 도로: 도심은 아스팔트+흰 실선, 전통 마을은 흙길
-  G.ctx.fillStyle = th.trad ? th.night ? '#6f6550' : '#cdb98f' : th.night ? '#4a5058' : '#8a9199';
+  G.ctx.fillStyle = th.place === 'busan' ? th.night ? '#655b4d' : '#c9ad78' : th.place === 'hangang' ? th.night ? '#435044' : '#82946e' : th.place === 'stone' ? th.night ? '#493d35' : '#98754f' : th.trad ? th.night ? '#6f6550' : '#cdb98f' : th.night ? '#4a5058' : '#8a9199';
   G.ctx.fillRect(0, GT, G.W, G.GD + 20);
   if (th.trad) {
     G.ctx.fillStyle = 'rgba(90,70,40,.3)';
