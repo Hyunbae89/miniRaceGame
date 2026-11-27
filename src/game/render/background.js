@@ -962,69 +962,122 @@ function dinoBubble(x, headY, text) {
 }
 
 function drawStoneDino(now, gy) {
-  const c = G.ctx, startX = 260;
-  let dino = G.dino || (G.dino = { state: 'wait', x: startX, t: 0 });
-  if (G.state !== 'replay' && dino.state === 'wait') dino.waitT = (dino.waitT || 0) + (G.fdt || 0);
-  let startAt = dino.t, state = dino.state;
+  const c = G.ctx, startX = 260, dt = G.fdt || 0;
+  const dino = G.dino || (G.dino = { state: 'wait', x: startX, waitT: 0, runT: 0, pantIn: 9, pantT: 0, jumpT: 0, turnT: 0 });
+  const active = G.state === 'run' || G.state === 'replay';
+  let startAt = null;
 
   if (G.state === 'run') {
     const lead = G.racers.reduce((x, r) => Math.max(x, r.x), 0);
-    if (state === 'wait' && lead >= startX) {
-      dino.state = state = 'run';
-      dino.t = startAt = G.rt;
+    if (dino.state === 'wait' && lead >= startX) {
+      dino.state = 'turn';
+      dino.turnT = 0;
+      dino.x = startX;
     }
   } else if (G.state === 'replay') {
-    // Rebuild the start moment from recorded runner positions so seeks and replays match.
     const frames = G.frames || [];
     const first = frames.find(f => f.t >= 0 && f.r.some(r => r.x >= startX));
-    if (first) {
-      startAt = first.t;
-      state = 'run';
-    } else {
-      startAt = 0;
-      state = 'wait';
+    startAt = first ? first.t : Infinity;
+    if (dino.replayStart !== startAt || dino.lastRp !== undefined && G.rp < dino.lastRp) {
+      dino.replayStart = startAt;
+      dino.state = 'wait';
+      dino.x = startX;
+      dino.waitT = dino.runT = 0;
+      dino.pantIn = 9;
+      dino.pantT = dino.jumpT = dino.turnT = 0;
+    }
+    dino.lastRp = G.rp;
+    if (G.rp >= startAt && dino.state === 'wait') {
+      dino.state = 'turn';
+      dino.turnT = 0;
     }
   }
 
-  const elapsed = Math.max(0, (G.state === 'replay' ? G.rp : G.rt) - startAt);
-  const raceTime = G.state === 'replay' ? G.rp : G.rt;
-  const moving = state === 'run' && (G.state === 'run' || G.state === 'replay') && raceTime >= startAt;
-  const wx = moving ? Math.min(TRACK + 48, startX + elapsed * 200) : startX;
-  const finished = moving && wx >= TRACK + 48;
-  if (G.state !== 'replay') dino.x = wx;
+  if (active && dino.state === 'wait') dino.waitT = (dino.waitT || 0) + dt;
+  if (active && dino.state === 'turn') {
+    dino.turnT += dt;
+    if (dino.turnT >= .24) {
+      dino.state = 'run';
+      dino.turnT = .24;
+    }
+  }
+  const turning = active && dino.state === 'turn';
+  const panting = active && dino.state === 'pant';
+  const running = active && (dino.state === 'run' || panting);
+  if (active && dino.state === 'finish') dino.finishT = Math.max(0, (dino.finishT || 0) - dt);
+  if (running) {
+    if (panting) {
+      dino.pantT -= dt;
+      if (dino.pantT <= 0) {
+        dino.state = 'run';
+        dino.pantIn = 8.4;
+      }
+    } else {
+      dino.runT += dt;
+      dino.pantIn -= dt;
+      if (dino.pantIn <= 0) {
+        dino.state = 'pant';
+        dino.pantT = 1.6;
+        dino.jumpT = 0;
+      }
+      const leaderFinished = G.fin && G.fin.length > 0;
+      const wave = Math.sin(dino.runT * Math.PI * 2 / 10);
+      const target = leaderFinished ? TRACK + 48 : G.camX - OFF + G.W * (.3 + .1 * wave);
+      const oldX = dino.x;
+      const distance = Math.max(0, target - oldX);
+      if (dino.state === 'run') {
+        dino.x = Math.min(TRACK + 48, oldX + Math.min(distance, 320 * dt));
+        if (dino.jumpT > 0) dino.jumpT = Math.max(0, dino.jumpT - dt);
+        if (dino.x > oldX) {
+          const rock = Math.floor(oldX / 260) + 1;
+          if (rock * 260 <= dino.x) dino.jumpT = .5;
+        }
+        if (dino.x >= TRACK + 48) {
+          dino.state = 'finish';
+          dino.finishT = 3;
+        }
+      }
+    }
+  }
+
+  const wx = dino.x || startX;
+  const finished = dino.state === 'finish';
   const dx = wx - G.camX + OFF;
-  const jumpPhase = ((wx - startX) % 260 + 260) % 260;
-  const rockJump = moving && !finished && jumpPhase >= 225 && jumpPhase < 295
-    ? 30 * Math.sin(Math.PI * (jumpPhase - 225) / 70) : 0;
-  const flipHop = moving && elapsed < .24 ? 9 * Math.sin(Math.PI * elapsed / .24) : 0;
-  const jump = Math.max(rockJump, flipHop);
-  const walking = moving && !finished;
-  const run = walking ? elapsed * 14 : now * 2;
-  const idleNow = G.state === 'replay' ? (G.rp < 0 ? G.rp + 3 : now) : (dino.waitT || now);
-  const bob = walking ? (jump ? 0 : Math.abs(Math.sin(run)) * 1.2) : Math.sin(idleNow * 2.2) * 1.2;
+  const jump = dino.jumpT > 0 ? 30 * Math.sin(Math.PI * (1 - dino.jumpT / .5)) : turning ? 9 * Math.sin(Math.PI * Math.min(1, dino.turnT / .24)) : 0;
+  const walking = running && !panting && !finished;
+  const run = dino.runT * 14;
+  const idleNow = dino.waitT || now;
+  const heave = panting ? Math.sin((1.6 - dino.pantT) * 10) * 2.4 : 0;
+  const bob = walking ? (jump ? 0 : Math.abs(Math.sin(run)) * 1.2) : Math.sin(idleNow * 2.2) * 1.2 + heave;
   const y = gy - jump;
   c.fillStyle = 'rgba(60,40,20,.22)'; c.beginPath(); c.ellipse(dx, gy + 3, 14 - jump / 5, 3, 0, 0, 7); c.fill();
   c.save(); c.translate(dx, y - bob);
-  // The character is drawn facing right; mirror it while waiting and after the finish.
-  if (!moving || finished) c.scale(-1, 1);
+  // The character faces left while waiting and right after turning to run.
+  if (dino.state === 'wait') c.scale(-1, 1);
   c.fillStyle = '#e8913a';
   for (let k = 0; k < 4; k++) { c.beginPath(); c.moveTo(-14 + k * 6, -19 + k * .5); c.lineTo(-11 + k * 6, -25 + k * .5); c.lineTo(-8 + k * 6, -19 + k * .5); c.fill(); }
   c.strokeStyle = '#3fae8e'; c.lineWidth = 5; c.lineCap = 'round';
-  for (const [lx, ph] of [[-5, 0], [4, Math.PI]]) { const sw = walking ? (jump ? .5 : Math.sin(run + ph)) : 0; c.beginPath(); c.moveTo(lx, -6); c.lineTo(lx + sw * 4, 0); c.stroke(); }
+  for (const [lx, ph] of [[-5, 0], [4, Math.PI]]) { const sw = walking ? (jump ? .5 : Math.sin(run + ph)) : panting ? Math.sin(now * 8 + ph) * .35 : 0; c.beginPath(); c.moveTo(lx, -6); c.lineTo(lx + sw * 4, 0); c.stroke(); }
   c.fillStyle = '#3fae8e'; c.beginPath(); c.moveTo(-12, -12); c.quadraticCurveTo(-26, -12, -30, -4 + Math.sin(run) * 2); c.quadraticCurveTo(-22, -6, -10, -6); c.fill();
   c.beginPath(); c.ellipse(-2, -12, 13, 9, 0, 0, 7); c.fill(); c.fillStyle = '#f4e7c4'; c.beginPath(); c.ellipse(1, -9, 8, 5.5, 0, 0, 7); c.fill();
   c.fillStyle = '#3fae8e'; c.beginPath(); c.ellipse(11, -24, 9, 7.5, 0, 0, 7); c.fill(); c.beginPath(); c.ellipse(16, -21, 6, 4, 0, 0, 7); c.fill();
   c.strokeStyle = '#3fae8e'; c.lineWidth = 2.4; c.beginPath(); c.moveTo(7, -12); c.lineTo(11, -9 + (jump ? -3 : 0)); c.stroke();
   c.fillStyle = '#fff'; c.beginPath(); c.arc(12, -26, 2.6, 0, 7); c.fill(); c.fillStyle = '#10202a'; c.beginPath(); c.arc(12.8, -26, 1.4, 0, 7); c.fill();
   c.strokeStyle = '#10202a'; c.lineWidth = 1; c.beginPath(); c.arc(16, -21.5, 2.6, .1 * Math.PI, .8 * Math.PI); c.stroke();
+  if (panting) {
+    c.fillStyle = '#ef7183'; c.beginPath(); c.ellipse(20, -18, 2.2, 4.2, -.35, 0, 7); c.fill();
+    c.fillStyle = 'rgba(120,210,255,.85)';
+    for (const [sx, sy] of [[-9, -28], [26, -32]]) { c.beginPath(); c.ellipse(sx, sy + Math.sin(now * 9 + sx) * 2, 1.7, 3, -.4, 0, 7); c.fill(); }
+  }
   c.fillStyle = 'rgba(255,140,120,.5)'; c.beginPath(); c.arc(9, -21, 1.6, 0, 7); c.fill(); c.restore();
 
   if (finished) {
-    const line = (G.racers || []).some(r => r.x < TRACK) ? '생각보다 힘들다…' : '나름 할만한데?';
-    if (elapsed < (TRACK - startX + 48) / 200 + 3) dinoBubble(dx, y - bob - 32, line);
-  } else if (moving) {
-    const cycle = 7.2, phase = elapsed % cycle;
-    if (phase < 2.5) dinoBubble(dx, y - bob - 32, DINO_LINES[Math.floor(elapsed / cycle) % DINO_LINES.length]);
+    if (dino.finishT > 0) dinoBubble(dx, y - bob - 32, '나도 결승선 통과!');
+  } else if (panting) {
+    dinoBubble(dx, y - bob - 32, '헥헥… 잠깐만…');
+  } else if (running || turning) {
+    const phase = dino.runT % 7.2;
+    if (!panting && phase < 2.5) dinoBubble(dx, y - bob - 32, DINO_LINES[Math.floor(dino.runT / 7.2) % DINO_LINES.length]);
   } else {
     const cycle = 6.5, phase = ((idleNow % cycle) + cycle) % cycle;
     if (phase < 2.2) dinoBubble(dx, y - bob - 32, DINO_WAIT_LINES[Math.floor(idleNow / cycle) % DINO_WAIT_LINES.length]);
