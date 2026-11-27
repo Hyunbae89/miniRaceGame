@@ -150,13 +150,13 @@ function Switch({ label, on, onText = '켜짐', offText = '꺼짐', onChange }) 
 }
 const PLACES = [['city', '🏙️ 서울 도심'], ['trad', '🏯 전통 마을'], ['busan', '🌊 부산 바다'], ['hangang', '🌉 한강 공원'], ['stone', '🦕 쥬라기섬']];
 
-function Row({ pos, color, name, right, hl }) {
+function Row({ pos, color, name, right, gap, hl }) {
   return (
     <li className={hl} title={hl === 'hl-nth' ? '결과 산출로 고른 등수' : undefined}>
       <span className="pos">{pos}</span>
       <span className="dot" style={{ background: color }} />
       <span>{name}</span>
-      <span className="time">{right}</span>
+      <span className="time"><span className="gap">{gap}</span>{right}</span>
     </li>
   );
 }
@@ -222,8 +222,13 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
   const shuffled = v.lanes.some((s, k) => s !== k);
   const [tab, setTab] = useState('base');
   // 이전·다음 사람으로 바로 이동(보던 탭은 그대로). 기본·장신구는 아래 줄 가운데에서 고름
-  const go = (d) => { if (i + d >= 0 && i + d < v.n) setEditing(i + d); };
   const touchX = useRef(null);
+  // 같은 이름·옷 색 막기: 다른 참가자가 쓰는 값이면 적용하지 않고 잠깐 안내
+  const [warn, setWarn] = useState(null);
+  useEffect(() => { if (!warn) return; const t = setTimeout(() => setWarn(null), 2500); return () => clearTimeout(t); }, [warn]);
+  const others = v.cfg.slice(0, v.n).filter((_, k) => k !== i);
+  const norm = (s) => s.replace(/^메카 /, '').trim();
+  const go = (d) => { setWarn(null); if (i + d >= 0 && i + d < v.n) setEditing(i + d); };
   return (
     <>
     <div className="roster-arrows">
@@ -255,9 +260,19 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
         <div className={'pane' + (tab === 'base' ? '' : ' off')} aria-hidden={tab !== 'base'}>
         <div className="card base" role="tabpanel">
           <div className="card-main">
-            <input type="color" className="swatch" value={c.color} aria-label={`${i + 1}번 옷 색`} onChange={(e) => game().setCfg(i, { color: e.target.value })} />
+            <input type="color" className="swatch" value={c.color} aria-label={`${i + 1}번 옷 색`}
+              onChange={(e) => {
+                if (others.some((o) => o.color.toLowerCase() === e.target.value.toLowerCase())) { setWarn({ m: '다른 참가자가 쓰는 색이에요' }); return; }
+                setWarn(null); game().setCfg(i, { color: e.target.value });
+              }} />
             <input className="name" key={`name-${i}-${c.age === 'r'}-${c.gender}`} defaultValue={c.name} maxLength={c.age === 'r' ? 9 : 6} aria-label={`${i + 1}번 이름`}
-              onChange={(e) => { game().setCfg(i, { name: e.target.value.trim() || `${i + 1}번` }); game().react(i, 'name'); }} />
+              onChange={(e) => {
+                const t = e.target.value.trim() || `${i + 1}번`;
+                // 입력 중 겹치면 적용만 미루고(예: '레오나'를 치는 도중 '레오'), 칸을 떠날 때도 겹치면 원래 이름으로 되돌림
+                if (others.some((o) => norm(o.name) === norm(t))) { setWarn({ m: '다른 참가자가 쓰는 이름이에요' }); return; }
+                setWarn(null); game().setCfg(i, { name: t }); game().react(i, 'name');
+              }}
+              onBlur={(e) => { if (norm(e.target.value || '') !== norm(c.name)) e.target.value = c.name; }} />
             {/* 휴대폰: 캔버스가 낮아 종류·성별을 이름 옆 선택 상자로 */}
             <select className="m-only" value={c.age} aria-label={`${i + 1}번 종류`} onChange={(e) => { game().setCfg(i, { age: e.target.value }); game().react(i, 'mood', true); }}>
               {AGES.map(([k, t]) => <option key={k} value={k}>{t}</option>)}
@@ -269,6 +284,7 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
             )}
             {c.age !== 'r' && <div className="pc-only gender"><Seg small label={`${i + 1}번 성별`} value={c.gender} options={GENDERS} onChange={(g) => game().setCfg(i, { gender: g })} /></div>}
           </div>
+          {warn && <p className="dup-warn" role="alert">{warn.m}</p>}
           {/* 휴대폰: 넓은 화면의 설명 칸 대신 종류 한 줄 소개(창 높이는 그대로) */}
           <p className="m-only m-desc">{AGE_DESC[c.age]}</p>
           <div className="pc-only ages">
@@ -330,19 +346,22 @@ function RaceBar({ v, game, onStop, onNew }) {
 }
 
 function Result({ r }) {
+  const best = parseFloat(r.rank[0].right);
   return (
     <section id="result" aria-live="polite">
       <h2>최종 순위</h2>
       {r.bet && <p className="sub">{r.bet}</p>}
       <ol>
         {r.rank.map((x, i) => {
+          const d = parseFloat(x.right) - best;
+          const gap = i === 0 || Number.isNaN(d) ? '' : '+' + d.toFixed(2) + '초';
           // 1등 원함: 1·2·3위 하이라이트, 꼴등 원함: 꼴찌만, N등 원함: 그 등수만
           const hl = r.want === 'last'
             ? (i === r.rank.length - 1 ? 'hl-last' : undefined)
             : r.want === 'nth'
               ? (i === r.wantN - 1 ? 'hl-nth' : undefined)
               : (i < 3 ? `hl-${i + 1}` : undefined);
-          return <Row key={i} {...x} hl={hl} />;
+          return <Row key={i} {...x} gap={gap} hl={hl} />;
         })}
       </ol>
     </section>
