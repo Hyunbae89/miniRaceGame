@@ -1,5 +1,5 @@
 // 배경(맵): 서울 도심 / 전통 마을 × 낮 / 밤. 하늘, 랜드마크, 건물, 인도, 응원 시민, 산책, 밤 조명.
-import { BUSAN_BANNERS, BUSAN_SIGNS, COLORS, GT, HAIR, OFF, SHOPC, SHOPS, SIGNS, SKIN } from "../constants.js";
+import { BUSAN_BANNERS, BUSAN_SIGNS, COLORS, GT, HAIR, OFF, SHOPC, SHOPS, SIGNS, SKIN, TRACK } from "../constants.js";
 import { G } from "../state.js";
 import { hsh, rr } from "../util.js";
 export function TH() {
@@ -929,6 +929,7 @@ function drawLava(c, x, craterY, i, now) {
 }
 
 const DINO_LINES = ['나도 열심히 해서 참가할 거야!', '으쌰으쌰!', '돌멩이쯤이야!', '기다려, 나도 간다~', '공룡도 달릴 줄 안다구!', '헥헥… 그래도 안 멈춰!'];
+const DINO_WAIT_LINES = ['나도 달릴 거야!', '준비됐지?'];
 function dinoBubble(x, headY, text) {
   const c = G.ctx;
   c.save();
@@ -960,6 +961,76 @@ function dinoBubble(x, headY, text) {
   c.restore();
 }
 
+function drawStoneDino(now, gy) {
+  const c = G.ctx, startX = 260;
+  let dino = G.dino || (G.dino = { state: 'wait', x: startX, t: 0 });
+  if (G.state !== 'replay' && dino.state === 'wait') dino.waitT = (dino.waitT || 0) + (G.fdt || 0);
+  let startAt = dino.t, state = dino.state;
+
+  if (G.state === 'run') {
+    const lead = G.racers.reduce((x, r) => Math.max(x, r.x), 0);
+    if (state === 'wait' && lead >= startX) {
+      dino.state = state = 'run';
+      dino.t = startAt = G.rt;
+    }
+  } else if (G.state === 'replay') {
+    // Rebuild the start moment from recorded runner positions so seeks and replays match.
+    const frames = G.frames || [];
+    const first = frames.find(f => f.t >= 0 && f.r.some(r => r.x >= startX));
+    if (first) {
+      startAt = first.t;
+      state = 'run';
+    } else {
+      startAt = 0;
+      state = 'wait';
+    }
+  }
+
+  const elapsed = Math.max(0, (G.state === 'replay' ? G.rp : G.rt) - startAt);
+  const raceTime = G.state === 'replay' ? G.rp : G.rt;
+  const moving = state === 'run' && (G.state === 'run' || G.state === 'replay') && raceTime >= startAt;
+  const wx = moving ? Math.min(TRACK + 48, startX + elapsed * 200) : startX;
+  const finished = moving && wx >= TRACK + 48;
+  if (G.state !== 'replay') dino.x = wx;
+  const dx = wx - G.camX + OFF;
+  const jumpPhase = ((wx - startX) % 260 + 260) % 260;
+  const rockJump = moving && !finished && jumpPhase >= 225 && jumpPhase < 295
+    ? 30 * Math.sin(Math.PI * (jumpPhase - 225) / 70) : 0;
+  const flipHop = moving && elapsed < .24 ? 9 * Math.sin(Math.PI * elapsed / .24) : 0;
+  const jump = Math.max(rockJump, flipHop);
+  const walking = moving && !finished;
+  const run = walking ? elapsed * 14 : now * 2;
+  const idleNow = G.state === 'replay' ? (G.rp < 0 ? G.rp + 3 : now) : (dino.waitT || now);
+  const bob = walking ? (jump ? 0 : Math.abs(Math.sin(run)) * 1.2) : Math.sin(idleNow * 2.2) * 1.2;
+  const y = gy - jump;
+  c.fillStyle = 'rgba(60,40,20,.22)'; c.beginPath(); c.ellipse(dx, gy + 3, 14 - jump / 5, 3, 0, 0, 7); c.fill();
+  c.save(); c.translate(dx, y - bob);
+  // The character is drawn facing right; mirror it while waiting and after the finish.
+  if (!moving || finished) c.scale(-1, 1);
+  c.fillStyle = '#e8913a';
+  for (let k = 0; k < 4; k++) { c.beginPath(); c.moveTo(-14 + k * 6, -19 + k * .5); c.lineTo(-11 + k * 6, -25 + k * .5); c.lineTo(-8 + k * 6, -19 + k * .5); c.fill(); }
+  c.strokeStyle = '#3fae8e'; c.lineWidth = 5; c.lineCap = 'round';
+  for (const [lx, ph] of [[-5, 0], [4, Math.PI]]) { const sw = walking ? (jump ? .5 : Math.sin(run + ph)) : 0; c.beginPath(); c.moveTo(lx, -6); c.lineTo(lx + sw * 4, 0); c.stroke(); }
+  c.fillStyle = '#3fae8e'; c.beginPath(); c.moveTo(-12, -12); c.quadraticCurveTo(-26, -12, -30, -4 + Math.sin(run) * 2); c.quadraticCurveTo(-22, -6, -10, -6); c.fill();
+  c.beginPath(); c.ellipse(-2, -12, 13, 9, 0, 0, 7); c.fill(); c.fillStyle = '#f4e7c4'; c.beginPath(); c.ellipse(1, -9, 8, 5.5, 0, 0, 7); c.fill();
+  c.fillStyle = '#3fae8e'; c.beginPath(); c.ellipse(11, -24, 9, 7.5, 0, 0, 7); c.fill(); c.beginPath(); c.ellipse(16, -21, 6, 4, 0, 0, 7); c.fill();
+  c.strokeStyle = '#3fae8e'; c.lineWidth = 2.4; c.beginPath(); c.moveTo(7, -12); c.lineTo(11, -9 + (jump ? -3 : 0)); c.stroke();
+  c.fillStyle = '#fff'; c.beginPath(); c.arc(12, -26, 2.6, 0, 7); c.fill(); c.fillStyle = '#10202a'; c.beginPath(); c.arc(12.8, -26, 1.4, 0, 7); c.fill();
+  c.strokeStyle = '#10202a'; c.lineWidth = 1; c.beginPath(); c.arc(16, -21.5, 2.6, .1 * Math.PI, .8 * Math.PI); c.stroke();
+  c.fillStyle = 'rgba(255,140,120,.5)'; c.beginPath(); c.arc(9, -21, 1.6, 0, 7); c.fill(); c.restore();
+
+  if (finished) {
+    const line = (G.racers || []).some(r => r.x < TRACK) ? '생각보다 힘들다…' : '나름 할만한데?';
+    if (elapsed < (TRACK - startX + 48) / 200 + 3) dinoBubble(dx, y - bob - 32, line);
+  } else if (moving) {
+    const cycle = 7.2, phase = elapsed % cycle;
+    if (phase < 2.5) dinoBubble(dx, y - bob - 32, DINO_LINES[Math.floor(elapsed / cycle) % DINO_LINES.length]);
+  } else {
+    const cycle = 6.5, phase = ((idleNow % cycle) + cycle) % cycle;
+    if (phase < 2.2) dinoBubble(dx, y - bob - 32, DINO_WAIT_LINES[Math.floor(idleNow / cycle) % DINO_WAIT_LINES.length]);
+  }
+}
+
 function stoneMap(th, now, top) {
   const c = G.ctx, n = th.night, gy = GT, cam = G.camX - OFF;
   const tile = (par, gap, fn) => { const o = cam * par, a = Math.floor((o - 200) / gap), b = Math.ceil((o + G.W + 200) / gap); for (let i = a; i <= b; i++) fn(i * gap - o + OFF, i); };
@@ -980,8 +1051,8 @@ function stoneMap(th, now, top) {
   tile(.6,110,(x,i)=>{const k=i%3;if(k===0){c.strokeStyle='#7a5a3a';c.lineWidth=3;c.beginPath();c.moveTo(x,gy-6);c.quadraticCurveTo(x+4,gy-30,x,gy-52);c.stroke();c.fillStyle='#4f8f3a';for(let a=0;a<5;a++){const ang=-2.6+a*.55;c.save();c.translate(x,gy-52);c.rotate(ang);c.beginPath();c.ellipse(12,0,13,3.2,0,0,7);c.fill();c.restore();}}else if(k===1){c.fillStyle='#5aa04a';for(let a=-3;a<=3;a++){c.save();c.translate(x,gy-6);c.rotate(a*.32);c.beginPath();c.ellipse(0,-12,2.4,12,0,0,7);c.fill();c.restore();}}else{c.fillStyle='#9a8a7a';c.beginPath();c.ellipse(x,gy-10,16,10,0,0,7);c.fill();c.fillStyle='rgba(255,255,255,.25)';c.beginPath();c.ellipse(x-4,gy-14,6,3,0,0,7);c.fill();}});
   c.fillStyle='#c9a26b';c.fillRect(0,gy-6,G.W,G.H-gy+6);c.fillStyle='#b48a55';tile(1,90,(x,i)=>{c.beginPath();c.ellipse(x,gy+8+((i*3)%3)*6,6+3*hsh(i),2,0,0,7);c.fill();});
   tile(1,260,(x)=>{c.fillStyle='#8a7a6a';c.beginPath();c.ellipse(x,gy+1,7,5,0,0,7);c.fill();c.fillStyle='rgba(255,255,255,.25)';c.beginPath();c.ellipse(x-2,gy-1,3,1.6,0,0,7);c.fill();});
-  // Lab dinosaur friend and its original 260px jump rhythm and silhouette.
-  {const dx=G.W*.32,u=((cam+dx)%260+260)%260,p=u>=225?(u-225)/70:u<45?(u+35)/70:-1,jh=p>=0?30*Math.sin(Math.PI*p):0,y=gy-jh,run=now*14,b=jh?0:Math.abs(Math.sin(run))*1.2;c.fillStyle='rgba(60,40,20,.22)';c.beginPath();c.ellipse(dx,gy+3,14-jh/5,3,0,0,7);c.fill();c.save();c.translate(dx,y-b);c.fillStyle='#e8913a';for(let k=0;k<4;k++){c.beginPath();c.moveTo(-14+k*6,-19+k*.5);c.lineTo(-11+k*6,-25+k*.5);c.lineTo(-8+k*6,-19+k*.5);c.fill();}c.strokeStyle='#3fae8e';c.lineWidth=5;c.lineCap='round';for(const[lx,ph]of[[-5,0],[4,Math.PI]]){const sw=jh?.5:Math.sin(run+ph);c.beginPath();c.moveTo(lx,-6);c.lineTo(lx+sw*4,0);c.stroke();}c.fillStyle='#3fae8e';c.beginPath();c.moveTo(-12,-12);c.quadraticCurveTo(-26,-12,-30,-4+Math.sin(run)*2);c.quadraticCurveTo(-22,-6,-10,-6);c.fill();c.beginPath();c.ellipse(-2,-12,13,9,0,0,7);c.fill();c.fillStyle='#f4e7c4';c.beginPath();c.ellipse(1,-9,8,5.5,0,0,7);c.fill();c.fillStyle='#3fae8e';c.beginPath();c.ellipse(11,-24,9,7.5,0,0,7);c.fill();c.beginPath();c.ellipse(16,-21,6,4,0,0,7);c.fill();c.strokeStyle='#3fae8e';c.lineWidth=2.4;c.beginPath();c.moveTo(7,-12);c.lineTo(11,-9+(jh?-3:0));c.stroke();c.fillStyle='#fff';c.beginPath();c.arc(12,-26,2.6,0,7);c.fill();c.fillStyle='#10202a';c.beginPath();c.arc(12.8,-26,1.4,0,7);c.fill();c.strokeStyle='#10202a';c.lineWidth=1;c.beginPath();c.arc(16,-21.5,2.6,.1*Math.PI,.8*Math.PI);c.stroke();c.fillStyle='rgba(255,140,120,.5)';c.beginPath();c.arc(9,-21,1.6,0,7);c.fill();c.restore();const cycle=7.2,phase=((now%cycle)+cycle)%cycle;if(phase<2.5)dinoBubble(dx,y-b-32,DINO_LINES[Math.floor(now/cycle)%DINO_LINES.length]);}
+  // Race participant dino on the upper sidewalk, positioned in world space.
+  drawStoneDino(now, gy);
   tile(1,300,(x,i)=>{if(hsh(i*4)<.5)return;c.strokeStyle='#f4efe4';c.lineWidth=2.4;c.beginPath();c.moveTo(x-6,gy+10);c.lineTo(x+6,gy+10);c.stroke();c.fillStyle='#f4efe4';for(const side of[-1,1]){c.beginPath();c.arc(x+side*6,gy+8.8,1.6,0,7);c.arc(x+side*6,gy+11.2,1.6,0,7);c.fill();}});
   const hands=[], spacing=72, s0=Math.floor((G.camX-120)/spacing), s1=Math.ceil((G.camX+G.W+120)/spacing);
   for(let i=s0;i<=s1;i++){const x=i*spacing+hsh(i+8)*20-G.camX;if(hsh(i*3)>.25){const h=spectator(x,GT-6,i,now,false,n,undefined,undefined,'stone');if(n&&h)hands.push(h);}}
@@ -1072,11 +1143,17 @@ function newPlaceBg(th, now, top) {
         }
       }
     }
-    const hill = 330 - off * .1;
-    c.fillStyle = n ? '#283b4a' : '#7eaa82'; c.beginPath(); c.moveTo(hill - 85, top - 17); c.quadraticCurveTo(hill, top - 94, hill + 90, top - 17); c.fill();
-    c.fillStyle = n ? '#b9c6d0' : '#e8ece5'; c.fillRect(hill - 2, top - 74, 4, 57); c.beginPath(); c.ellipse(hill, top - 69, 9, 5, 0, 0, 7); c.fill();
-    c.fillRect(hill - 1, top - 91, 2, 17);
-    if (n) { c.fillStyle = '#ffd978'; c.beginPath(); c.arc(hill, top - 70, 3, 0, 7); c.fill(); }
+    const hill = 330 - off * .04, peak = top - 112;
+    c.fillStyle = n ? '#283b4a' : '#7eaa82'; c.beginPath(); c.moveTo(hill - 132, top - 17); c.quadraticCurveTo(hill - 52, top - 96, hill, peak); c.quadraticCurveTo(hill + 52, top - 96, hill + 138, top - 17); c.fill();
+    // A generic observation tower sits directly on the distant hill's summit.
+    c.fillStyle = n ? '#b9c6d0' : '#e8ece5'; c.fillRect(hill - 2, peak - 34, 4, 34);
+    c.beginPath(); c.ellipse(hill, peak - 34, 12, 6, 0, 0, 7); c.fill();
+    c.fillRect(hill - 1, peak - 55, 2, 21); c.beginPath(); c.moveTo(hill - 5, peak - 55); c.lineTo(hill, peak - 66); c.lineTo(hill + 5, peak - 55); c.fill();
+    if (n) {
+      c.save(); c.globalCompositeOperation = 'lighter';
+      for (const lx of [-8, -3, 3, 8]) { glow(hill + lx, peak - 34, 9, 'rgba(255,220,150,.42)'); c.fillStyle = '#ffe7ae'; c.fillRect(hill + lx - 1, peak - 36, 2, 3); }
+      glow(hill, peak - 65, 12, 'rgba(255,55,45,.55)'); c.fillStyle = '#ff4038'; c.beginPath(); c.arc(hill, peak - 65, 2, 0, 7); c.fill(); c.restore();
+    }
     const step = 760, lo = Math.floor((off * .15 - 240) / step), hi = Math.ceil((off * .15 + G.W + 240) / step);
     for (let i = lo; i <= hi; i++) {
       const x = i * step + 380 - off * .15;
