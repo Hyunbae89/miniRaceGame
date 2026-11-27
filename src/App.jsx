@@ -269,6 +269,8 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
             )}
             {c.age !== 'r' && <div className="pc-only gender"><Seg small label={`${i + 1}번 성별`} value={c.gender} options={GENDERS} onChange={(g) => game().setCfg(i, { gender: g })} /></div>}
           </div>
+          {/* 휴대폰: 넓은 화면의 설명 칸 대신 종류 한 줄 소개(창 높이는 그대로) */}
+          <p className="m-only m-desc">{AGE_DESC[c.age]}</p>
           <div className="pc-only ages">
             <Seg small label={`${i + 1}번 종류`} value={c.age} options={AGES} onChange={(a) => { game().setCfg(i, { age: a }); game().react(i, 'mood', true); }} />
           </div>

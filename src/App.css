@@ -235,9 +235,6 @@ canvas{display:block;width:100%;height:auto;border-radius:var(--radius);border:1
   .roster-arrows{left:auto;right:4px;gap:6px}
   .roster-arrows button{width:32px;height:32px;font-size:12px}
   .roster-foot .tab-seg button{padding:4px 8px;font-size:12px}
-  /* 기본 탭은 자기 높이만 씀(장신구 탭 높이에 맞추면 빈 공간이 생김). 탭을 바꾸면 창 높이가 조금 바뀜 */
-  .card-row.stack{display:flex}
-  .card-row.stack>.pane.off{display:none}
   .nav-who{display:none}
   .roster-head{gap:6px;flex-wrap:nowrap}
   .roster-head .eyebrow{font-size:11px}
@@ -248,8 +245,9 @@ canvas{display:block;width:100%;height:auto;border-radius:var(--radius);border:1
   .card-row{gap:4px}
   .tabs button{font-size:12px;padding:2px 10px}
   .card{min-height:30px}
-  .card.base{display:flex}
+  .card.base{display:flex;flex-direction:column;justify-content:center}
   .card.base .name{flex:1;width:auto}
+  .m-desc{margin:0;text-align:center;color:var(--muted);font-size:12px;line-height:1.4}
   /* 휴대폰 장신구 탭: 작게, 넘치면 창 안에서 스크롤 */
   .card.acc{gap:6px;max-height:122px;overflow-y:auto}
   .acc-rows{gap:3px}
