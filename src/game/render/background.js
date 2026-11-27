@@ -146,16 +146,14 @@ function hangangNamsanLandmark(x, base, night) {
   const c = G.ctx;
   c.fillStyle = night ? '#172c32' : '#294f39';
   c.beginPath();
-  c.moveTo(x - 330, base);
-  c.bezierCurveTo(x - 220, base - 170, x + 220, base - 170, x + 330, base);
+  c.moveTo(x - 280, base);
+  c.bezierCurveTo(x - 187, base - 145, x + 187, base - 145, x + 280, base);
   c.fill();
-  c.strokeStyle = night ? 'rgba(74,112,85,.58)' : 'rgba(93,132,82,.72)'; c.lineWidth = 12;
-  c.beginPath(); c.moveTo(x - 276, base - 12); c.bezierCurveTo(x - 190, base - 88, x - 95, base - 130, x, base - 138); c.bezierCurveTo(x + 130, base - 130, x + 220, base - 78, x + 286, base - 10); c.stroke();
   for (const dx of [-72, 76]) {
     c.strokeStyle = night ? '#b9c3bf' : '#d8ded4'; c.lineWidth = 1.2;
     c.beginPath(); c.moveTo(x + dx, base - 78); c.lineTo(x + dx, base - 107); c.moveTo(x + dx - 3, base - 98); c.lineTo(x + dx + 3, base - 98); c.stroke();
   }
-  namsanTower(x, base - 126, .43, night);
+  namsanTower(x, base - 126, .53, night);
 }
 // 서울 랜드마크: 남산(N서울타워), 롯데월드타워, 63빌딩 — 시차 공간에서 700 간격으로 번갈아 등장
 export function landmarks(par, base, night, phase) {
@@ -1275,14 +1273,39 @@ function newPlaceBg(th, now, top) {
     const redPar = .2, redOff = off * redPar, redStep = 190;
     c.strokeStyle = n ? '#b66a61' : '#c94737'; c.lineWidth = 2.4;
     for (let i = Math.floor((redOff - 20) / redStep); i <= Math.ceil((redOff + G.W + 20) / redStep); i++) {
-      const x = i * redStep - redOff, y = top - 24;
-      c.beginPath(); c.moveTo(x, y); c.lineTo(x + redStep, y); c.lineTo(x + redStep, y - 16); c.lineTo(x, y - 16); c.closePath(); c.stroke();
+      const x = i * redStep - redOff, y = top - 31;
+      // chord와 양 끝 기둥을 먼저 그려 열차가 교량 내부에 놓이게 한다.
+      c.beginPath(); c.moveTo(x, y); c.lineTo(x + redStep, y); c.moveTo(x, y - 16); c.lineTo(x + redStep, y - 16); c.moveTo(x, y); c.lineTo(x, y - 16); c.moveTo(x + redStep, y); c.lineTo(x + redStep, y - 16); c.stroke();
+    }
+    c.fillStyle = n ? '#d5b1a2' : '#e6d3bd'; c.fillRect(0, top - 32, G.W, 3);
+    if (n) for (let x = 10; x < G.W; x += 28) { c.fillStyle = '#ffd27c'; c.fillRect(x, top - 36, 3, 2); }
+    // 가끔 2~3량 전철이 붉은 트러스교 안을 지난다.
+    const trainPhase = (now * 18) % (G.W + 180);
+    if (trainPhase < G.W + 90) {
+      const tx = trainPhase - 90;
+      for (let car = 0; car < 3; car++) {
+        const x = tx + car * 36, y = top - 42;
+        c.fillStyle = n ? '#e5dfca' : '#f1f2ec'; rr(x, y, 33, 9, 2); c.fill();
+        c.fillStyle = n ? '#d5a951' : '#d14f43'; c.fillRect(x + 2, y + 4, 29, 2);
+        c.fillStyle = n ? '#ffd98a' : '#a9cfdd'; c.fillRect(x + 5, y + 2, 5, 4); c.fillRect(x + 19, y + 2, 5, 4);
+        if (n) {
+          c.fillStyle = '#ffe4a3'; c.fillRect(x + 25, y + 2, 3, 4);
+          if (car === 2) {
+            c.save(); c.shadowColor = '#ffe8aa'; c.shadowBlur = 6;
+            c.fillStyle = '#fff0c2'; c.beginPath(); c.arc(x + 31, y + 4.5, 1.5, 0, 7); c.fill(); c.restore();
+          }
+        }
+      }
+    }
+    // X 보강재를 열차 앞에 그려 차체가 트러스 사이로 보이게 한다.
+    c.strokeStyle = n ? '#b66a61' : '#c94737'; c.lineWidth = 2.4;
+    for (let i = Math.floor((redOff - 20) / redStep); i <= Math.ceil((redOff + G.W + 20) / redStep); i++) {
+      const x = i * redStep - redOff, y = top - 31;
+      c.beginPath(); c.moveTo(x, y); c.lineTo(x, y - 16); c.moveTo(x + redStep, y); c.lineTo(x + redStep, y - 16); c.stroke();
       for (let k = 0; k < redStep; k += 19) {
         c.beginPath(); c.moveTo(x + k, y - 16); c.lineTo(x + k + 19, y); c.moveTo(x + k + 19, y - 16); c.lineTo(x + k, y); c.stroke();
       }
     }
-    c.fillStyle = n ? '#d5b1a2' : '#e6d3bd'; c.fillRect(0, top - 25, G.W, 3);
-    if (n) for (let x = 10; x < G.W; x += 28) { c.fillStyle = '#ffd27c'; c.fillRect(x, top - 29, 3, 2); }
     // 강물 앞쪽의 회색 교량은 일정 간격 V형 교각과 한 줄 조명으로 그린다.
     c.fillStyle = n ? '#8393a0' : '#c8d0d2'; c.fillRect(0, top + 1, G.W, 4);
     c.fillStyle = n ? '#dce0dc' : '#edf0ed'; c.fillRect(0, top, G.W, 2);
@@ -1295,17 +1318,6 @@ function newPlaceBg(th, now, top) {
       if (n) { c.fillStyle = '#ffd77e'; c.fillRect(x - 2, top + 3, 4, 2); }
     }
     if (n) for (let x = 18; x < G.W; x += 42) { c.fillStyle = '#ffe19a'; c.fillRect(x, top - 3, 3, 2); }
-    // 가끔 2~3량 전철이 회색 교량 위를 지난다.
-    const trainPhase = (now * 18) % (G.W + 180);
-    if (trainPhase < G.W + 90) {
-      const tx = trainPhase - 90;
-      for (let car = 0; car < 3; car++) {
-        const x = tx + car * 36;
-        c.fillStyle = n ? '#e5dfca' : '#f1f2ec'; rr(x, top - 10, 33, 9, 2); c.fill();
-        c.fillStyle = n ? '#d5a951' : '#d14f43'; c.fillRect(x + 2, top - 6, 29, 2);
-        c.fillStyle = n ? '#ffe19a' : '#a9cfdd'; c.fillRect(x + 5, top - 9, 5, 4); c.fillRect(x + 19, top - 9, 5, 4);
-      }
-    }
     // 오리배는 다리 아래 물 위를 천천히 오간다.
     for (let i = Math.floor((off * .24 - 80) / 300); i <= Math.ceil((off * .24 + G.W + 80) / 300); i++) {
       const x = i * 300 + 120 - off * .24 + now * 5 % 300, y = top + 18 + hsh(i * 7) * 5;
