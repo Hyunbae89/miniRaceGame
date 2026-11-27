@@ -1152,9 +1152,9 @@ function newPlaceBg(th, now, top) {
   const c = G.ctx, n = th.night, p = th.place, off = G.camX;
   if (p === 'stone') return stoneMap(th, now, top);
   // 부산은 수평선을 올리고 그 앞에 넓은 육지를 둬, 건물이 바다가 아닌 땅 위에 서게 함
-  const sea = p === 'busan' ? top - 46 : top - 28;
+  const sea = p === 'busan' ? top - 46 : p === 'hangang' ? top - 86 : top - 28;
   c.fillStyle = p === 'stone' ? (n ? '#26383b' : '#b7d7b0') : p === 'hangang' ? (n ? '#193d57' : '#5aafd0') : (n ? '#123b56' : '#318bc2');
-  c.fillRect(0, sea, G.W, 58);
+  c.fillRect(0, sea, G.W, p === 'hangang' ? 116 : 58);
   if (p === 'busan') {
     // 광안대교와 바다는 가장 뒤에 두고, 다리보다 앞에 낮은 해안 건물을 둔다.
     const step = 940, lo = Math.floor((off * .055 - 260) / step), hi = Math.ceil((off * .055 + G.W + 260) / step);
@@ -1224,17 +1224,18 @@ function newPlaceBg(th, now, top) {
     }
   } else if (p === 'hangang') {
     // 가장 먼 남산(언덕+타워)을 먼저 그려, 앞에 있는 빌딩이 겹치면 가리게 함
-    const hill = 330 - off * .08;
-    namsanLandmark(hill, top, n);
-    // 강 건너 아파트
-    for (const [par, seed, step, minH, maxH, col] of [[.07, 31, 145, 32, 72, n ? '#26374f' : '#a7bdc5'], [.15, 35, 112, 40, 92, n ? '#1d2e47' : '#8ca7b6']]) {
+    const bank = top - 50;
+    const hill = 330 - off * .035;
+    namsanLandmark(hill, top + 12, n);
+    // 강 건너편 빌딩은 서로 다른 시차의 두 층으로, 모두 강둑 위에 세운다.
+    for (const [par, seed, step, minH, maxH, col] of [[.045, 31, 132, 38, 76, n ? '#26374f' : '#a7bdc5'], [.18, 35, 104, 44, 96, n ? '#1d2e47' : '#8ca7b6']]) {
       const i0 = Math.floor((off * par - 100) / step), i1 = Math.ceil((off * par + G.W + 100) / step);
       for (let i = i0; i <= i1; i++) {
-        if (hsh(i * 9 + seed) < .5) continue;
+        if (hsh(i * 9 + seed) < .36) continue;
         const x = i * step - off * par, bw = 42 + hsh(i * 3 + seed) * 26, bh = minH + hsh(i * 7 + seed) * (maxH - minH);
-        c.fillStyle = col; c.fillRect(x, top - 18 - bh, bw, bh);
+        c.fillStyle = col; c.fillRect(x, bank - bh, bw, bh);
         let floor = 0;
-        for (let wy = top - 12 - bh; wy < top - 22; wy += 12, floor++) {
+        for (let wy = bank - bh + 6; wy < bank - 4; wy += 12, floor++) {
           let column = 0;
           for (let wx = x + 6; wx < x + bw - 5; wx += 12, column++) {
             if (!n) c.fillStyle = '#dbe1dc';
@@ -1250,9 +1251,9 @@ function newPlaceBg(th, now, top) {
         }
       }
     }
-    // 흙둑이 건물 밑을 받쳐 강물과 건물 사이를 분명히 나눈다.
-    c.fillStyle = n ? '#4c5a53' : '#8a9b78'; c.fillRect(0, top - 18, G.W, 22);
-    c.fillStyle = n ? '#75816f' : '#b5b891'; c.fillRect(0, top - 18, G.W, 4);
+    // 강둑은 건물 발밑에만 얇게 이어져, 넓은 강물이 앞쪽까지 드러난다.
+    c.fillStyle = n ? '#4c5a53' : '#8a9b78'; c.fillRect(0, bank, G.W, 8);
+    c.fillStyle = n ? '#75816f' : '#b5b891'; c.fillRect(0, bank, G.W, 4);
     const step = 760, lo = Math.floor((off * .15 - 240) / step), hi = Math.ceil((off * .15 + G.W + 240) / step);
     for (let i = lo; i <= hi; i++) {
       const x = i * step + 380 - off * .15;
