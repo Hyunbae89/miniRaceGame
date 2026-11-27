@@ -10,7 +10,7 @@ import { dogTap } from "./render/background.js";
 import { applyFrame, endReplay, record, toggleReplay } from "./replay.js";
 import { setup, update } from "./sim/race.js";
 import { G } from "./state.js";
-import { hsh, shuffle } from "./util.js";
+import { R, hsh, shuffle } from "./util.js";
 export function push() {
   G.ui.onChange({
     state: G.state,
@@ -174,11 +174,25 @@ export function start() {
   push();
 }
 export function setCfg(i, p) {
-  if (p.age !== undefined && p.age !== G.cfg[i].age) {
-    const base = G.cfg[i].name.replace(/^메카 /, '');
+  const c = G.cfg[i];
+  // 사용자가 이름 칸에 직접 쓴 적이 있으면 그 이름은 성별·종류를 바꿔도 그대로 둠
+  if (p.name !== undefined && p.age === undefined) p = Object.assign({}, p, { edited: true });
+  // 이름을 고치지 않았으면: 성별을 바꿀 때 그 성별 이름 중 아직 안 쓴 것으로 새로 뽑음
+  if (p.gender !== undefined && p.gender !== c.gender && !c.edited && p.name === undefined) {
+    const used = new Set(G.cfg.map((x) => x.name.replace(/^메카 /, ''))),
+      pool = NAMES[p.gender].filter((n) => !used.has(n));
+    if (pool.length) p = Object.assign({}, p, { name: (c.age === 'r' ? '메카 ' : '') + pool[Math.floor(R(0, pool.length))] });
+  }
+  if (p.age !== undefined && p.age !== c.age) {
+    const base = c.name.replace(/^메카 /, '');
     p = Object.assign({}, p, {
       name: p.age === 'r' ? '메카 ' + base : base
     });
+    // 로봇에서 사람으로 돌아올 때(이름을 안 고쳤으면): 이름에 맞는 성별로
+    if (c.age === 'r' && p.age !== 'r' && !c.edited) {
+      const g = NAMES.f.includes(base) ? 'f' : NAMES.m.includes(base) ? 'm' : '';
+      if (g) p.gender = g;
+    }
   }
   Object.assign(G.cfg[i], p);
   const r = G.racers[i];

@@ -246,7 +246,7 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
         <div className="card base" role="tabpanel">
           <div className="card-main">
             <input type="color" className="swatch" value={c.color} aria-label={`${i + 1}번 옷 색`} onChange={(e) => game().setCfg(i, { color: e.target.value })} />
-            <input className="name" key={`name-${i}-${c.age === 'r'}`} defaultValue={c.name} maxLength={c.age === 'r' ? 9 : 6} aria-label={`${i + 1}번 이름`}
+            <input className="name" key={`name-${i}-${c.age === 'r'}-${c.gender}`} defaultValue={c.name} maxLength={c.age === 'r' ? 9 : 6} aria-label={`${i + 1}번 이름`}
               onChange={(e) => { game().setCfg(i, { name: e.target.value.trim() || `${i + 1}번` }); game().react(i, 'name'); }} />
             {/* 휴대폰: 캔버스가 낮아 종류·성별을 이름 옆 선택 상자로 */}
             <select className="m-only" value={c.age} aria-label={`${i + 1}번 종류`} onChange={(e) => { game().setCfg(i, { age: e.target.value }); game().react(i, 'mood', true); }}>
