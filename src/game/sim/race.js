@@ -524,12 +524,14 @@ export function finish() {
   G.betMsg = '';
   // 결과 산출: 원하는 순위(1등/꼴등)에 해당하는 캐릭터 발표
   {
-    const r = G.want === 'first' ? G.fin[0] : G.fin[G.fin.length - 1];
-    if (r) G.betMsg = '결과 산출 · ' + (G.want === 'first' ? '1등' : '꼴등') + ': ' + r.name;
+    if (G.want === 'nth') G.wantN = Math.max(2, Math.min(G.wantN, G.n - 1));
+    const r = G.want === 'first' ? G.fin[0] : G.want === 'nth' ? G.fin[G.wantN - 1] : G.fin[G.fin.length - 1];
+    if (r) G.betMsg = '결과 산출 · ' + (G.want === 'first' ? '1등' : G.want === 'nth' ? G.wantN + '등' : '꼴등') + ': ' + r.name;
   }
   G.result = {
     bet: G.betMsg,
     want: G.want,
+    wantN: G.wantN,
     rank: G.fin.map(r => ({
       pos: r.rank + '위',
       color: r.color,

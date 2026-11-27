@@ -22,7 +22,7 @@ const AGE_PROS = {
 const MODES = [['normal', '일반'], ['item', '아이템전']];
 // 레이스 배속 3단계(빠르게 = 예전 속도)
 const RATES = [[.65, '느리게'], [.8, '보통'], [1, '빠르게']];
-const WANTS = [['first', '1등 원함'], ['last', '꼴등 원함']];
+const WANTS = [['first', '1등 원함'], ['nth', 'N등 원함'], ['last', '꼴등 원함']];
 // 장신구 탭: 왼쪽은 장신구 줄(이름 · 종류 알약), 오른쪽 끝은 모든 장신구가 같이 쓰는 색 칸(2열).
 // 장신구를 누르면 그 장신구가 선택되고 색 칸이 그 장신구의 색을 바꿈.
 // k 설정 키, opts 종류([값, 이름]), wear 값 자체가 색인 장신구의 기본색, ck 색 키, pal 색 목록,
@@ -121,7 +121,7 @@ const PLACES = [['city', '🏙️ 서울 도심'], ['trad', '🏯 전통 마을'
 
 function Row({ pos, color, name, right, hl }) {
   return (
-    <li className={hl}>
+    <li className={hl} title={hl === 'hl-nth' ? '결과 산출로 고른 등수' : undefined}>
       <span className="pos">{pos}</span>
       <span className="dot" style={{ background: color }} />
       <span>{name}</span>
@@ -162,7 +162,14 @@ function RulesPanel({ v, game, onStart, confirmed }) {
         </div>
         <div className="field">
           <span className="label">결과산출</span>
-          <Seg label="결과산출" value={v.want} options={WANTS} onChange={(w) => game().setWant(w)} />
+          <Seg label="결과산출" value={v.want} options={WANTS.map(([k, t]) => [k, k === 'nth' && v.want === 'nth' ? Math.min(v.wantN, v.n - 1) + '등 원함' : t])} onChange={(w) => game().setWant(w)} />
+          {v.want === 'nth' && (
+            <div className="nth-pick">
+              <button type="button" className="sq" aria-label="등수 내리기" disabled={v.wantN <= 2} onClick={() => game().setWantN(v.wantN - 1)}>−</button>
+              <span aria-live="polite"><b>{Math.min(v.wantN, v.n - 1)}</b>등을 비춰요</span>
+              <button type="button" className="sq" aria-label="등수 올리기" disabled={v.wantN >= v.n - 1} onClick={() => game().setWantN(v.wantN + 1)}>+</button>
+            </div>
+          )}
         </div>
         <div className="field map-field">
           <div className="map-head">
@@ -291,10 +298,12 @@ function Result({ r }) {
       {r.bet && <p className="sub">{r.bet}</p>}
       <ol>
         {r.rank.map((x, i) => {
-          // 1등 원함: 1·2·3위 하이라이트, 꼴등 원함: 꼴찌만
+          // 1등 원함: 1·2·3위 하이라이트, 꼴등 원함: 꼴찌만, N등 원함: 그 등수만
           const hl = r.want === 'last'
             ? (i === r.rank.length - 1 ? 'hl-last' : undefined)
-            : (i < 3 ? `hl-${i + 1}` : undefined);
+            : r.want === 'nth'
+              ? (i === r.wantN - 1 ? 'hl-nth' : undefined)
+              : (i < 3 ? `hl-${i + 1}` : undefined);
           return <Row key={i} {...x} hl={hl} />;
         })}
       </ol>
