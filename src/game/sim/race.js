@@ -57,6 +57,8 @@ export function setup() {
   G.winLine = '';
   G.anim = [];
   G.dogs = [];
+  G.rkPrev = {};
+  G.rkFx = {};
   G.dino = { state: 'wait', x: 260, waitT: 0, runT: 0, pantIn: 9, pantT: 0, jumpT: 0, turnT: 0 };
   G.dust = [];
   G.quirks = Array.from({
