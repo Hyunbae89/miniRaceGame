@@ -166,6 +166,11 @@ canvas{display:block;width:100%;height:auto;border-radius:var(--radius);border:1
 #result li.hl-2{background:rgba(160,170,180,.22)}
 #result li.hl-3{background:rgba(205,127,50,.2)}
 #result li.hl-last{background:rgba(79,195,247,.2)}
+#result li.hl-nth{background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)}
+#result li.hl-nth:hover{background:rgba(31,111,178,.24)}
+.nth-pick{display:flex;align-items:center;justify-content:center;gap:10px;font-size:13px;color:var(--muted)}
+.nth-pick b{color:var(--accent);font-size:16px}
+.nth-pick button.sq{width:30px;height:28px;font-size:16px}
 .pos{flex:none;min-width:3.4em;font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 .dot{width:14px;height:14px;border-radius:50%}
 .sub{margin:4px 0 8px;color:var(--muted)}

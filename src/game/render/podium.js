@@ -23,13 +23,13 @@ export function podiumStep(dt) {
 // 조명 세기: t0초부터 0.6초 페이드인 → 4.5초 유지 → 0.6초 페이드아웃 후 전체 컬러로 복귀
 const SPOT_FI = .6,
   SPOT_HOLD = 4.5,
-  SPOT_T0 = { first: 3.4, last: 2.4 };
+  SPOT_T0 = { first: 3.4, last: 2.4, nth: 3 };
 export function spotA(t0) {
   return Math.min((G.pt - t0) / SPOT_FI, (t0 + SPOT_FI + SPOT_HOLD + SPOT_FI - G.pt) / SPOT_FI);
 }
 // 녹화(MP4·GIF)를 끝낼 시상식 시각: 결과산출 조명이 완전히 꺼지고 2초 뒤
 export function podiumEnd() {
-  return SPOT_T0[G.want === 'last' ? 'last' : 'first'] + SPOT_FI * 2 + SPOT_HOLD + 2;
+  return (SPOT_T0[G.want] ?? SPOT_T0.first) + SPOT_FI * 2 + SPOT_HOLD + 2;
 }
 export function spotlight(cx, cy, rad, a) {
   a = Math.max(0, Math.min(1, a));
@@ -115,6 +115,7 @@ export function lastSign(lx) {
 export function drawPodium() {
   G.podBub = null;
   G.lastBub = null;
+  G.nthBub = null;
   const g = G.ctx.createLinearGradient(0, 0, 0, G.H);
   g.addColorStop(0, '#26325c');
   g.addColorStop(1, '#6f86c9');
@@ -246,6 +247,51 @@ export function drawPodium() {
       };
     }
   }
+  // N등 원함(4등부터): 꼴등 자리와 대칭으로 오른쪽에서 걸어 들어와 'N등' 표지판 옆에 섬
+  const N = G.wantN;
+  if (G.want === 'nth' && N > 3 && N < G.n && G.fin[N - 1]) {
+    const nx = G.W - lastX(),
+      r = G.fin[N - 1],
+      u = Math.min(1, Math.max(0, (G.pt - .6) / 1.6)),
+      x = G.W + 40 - (G.W + 40 - nx) * u,
+      walk = u < 1,
+      fy = 372;
+    G.ctx.fillStyle = '#2a3350';
+    G.ctx.beginPath();
+    G.ctx.moveTo(G.W, 200);
+    G.ctx.lineTo(G.W - 150, 372);
+    G.ctx.lineTo(G.W, 372);
+    G.ctx.fill();
+    G.ctx.save();
+    G.ctx.translate(G.W, 0);
+    G.ctx.scale(-1, 1);
+    lastSign(lastX());
+    G.ctx.restore();
+    // 뒤집어 그린 표지판 위에 글자만 바로 다시 씀
+    const sx = nx + 36 - 4;
+    G.ctx.fillStyle = '#d9b27a';
+    G.ctx.fillRect(sx - 16, 308, 32, 15);
+    G.ctx.fillStyle = '#3b2a1a';
+    G.ctx.textAlign = 'center';
+    G.ctx.font = '15px Jua,sans-serif';
+    G.ctx.fillText(N + '등', sx, 320);
+    G.ctx.save();
+    G.ctx.translate(x, 0);
+    G.ctx.scale(walk ? -1 : 1, 1);
+    drawPerson(0, fy, r, { run: walk, ph: G.pt * 14, cheer: !walk });
+    G.ctx.restore();
+    if (!walk) {
+      G.ctx.textAlign = 'center';
+      G.ctx.font = '17px Jua,sans-serif';
+      const tw = G.ctx.measureText(r.name).width + 16;
+      G.ctx.fillStyle = r.color;
+      rr(x - tw / 2, fy - 98, tw, 22, 10);
+      G.ctx.fill();
+      G.ctx.fillStyle = ink(r.color);
+      G.ctx.fillText(r.name, x, fy - 81);
+      G.nthBub = { x: x, y: fy - 106, t: r.age === 'r' ? N + '위 확인. 나쁘지 않음' : '제가 ' + N + '등이에요!' };
+    }
+  }
   for (const c of G.conf) {
     G.ctx.save();
     G.ctx.translate(c.x, c.y);
@@ -255,7 +301,12 @@ export function drawPodium() {
     G.ctx.restore();
   }
   // 응원 포커스: 1등 원함이면 1위, 꼴등 원함이면 꼴찌에게 컬러 조명, 나머지는 흑백
-  if (G.want === 'first' && G.fin[0]) spotlight(G.W / 2, 360 - 100 - 40, 72, spotA(SPOT_T0.first));else if (G.want === 'last' && G.n > 1 && G.fin[G.n - 1]) spotlight(lastX() - 8, 328, 90, spotA(SPOT_T0.last));
+  // N등 원함: 2·3등은 그 시상대, 4등부터는 오른쪽에서 걸어 들어온 자리
+  const nd = Math.min(150, G.W * .23);
+  if (G.want === 'nth' && G.fin[N - 1]) {
+    if (N <= 3) spotlight(G.W / 2 + (N === 2 ? -nd : nd), 360 - (N === 2 ? 70 : 50) - 40, 72, spotA(SPOT_T0.nth));else spotlight(G.W - lastX() + 8, 328, 90, spotA(SPOT_T0.nth));
+  } else if (G.want === 'first' && G.fin[0]) spotlight(G.W / 2, 360 - 100 - 40, 72, spotA(SPOT_T0.first));else if (G.want === 'last' && G.n > 1 && G.fin[G.n - 1]) spotlight(lastX() - 8, 328, 90, spotA(SPOT_T0.last));
   if (G.podBub && G.winLine) bubble(G.podBub.x, G.podBub.y, G.winLine);
   if (G.lastBub) bubble(G.lastBub.x, G.lastBub.y, G.lastBub.t);
+  if (G.nthBub) bubble(G.nthBub.x, G.nthBub.y, G.nthBub.t);
 }

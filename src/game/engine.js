@@ -24,6 +24,7 @@ export function push() {
     file: G.ready ? G.ready.name : null,
     result: G.result,
     want: G.want,
+    wantN: G.wantN,
     locked: G.state === 'count' || G.state === 'run',
     map: G.mapId,
     events: G.events,
@@ -139,6 +140,7 @@ export function resetAll() {
   G.events = true;
   G.obstacles = true;
   G.want = 'first';
+  G.wantN = 4;
   G.mapId = 'city-day';
   G.lanes = [];
   setN(4);
@@ -239,6 +241,7 @@ export function createGame(cv, ui) {
   G.exporting = false;
   G.ready = null;
   G.want = 'first';
+  G.wantN = 4;
   G.betMsg = '';
   // 동작 표현용(시뮬레이션과 무관): 캐릭터별 애니메이션 상태, 개성, 흙먼지, 프레임 시간, 화면 흔들림
   G.anim = [];
@@ -266,6 +269,7 @@ export function createGame(cv, ui) {
   G.sp = null;
   G.podBub = null;
   G.lastBub = null;
+  G.nthBub = null;
   G.fb = null;
   G.drag = false;
   // 레이스 중(카운트다운·달리기) 캔버스 조작: 위쪽 지도는 비율 위치로, 나머지는 누른 지점으로. 떼면 자동 카메라
@@ -322,6 +326,11 @@ export function createGame(cv, ui) {
     },
     setWant: w => {
       G.want = w;
+      push();
+    },
+    // N등 원함: 2등 ~ 꼴등 바로 앞까지
+    setWantN: k => {
+      G.wantN = Math.max(2, Math.min(G.n - 1, k));
       push();
     },
     // 랜덤 이벤트 켜기/끄기, 장애물 있음/없음(장애물은 트랙을 다시 만듦)
