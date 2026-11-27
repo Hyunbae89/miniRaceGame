@@ -92,6 +92,58 @@ export function skyline(par, seed, base, minH, maxH, col, win, winP, signs, nigh
     }
   }
 }
+// 남산타워: 도심 랜드마크와 한강 언덕에서 함께 쓰는 일반화된 관측 타워
+export function namsanTower(x, base, scale, night) {
+  const c = G.ctx, s = scale, now = performance.now() / 1000;
+  const outline = night ? '#20283a' : '#35434a';
+  c.save();
+  // 길게 뻗은 탑신과 세 단 전망대
+  c.fillStyle = night ? '#b9c6d0' : '#eef1f2';
+  c.strokeStyle = outline; c.lineWidth = Math.max(1, 1.2 * s);
+  c.fillRect(x - 3*s, base - 78*s, 6*s, 78*s);
+  c.strokeRect(x - 3*s, base - 78*s, 6*s, 78*s);
+  // 넓은 3단 전망대
+  const bands = [
+    { y: base - 82*s, w: 20*s, h: 7*s },
+    { y: base - 92*s, w: 22*s, h: 8*s },
+    { y: base - 103*s, w: 18*s, h: 7*s }
+  ];
+  for (let b = 0; b < bands.length; b++) {
+    const d = bands[b];
+    c.fillStyle = night ? (b === 1 ? '#d6d5ce' : '#aebdc8') : (b === 1 ? '#fffdf5' : '#e2e8eb');
+    rr(x - d.w/2, d.y, d.w, d.h, 2*s); c.fill();
+    c.strokeStyle = outline; c.lineWidth = Math.max(.8, 1*s); c.stroke();
+    c.fillStyle = night ? '#ffcf72' : '#8da2a9';
+    const count = b === 1 ? 6 : 5;
+    for (let k = 0; k < count; k++) {
+      const wx = x - d.w/2 + (k + .5) * d.w / count;
+      c.fillRect(wx - .8*s, d.y + 2*s, 1.6*s, 3*s);
+    }
+  }
+  // 전망대 위 짧고 굵은 안테나 받침과 가는 안테나
+  c.strokeStyle = outline; c.lineWidth = 3*s; c.beginPath(); c.moveTo(x, base - 103*s); c.lineTo(x, base - 112*s); c.stroke();
+  c.strokeStyle = night ? '#e2a3a0' : '#d66a55'; c.lineWidth = 1.3*s; c.beginPath(); c.moveTo(x, base - 112*s); c.lineTo(x, base - 132*s); c.stroke();
+  if (night) {
+    c.save(); c.globalCompositeOperation = 'lighter';
+    const g = c.createRadialGradient(x, base - 94*s, 3*s, x, base - 94*s, 27*s);
+    g.addColorStop(0, 'rgba(255,211,125,.24)'); g.addColorStop(1, 'rgba(255,211,125,0)');
+    c.fillStyle = g; c.fillRect(x - 29*s, base - 123*s, 58*s, 58*s);
+    if (now % 1.4 < .7) { c.fillStyle = '#ff4d4d'; c.beginPath(); c.arc(x, base - 134*s, 2.2*s, 0, 7); c.fill(); }
+    c.restore();
+  }
+  c.restore();
+}
+function namsanLandmark(x, base, night, layer = 'all') {
+  const c = G.ctx;
+  if (layer !== 'tower') {
+    c.fillStyle = night ? '#1a2a3c' : '#7fa87a';
+    c.beginPath();
+    c.moveTo(x - 190, base);
+    c.quadraticCurveTo(x, base - 150, x + 190, base);
+    c.fill();
+  }
+  if (layer !== 'hill') namsanTower(x, base - 74, 1, night);
+}
 // 서울 랜드마크: 남산(N서울타워), 롯데월드타워, 63빌딩 — 시차 공간에서 700 간격으로 번갈아 등장
 export function landmarks(par, base, night, phase) {
   const off = G.camX * par,
@@ -103,39 +155,8 @@ export function landmarks(par, base, night, phase) {
     const kind = (i % 3 + 3) % 3,
       x = i * sp + 260 - off;
     if (phase === 0 && kind === 0) {
-      G.ctx.fillStyle = night ? '#1a2a3c' : '#7fa87a';
-      G.ctx.beginPath();
-      G.ctx.moveTo(x - 190, base);
-      G.ctx.quadraticCurveTo(x, base - 150, x + 190, base);
-      G.ctx.fill();
+      namsanLandmark(x, base, night);
       const top = base - 74;
-      G.ctx.fillStyle = night ? '#cfd8e3' : '#eef1f4';
-      G.ctx.fillRect(x - 3, top - 70, 6, 70);
-      G.ctx.fillStyle = night ? '#ffe38a' : '#fff';
-      G.ctx.beginPath();
-      G.ctx.ellipse(x, top - 60, 11, 6, 0, 0, 7);
-      G.ctx.fill();
-      G.ctx.fillStyle = night ? '#ffd25a' : '#d6dde3';
-      G.ctx.fillRect(x - 7, top - 70, 14, 5);
-      G.ctx.strokeStyle = night ? '#ff6b6b' : '#e4572e';
-      G.ctx.lineWidth = 2;
-      G.ctx.beginPath();
-      G.ctx.moveTo(x, top - 70);
-      G.ctx.lineTo(x, top - 100);
-      G.ctx.stroke();
-      G.ctx.strokeStyle = '#fff';
-      G.ctx.beginPath();
-      for (let k = 0; k < 3; k++) {
-        G.ctx.moveTo(x, top - 74 - k * 9);
-        G.ctx.lineTo(x, top - 78 - k * 9);
-      }
-      G.ctx.stroke();
-      if (night && now % 1.4 < .7) {
-        G.ctx.fillStyle = '#ff4d4d';
-        G.ctx.beginPath();
-        G.ctx.arc(x, top - 101, 2.2, 0, 7);
-        G.ctx.fill();
-      }
       G.ctx.fillStyle = night ? 'rgba(255,255,255,.7)' : '#1e2b33';
       G.ctx.font = '9px sans-serif';
       G.ctx.textAlign = 'center';
@@ -1197,17 +1218,27 @@ function newPlaceBg(th, now, top) {
         }
       }
     }
-    const hill = 330 - off * .04, peak = top - 112;
-    c.fillStyle = n ? '#283b4a' : '#7eaa82'; c.beginPath(); c.moveTo(hill - 132, top - 17); c.quadraticCurveTo(hill - 52, top - 96, hill, peak); c.quadraticCurveTo(hill + 52, top - 96, hill + 138, top - 17); c.fill();
-    // A generic observation tower sits directly on the distant hill's summit.
-    c.fillStyle = n ? '#b9c6d0' : '#e8ece5'; c.fillRect(hill - 2, peak - 34, 4, 34);
-    c.beginPath(); c.ellipse(hill, peak - 34, 12, 6, 0, 0, 7); c.fill();
-    c.fillRect(hill - 1, peak - 55, 2, 21); c.beginPath(); c.moveTo(hill - 5, peak - 55); c.lineTo(hill, peak - 66); c.lineTo(hill + 5, peak - 55); c.fill();
-    if (n) {
-      c.save(); c.globalCompositeOperation = 'lighter';
-      for (const lx of [-8, -3, 3, 8]) { glow(hill + lx, peak - 34, 9, 'rgba(255,220,150,.42)'); c.fillStyle = '#ffe7ae'; c.fillRect(hill + lx - 1, peak - 36, 2, 3); }
-      glow(hill, peak - 65, 12, 'rgba(255,55,45,.55)'); c.fillStyle = '#ff4038'; c.beginPath(); c.arc(hill, peak - 65, 2, 0, 7); c.fill(); c.restore();
+    const hill = 330 - off * .08;
+    namsanLandmark(hill, top, n, 'hill');
+    // 강 건너 가까운 빌딩층: 언덕과 타워 앞, 다리 뒤에 놓인다.
+    const nearPar = .10, nearStep = 62, nearOff = off * nearPar;
+    const ni0 = Math.floor((nearOff - 100) / nearStep), ni1 = Math.ceil((nearOff + G.W + 100) / nearStep);
+    for (let i = ni0; i <= ni1; i++) {
+      if (hsh(i * 9 + 87) < .12) continue;
+      const bx = i * nearStep - nearOff, bw = 38 + hsh(i * 3 + 91) * 22,
+        bh = 48 + hsh(i * 7 + 93) * 56, by = top - 17;
+      c.fillStyle = n ? '#26374f' : '#91aebc'; c.fillRect(bx, by - bh, bw, bh);
+      c.fillStyle = n ? '#ffd17a' : '#dbe5e3';
+      for (let floor = 0, wy = by - bh + 8; wy < by - 5; floor++, wy += 11) {
+        for (let col = 0, wx = bx + 6; wx < bx + bw - 4; col++, wx += 10) {
+          const lit = hsh(i * 101 + floor * 17 + col * 31 + 97) > .56;
+          c.fillStyle = n ? (lit ? '#ffd17a' : '#34404d') : '#dbe5e3';
+          c.fillRect(wx, wy, 5, 5);
+        }
+      }
     }
+    // 도심과 같은 타워 기준점을 사용하고, 건물 앞에 겹치지 않도록 마지막에 올린다.
+    namsanLandmark(hill, top, n, 'tower');
     const step = 760, lo = Math.floor((off * .15 - 240) / step), hi = Math.ceil((off * .15 + G.W + 240) / step);
     for (let i = lo; i <= hi; i++) {
       const x = i * step + 380 - off * .15;
