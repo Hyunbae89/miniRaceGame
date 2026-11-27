@@ -553,7 +553,15 @@ export function drawLabels(list) {
   let bub = null,
     lose = null;
   G.ctx.globalAlpha = alpha;
+  // 꼴찌가 정해진 순간(나머지가 모두 도착)부터 들어와서 3초까지 우는 말풍선. 말은 그 시각으로 골라 게임 난수를 쓰지 않음
+  const before = G.n > 1 && G.fin.length >= G.n - 1 ? G.fin[G.n - 2] : null;
   for (const { r, px, py } of list) {
+    // 말풍선은 이름표가 겹쳐 숨겨져도 보이게 먼저 정함
+    if (r.fin && r.rank === 1 && G.winLine && tn - r.time < 3.5) bub = [px, py - 90];
+    if (before && r !== before && (!r.fin || r.rank === G.n && tn - r.time < 3)) {
+      const L = r.age === 'r' ? LOSE_LINES.r : LOSE_LINES.h;
+      lose = [px, py - 90, L[Math.floor(hsh(Math.round(before.time * 100)) * L.length)]];
+    }
     if (r.fin) {
       const box = { x: px - 17, y: py - 83, w: 34, h: 21 };
       if (hit(box)) { dots.push([px, py, r.color]); continue; }
@@ -562,12 +570,6 @@ export function drawLabels(list) {
       G.ctx.fillStyle = '#1e2b33';
       G.ctx.font = '18px Jua,sans-serif';
       G.ctx.fillText(r.rank + '위', px, py - 66);
-      if (r.rank === 1 && G.winLine && tn - r.time < 3.5) bub = [px, py - 90];
-      // 꼴찌: 들어오면서 울며 한마디(말은 도착 시각으로 정해 게임 난수를 쓰지 않음)
-      if (G.n > 1 && r.rank === G.n && tn - r.time < 3) {
-        const L = r.age === 'r' ? LOSE_LINES.r : LOSE_LINES.h;
-        lose = [px, py - 90, L[Math.floor(hsh(Math.round(r.time * 100)) * L.length)]];
-      }
     } else {
       G.ctx.font = '14px Jua,sans-serif';
       const tw = Math.max(34, G.ctx.measureText(r.name).width + 14),

@@ -1021,8 +1021,9 @@ function drawStoneDino(now, gy) {
         dino.jumpT = 0;
       }
       const leaderFinished = G.fin && G.fin.length > 0;
+      // 화면 왼쪽 30% ~ 오른쪽 30%(0.3W~0.7W) 사이를 오가며 앞서거니 뒤서거니
       const wave = Math.sin(dino.runT * Math.PI * 2 / 10);
-      const target = leaderFinished ? TRACK + 48 : G.camX - OFF + G.W * (.3 + .1 * wave);
+      const target = leaderFinished ? TRACK + 48 : G.camX - OFF + G.W * (.5 + .2 * wave);
       const oldX = dino.x;
       const distance = Math.max(0, target - oldX);
       if (dino.state === 'run') {
