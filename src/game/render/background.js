@@ -1,5 +1,5 @@
 // 배경(맵): 서울 도심 / 전통 마을 × 낮 / 밤. 하늘, 랜드마크, 건물, 인도, 응원 시민, 산책, 밤 조명.
-import { BUSAN_BANNERS, BUSAN_SIGNS, COLORS, GT, HAIR, OFF, SHOPC, SHOPS, SIGNS, SKIN, TRACK } from "../constants.js";
+import { BUSAN_BANNERS, BUSAN_SIGNS, COLORS, GT, HAIR, OFF, SHOPC, SHOPS, SIGNS, SKIN, TRACK, TRAD_BANNERS, TRAD_SIGNS } from "../constants.js";
 import { G } from "../state.js";
 import { hsh, rr } from "../util.js";
 export function TH() {
@@ -295,11 +295,22 @@ export function palaceGate(x, base, night) {
   G.ctx.fillStyle = night ? '#1f4a3c' : '#3e8e6e';
   G.ctx.fillRect(x + 34, base - 95, w - 68, 4);
   roof(x + 42, base - 95, w - 84, night ? '#1c1f26' : '#4a4f57');
-  G.ctx.fillStyle = night ? '#ffd76a' : '#1e2b33';
+  // 처마 사이에 나무 현판을 달고 글자를 판 안에 넣는다.
+  G.ctx.fillStyle = night ? '#4b2d1b' : '#6f4024';
+  G.ctx.fillRect(x + 48, base - 84, 64, 20);
+  G.ctx.fillStyle = night ? '#8a5630' : '#9a6035';
+  G.ctx.fillRect(x + 51, base - 81, 58, 14);
+  G.ctx.fillStyle = night ? '#ffd987' : '#3a2115';
   G.ctx.font = 'bold 9px serif';
   G.ctx.textAlign = 'center';
-  G.ctx.fillText('光化門', x + w / 2, base - 64);
+  G.ctx.fillText('光化門', x + w / 2, base - 70);
   if (night) {
+    G.ctx.save();
+    G.ctx.shadowColor = '#ffc36b';
+    G.ctx.shadowBlur = 16;
+    G.ctx.fillStyle = 'rgba(255,190,105,.25)';
+    G.ctx.fillRect(x + 48, base - 84, 64, 20);
+    G.ctx.restore();
     const g = G.ctx.createRadialGradient(x + w / 2, base - 40, 10, x + w / 2, base - 40, 110);
     g.addColorStop(0, 'rgba(255,200,120,.25)');
     g.addColorStop(1, 'rgba(255,200,120,0)');
@@ -395,7 +406,7 @@ export function spectator(x, y, i, now, trad, night, pose, hold, place) {
   }
   // 피켓(낮에 팔을 내린 사람 중 일부)
   if (!night && pose === 'down' && hsh(i * 23) > .6) {
-    const signSet = place === 'busan' ? BUSAN_SIGNS : SIGNS,
+    const signSet = place === 'busan' ? BUSAN_SIGNS : trad ? TRAD_SIGNS : SIGNS,
       t = signSet[(i % signSet.length + signSet.length) % signSet.length];
     G.ctx.font = 'bold 11px Jua,sans-serif';
     const tw = G.ctx.measureText(t).width + 10,
@@ -427,7 +438,7 @@ export function bannerPair(x1, minSpan, maxSpan, y, i, now, trad, night, place) 
     top = y - 50 * s + bob,
     h = 16,
     gap = 7 * s,
-    bannerSet = place === 'busan' ? BUSAN_BANNERS : BANNERS,
+    bannerSet = place === 'busan' ? BUSAN_BANNERS : trad ? TRAD_BANNERS : BANNERS,
     t = bannerSet[Math.floor(hsh(i * 41) * bannerSet.length)];
   let fs = 12;
   G.ctx.font = 'bold ' + fs + 'px Jua,sans-serif';
@@ -1110,6 +1121,8 @@ function stoneMap(th, now, top) {
   const sky = c.createLinearGradient(0, 0, 0, gy);
   sky.addColorStop(0, n ? '#26383b' : '#f5c58a'); sky.addColorStop(1, n ? '#43564d' : '#fbe6c4');
   c.fillStyle = sky; c.fillRect(0, 0, G.W, G.H);
+  c.fillStyle = n ? '#55483d' : '#a9855c'; c.fillRect(0, gy - 38, G.W, 10);
+  c.fillStyle = n ? '#78604a' : '#c29a69'; c.fillRect(0, gy - 38, G.W, 3);
   // Reference volcano, smoke, and distant long-neck dinosaurs.
   tile(.04, 800, (x, i) => {
     c.fillStyle = '#8a6a58'; c.beginPath(); c.moveTo(x-180,gy-30); c.lineTo(x-26,gy-150); c.lineTo(x+26,gy-150); c.lineTo(x+180,gy-30); c.fill();
@@ -1150,9 +1163,20 @@ function newPlaceBg(th, now, top) {
       c.strokeStyle = n ? '#98aabd' : '#e9f0ed'; c.lineWidth = 3; c.beginPath();
       c.moveTo(x - 105, sea - 4); c.lineTo(x - 105, sea - 66); c.moveTo(x + 105, sea - 4); c.lineTo(x + 105, sea - 66);
       c.moveTo(x - 260, sea - 14); c.quadraticCurveTo(x - 170, sea - 16, x - 105, sea - 66); c.quadraticCurveTo(x, sea - 20, x + 105, sea - 66); c.quadraticCurveTo(x + 170, sea - 16, x + 260, sea - 14); c.stroke();
-      c.fillStyle = n ? '#b7c3cd' : '#d6dde3'; c.fillRect(x - 300, sea - 14, 600, 3);
-      for (let k = -8; k <= 8; k++) { c.fillStyle = n ? '#ffd875' : '#fff1bf'; c.fillRect(x + k * 30, sea - 18, 3, 2); }
+      if (n) for (let k = -10; k <= 10; k++) {
+        const d = k * 24, u = d < -105 ? (d + 260) / 155 : d > 105 ? (260 - d) / 155 : (d + 105) / 210;
+        const ly = d < -105 || d > 105
+          ? sea - 14 * (1 - u) ** 2 - 32 * 2 * u * (1 - u) - 66 * u ** 2
+          : sea - 66 * (1 - u) ** 2 - 40 * 2 * u * (1 - u) - 66 * u ** 2;
+        const lx = x + d;
+        c.globalAlpha = .35 + .65 * (.5 + .5 * Math.sin(now * 4 + hsh(i * 53 + k) * Math.PI * 2));
+        c.fillStyle = '#ffe39a'; c.fillRect(lx - 1.5, ly - 1.5, 3, 3);
+      }
+      c.globalAlpha = 1;
     }
+    // 상판은 다리 구간 사이에도 이어져 화면 전체를 가로지른다.
+    c.fillStyle = n ? '#b7c3cd' : '#d6dde3'; c.fillRect(0, sea - 14, G.W, 3);
+    if (n) for (let x = 0; x < G.W; x += 30) { c.fillStyle = '#ffd875'; c.fillRect(x, sea - 18, 3, 2); }
     // 모래와 낮은 방파제를 깔아 건물 앞의 바다와 육지를 분명히 나눈다.
     c.fillStyle = n ? '#665b50' : '#d8c69f';
     c.fillRect(0, top - 30, G.W, 60);
@@ -1179,6 +1203,13 @@ function newPlaceBg(th, now, top) {
         c.fillStyle = n ? '#26374f' : '#25313b'; c.font = 'bold 7px sans-serif'; c.textAlign = 'center'; c.fillText(label, x + bw / 2, sy + 8);
       }
     }
+    // 갈매기는 멀리서 느리게 날고, 날갯짓 위상은 시간과 위치로 고정한다.
+    for (let k = 0; k < 4; k++) {
+      const x = ((k * 260 - off * .3 + now * 40) % (G.W + 80) + G.W + 80) % (G.W + 80) - 40;
+      const y = 40 + k * 14 + Math.sin(now * 3 + k) * 5, flap = Math.sin(now * 10 + k) * 4;
+      c.strokeStyle = n ? '#d1d9dc' : '#5b6770'; c.lineWidth = 1.4; c.beginPath();
+      c.moveTo(x - 7, y - flap); c.quadraticCurveTo(x - 3, y - 2, x, y); c.quadraticCurveTo(x + 3, y - 2, x + 7, y - flap); c.stroke();
+    }
     // 오징어잡이 배는 밤에만 갑판 위 등불과 잔잔한 수면 반사를 드러낸다.
     for (let i = Math.floor((off * .13 - 100) / 390); i <= Math.ceil((off * .13 + G.W + 100) / 390); i++) {
       const x = i * 390 + 150 - off * .13 + now * (hsh(i * 4) > .5 ? 3 : -2) % 390,
@@ -1196,10 +1227,10 @@ function newPlaceBg(th, now, top) {
     const hill = 330 - off * .08;
     namsanLandmark(hill, top, n);
     // 강 건너 아파트
-    for (const [par, seed, step, minH, maxH, col] of [[.08, 31, 112, 32, 72, n ? '#26374f' : '#a7bdc5'], [.13, 35, 82, 40, 92, n ? '#1d2e47' : '#8ca7b6']]) {
+    for (const [par, seed, step, minH, maxH, col] of [[.07, 31, 145, 32, 72, n ? '#26374f' : '#a7bdc5'], [.15, 35, 112, 40, 92, n ? '#1d2e47' : '#8ca7b6']]) {
       const i0 = Math.floor((off * par - 100) / step), i1 = Math.ceil((off * par + G.W + 100) / step);
       for (let i = i0; i <= i1; i++) {
-        if (hsh(i * 9 + seed) < .2) continue;
+        if (hsh(i * 9 + seed) < .5) continue;
         const x = i * step - off * par, bw = 42 + hsh(i * 3 + seed) * 26, bh = minH + hsh(i * 7 + seed) * (maxH - minH);
         c.fillStyle = col; c.fillRect(x, top - 18 - bh, bw, bh);
         let floor = 0;
@@ -1219,23 +1250,9 @@ function newPlaceBg(th, now, top) {
         }
       }
     }
-    // 강 건너 가까운 빌딩층: 언덕과 타워 앞, 다리 뒤에 놓인다.
-    const nearPar = .10, nearStep = 62, nearOff = off * nearPar;
-    const ni0 = Math.floor((nearOff - 100) / nearStep), ni1 = Math.ceil((nearOff + G.W + 100) / nearStep);
-    for (let i = ni0; i <= ni1; i++) {
-      if (hsh(i * 9 + 87) < .12) continue;
-      const bx = i * nearStep - nearOff, bw = 38 + hsh(i * 3 + 91) * 22,
-        bh = 48 + hsh(i * 7 + 93) * 56, by = top - 17;
-      c.fillStyle = n ? '#26374f' : '#91aebc'; c.fillRect(bx, by - bh, bw, bh);
-      c.fillStyle = n ? '#ffd17a' : '#dbe5e3';
-      for (let floor = 0, wy = by - bh + 8; wy < by - 5; floor++, wy += 11) {
-        for (let col = 0, wx = bx + 6; wx < bx + bw - 4; col++, wx += 10) {
-          const lit = hsh(i * 101 + floor * 17 + col * 31 + 97) > .56;
-          c.fillStyle = n ? (lit ? '#ffd17a' : '#34404d') : '#dbe5e3';
-          c.fillRect(wx, wy, 5, 5);
-        }
-      }
-    }
+    // 흙둑이 건물 밑을 받쳐 강물과 건물 사이를 분명히 나눈다.
+    c.fillStyle = n ? '#4c5a53' : '#8a9b78'; c.fillRect(0, top - 18, G.W, 22);
+    c.fillStyle = n ? '#75816f' : '#b5b891'; c.fillRect(0, top - 18, G.W, 4);
     const step = 760, lo = Math.floor((off * .15 - 240) / step), hi = Math.ceil((off * .15 + G.W + 240) / step);
     for (let i = lo; i <= hi; i++) {
       const x = i * step + 380 - off * .15;
