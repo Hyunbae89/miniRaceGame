@@ -223,6 +223,9 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
   const [tab, setTab] = useState('base');
   // 이전·다음 사람으로 바로 이동(보던 탭은 그대로). 기본·장신구는 아래 줄 가운데에서 고름
   const touchX = useRef(null);
+  const rosterRef = useRef(null);
+  // 실제로 적용된 변경만 참가자 창이 0.4초 반짝임(CSS .roster.flash). 막힌 변경은 부르지 않음
+  const flash = () => { const el = rosterRef.current; if (!el) return; el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); };
   // 같은 이름·옷 색 막기: 다른 참가자가 쓰는 값이면 적용하지 않고 잠깐 안내
   const [warn, setWarn] = useState(null);
   useEffect(() => { if (!warn) return; const t = setTimeout(() => setWarn(null), 2500); return () => clearTimeout(t); }, [warn]);
@@ -235,7 +238,7 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
       <button type="button" aria-label="이전 참가자" title="이전 참가자" disabled={i === 0} onClick={() => go(-1)}>▲</button>
       <button type="button" aria-label="다음 참가자" title="다음 참가자" disabled={i === v.n - 1} onClick={() => go(1)}>▼</button>
     </div>
-    <section className="roster" aria-labelledby="roster-h"
+    <section className="roster" aria-labelledby="roster-h" ref={rosterRef}
       onTouchStart={(e) => { touchX.current = e.touches[0].clientX; }}
       onTouchEnd={(e) => { const dx = e.changedTouches[0].clientX - touchX.current; if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1); }}>
       <div className="roster-head">
@@ -255,7 +258,7 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
       {/* 두 탭을 같은 칸에 겹쳐 두고 안 보이는 쪽만 숨겨, 탭을 바꿔도 창 높이가 그대로 */}
       <div className="card-row stack">
         <div className={'pane' + (tab === 'acc' ? '' : ' off')} aria-hidden={tab !== 'acc'}>
-          <AccTab c={c} n={i + 1} set={(p) => { game().setCfg(i, p); game().react(i, 'acc'); }} />
+          <AccTab c={c} n={i + 1} set={(p) => { game().setCfg(i, p); game().react(i, 'acc'); flash(); }} />
         </div>
         <div className={'pane' + (tab === 'base' ? '' : ' off')} aria-hidden={tab !== 'base'}>
         <div className="card base" role="tabpanel">
@@ -263,7 +266,7 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
             <input type="color" className="swatch" value={c.color} aria-label={`${i + 1}번 옷 색`}
               onChange={(e) => {
                 if (others.some((o) => o.color.toLowerCase() === e.target.value.toLowerCase())) { setWarn({ m: '다른 참가자가 쓰는 색이에요' }); return; }
-                setWarn(null); game().setCfg(i, { color: e.target.value });
+                setWarn(null); game().setCfg(i, { color: e.target.value }); flash();
               }} />
             <input className="name" key={`name-${i}-${c.age === 'r'}-${c.gender}`} defaultValue={c.name} maxLength={c.age === 'r' ? 9 : 6} aria-label={`${i + 1}번 이름`}
               onChange={(e) => {
@@ -272,23 +275,23 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
                 if (others.some((o) => norm(o.name) === norm(t))) { setWarn({ m: '다른 참가자가 쓰는 이름이에요' }); return; }
                 setWarn(null); game().setCfg(i, { name: t }); game().react(i, 'name');
               }}
-              onBlur={(e) => { if (norm(e.target.value || '') !== norm(c.name)) e.target.value = c.name; }} />
+              onBlur={(e) => { if (norm(e.target.value || '') !== norm(c.name)) e.target.value = c.name; else flash(); }} />
             {/* 휴대폰: 캔버스가 낮아 종류·성별을 이름 옆 선택 상자로 */}
-            <select className="m-only" value={c.age} aria-label={`${i + 1}번 종류`} onChange={(e) => { game().setCfg(i, { age: e.target.value }); game().react(i, 'mood', true); }}>
+            <select className="m-only" value={c.age} aria-label={`${i + 1}번 종류`} onChange={(e) => { game().setCfg(i, { age: e.target.value }); game().react(i, 'mood', true); flash(); }}>
               {AGES.map(([k, t]) => <option key={k} value={k}>{t}</option>)}
             </select>
             {c.age !== 'r' && (
-              <select className="m-only" value={c.gender} aria-label={`${i + 1}번 성별`} onChange={(e) => game().setCfg(i, { gender: e.target.value })}>
+              <select className="m-only" value={c.gender} aria-label={`${i + 1}번 성별`} onChange={(e) => { game().setCfg(i, { gender: e.target.value }); flash(); }}>
                 {GENDERS.map(([k, t]) => <option key={k} value={k}>{t}</option>)}
               </select>
             )}
-            {c.age !== 'r' && <div className="pc-only gender"><Seg small label={`${i + 1}번 성별`} value={c.gender} options={GENDERS} onChange={(g) => game().setCfg(i, { gender: g })} /></div>}
+            {c.age !== 'r' && <div className="pc-only gender"><Seg small label={`${i + 1}번 성별`} value={c.gender} options={GENDERS} onChange={(g) => { game().setCfg(i, { gender: g }); flash(); }} /></div>}
           </div>
           {warn && <p className="dup-warn" role="alert">{warn.m}</p>}
           {/* 휴대폰: 넓은 화면의 설명 칸 대신 종류 한 줄 소개(창 높이는 그대로) */}
           <p className="m-only m-desc">{AGE_DESC[c.age]}</p>
           <div className="pc-only ages">
-            <Seg small label={`${i + 1}번 종류`} value={c.age} options={AGES} onChange={(a) => { game().setCfg(i, { age: a }); game().react(i, 'mood', true); }} />
+            <Seg small label={`${i + 1}번 종류`} value={c.age} options={AGES} onChange={(a) => { game().setCfg(i, { age: a }); game().react(i, 'mood', true); flash(); }} />
           </div>
           <div className="pc-only desc">
             <p className="desc-t">{AGE_DESC[c.age]}</p>
@@ -347,14 +350,27 @@ function RaceBar({ v, game, onStop, onNew }) {
 
 function Result({ r, onPick }) {
   const best = parseFloat(r.rank[0].right);
+  const [copy, setCopy] = useState(null);
+  useEffect(() => { if (!copy) return; const t = setTimeout(() => setCopy(null), 2000); return () => clearTimeout(t); }, [copy]);
+  const gapOf = (x, i) => { const d = parseFloat(x.right) - best; return i === 0 || Number.isNaN(d) ? '' : '+' + d.toFixed(2) + '초'; };
+  const copyResult = () => {
+    const lines = ['미니 레이스 토너먼트 결과', ...r.rank.map((x, i) => `${x.pos} ${x.name} ${x.right}` + (gapOf(x, i) ? ` (${gapOf(x, i)})` : ''))];
+    if (r.bet) lines.push(r.bet);
+    // Promise로 감싸 clipboard가 없는 환경의 동기 오류도 "복사 실패"로 처리
+    Promise.resolve().then(() => navigator.clipboard.writeText(lines.join('\n'))).then(() => setCopy('ok'), () => setCopy('fail'));
+  };
   return (
     <section id="result" aria-live="polite">
-      <h2>최종 순위</h2>
+      <div className="result-head">
+        <h2>최종 순위</h2>
+        <button type="button" className="copy-btn" onClick={copyResult}>
+          {copy === 'ok' ? '✓ 복사됨' : copy === 'fail' ? '복사 실패' : '📋 결과 복사'}
+        </button>
+      </div>
       {r.bet && <p className="sub">{r.bet}</p>}
       <ol>
         {r.rank.map((x, i) => {
-          const d = parseFloat(x.right) - best;
-          const gap = i === 0 || Number.isNaN(d) ? '' : '+' + d.toFixed(2) + '초';
+          const gap = gapOf(x, i);
           // 1등 원함: 1·2·3위 하이라이트, 꼴등 원함: 꼴찌만, N등 원함: 그 등수만
           const hl = r.want === 'last'
             ? (i === r.rank.length - 1 ? 'hl-last' : undefined)
