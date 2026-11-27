@@ -1262,8 +1262,8 @@ function newPlaceBg(th, now, top) {
         c.fillStyle = n ? '#202e3d' : '#bbc3bd'; c.fillRect(x - 1, by - bh, bw + 2, 2);
       }
     }
-    // 넓은 강물은 강둑 아래부터 산책로 위까지 이어진다.
-    c.fillStyle = n ? '#102d49' : '#315f87'; c.fillRect(0, top - 45, G.W, 75);
+    // 강물은 산책로 턱에서 끝나고, 강변 산책로가 관중석 앞까지 이어진다.
+    c.fillStyle = n ? '#102d49' : '#315f87'; c.fillRect(0, top - 45, G.W, 45);
     const waterOff = off * .42;
     for (let i = Math.floor((waterOff - 30) / 76); i <= Math.ceil((waterOff + G.W + 30) / 76); i++) {
       const x = i * 76 - waterOff + hsh(i * 2) * 24, y = top - 40 + hsh(i * 3) * 64;
@@ -1319,9 +1319,10 @@ function newPlaceBg(th, now, top) {
       if (n) { c.fillStyle = '#ffd77e'; c.fillRect(x - 2, top - 30, 4, 2); }
     }
     if (n) for (let x = 18; x < G.W; x += 42) { c.fillStyle = '#ffe19a'; c.fillRect(x, top - 31, 3, 2); }
-    // 오리배는 다리 아래 물 위를 천천히 오간다.
-    for (let i = Math.floor((off * .24 - 80) / 300); i <= Math.ceil((off * .24 + G.W + 80) / 300); i++) {
-      const x = i * 300 + 120 - off * .24 + now * 5 % 300, y = top + 18 + hsh(i * 7) * 5;
+    // 오리배는 V자 교각 사이의 물길을 따라 천천히 떠간다.
+    for (let i = Math.floor((pierOff - 100) / pierStep); i <= Math.ceil((pierOff + G.W + 100) / pierStep); i++) {
+      const phase = ((now * 2 + hsh(i * 7) * 90) % 90), drift = phase < 45 ? phase : 90 - phase,
+        x = i * pierStep - pierOff + 145 - 5 + drift - 22, y = top - 12 + hsh(i * 11) * 4;
       c.fillStyle = n ? '#e6e2d5' : '#fff'; c.beginPath(); c.ellipse(x, y, 12, 4, 0, 0, 7); c.fill();
       c.fillStyle = n ? '#c8a95f' : '#f3bd3e'; c.beginPath(); c.arc(x + 1, y - 4, 4, Math.PI, 0); c.fill();
       c.strokeStyle = n ? 'rgba(255,220,145,.45)' : 'rgba(255,255,255,.7)'; c.beginPath(); c.moveTo(x - 14, y + 4); c.lineTo(x + 14, y + 4); c.stroke();
@@ -1347,8 +1348,19 @@ function newPlaceBg(th, now, top) {
     }
   }
   const hands = [];
-  for (let i = s0; i <= s1; i++) { const x = i * spacing + hsh(i + 8) * 20 - off; if (hsh(i * 3) > .25) { const h = spectator(x, GT - 6, i, now, false, n, undefined, undefined, p); if (n && h) hands.push(h); } }
-  c.fillStyle = n ? '#4b5057' : p === 'busan' ? '#d4c39b' : p === 'hangang' ? '#9aa88b' : '#9a8060'; c.fillRect(0, top + 30, G.W, GT - top - 30);
+  if (p !== 'hangang') for (let i = s0; i <= s1; i++) { const x = i * spacing + hsh(i + 8) * 20 - off; if (hsh(i * 3) > .25) { const h = spectator(x, GT - 6, i, now, false, n, undefined, undefined, p); if (n && h) hands.push(h); } }
+  c.fillStyle = n ? '#4b5057' : p === 'busan' ? '#d4c39b' : p === 'hangang' ? '#63885e' : '#9a8060';
+  c.fillRect(0, p === 'hangang' ? top : top + 30, G.W, GT - (p === 'hangang' ? top : top + 30));
+  if (p === 'hangang') {
+    // 강물 가장자리의 낮은 턱과 넓은 포장 산책로가 관중 발밑을 받친다.
+    c.fillStyle = n ? '#56645e' : '#a4ad91'; c.fillRect(0, top, G.W, 3);
+    c.fillStyle = n ? '#777d78' : '#c4c0ae'; c.fillRect(0, GT - 30, G.W, 14);
+    c.fillStyle = n ? '#a5a092' : '#e0d8c3'; c.fillRect(0, GT - 30, G.W, 2);
+    c.fillStyle = n ? 'rgba(34,42,39,.45)' : 'rgba(112,105,85,.35)';
+    for (let x = 30; x < G.W; x += 56) c.fillRect(x, GT - 28, 1, 11);
+    c.fillStyle = n ? '#404a45' : '#87937c'; c.fillRect(0, GT - 16, G.W, 2);
+  }
+  if (p === 'hangang') for (let i = s0; i <= s1; i++) { const x = i * spacing + hsh(i + 8) * 20 - off; if (hsh(i * 3) > .25) { const h = spectator(x, GT - 6, i, now, false, n, undefined, undefined, p); if (n && h) hands.push(h); } }
   c.fillStyle = n ? '#242c34' : p === 'busan' ? '#b69a67' : p === 'hangang' ? '#63885e' : '#715437'; c.fillRect(0, GT - 16, G.W, 4);
   const fence0 = Math.floor((G.camX - OFF) / 48);
   for (let i = fence0; i <= fence0 + G.W / 48 + 1; i++) c.fillRect(i * 48 - G.camX + OFF, GT - 16, 2, 13);
