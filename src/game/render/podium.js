@@ -10,7 +10,8 @@ export function podiumStep(dt) {
     y: -10,
     vx: VR(-40, 40),
     vy: VR(90, 170),
-    c: COLORS[Math.floor(VR(0, 8))],
+    // 색종이 10장 중 4장은 우승자 옷 색
+    c: G.fin[0] && VR(0, 1) < .4 ? G.fin[0].color : COLORS[Math.floor(VR(0, 8))],
     a: VR(0, 6)
   });
   for (const c of G.conf) {
@@ -113,6 +114,7 @@ export function lastSign(lx) {
 }
 // 시상식 화면 한 프레임
 export function drawPodium() {
+  G.podPos = {};
   G.podBub = null;
   G.lastBub = null;
   G.nthBub = null;
@@ -203,6 +205,9 @@ export function drawPodium() {
           y: top + off - 88
         };
       }
+      if (k >= 0) {
+        G.podPos[k + 1] = { x: sl.x, y: top + off - 84 };
+      }
     }
   });
   if (G.n > 1 && G.fin[G.n - 1]) {
@@ -247,6 +252,7 @@ export function drawPodium() {
         y: fy - 106,
         t: r.age === 'r' ? '삐빅… 패배 감지' : '흑흑…'
       };
+      G.podPos[G.n] = { x: x, y: fy - 104 };
     }
   }
   // N등 원함(4등부터): 꼴등 자리와 대칭으로 오른쪽에서 걸어 들어와 'N등' 표지판 옆에 섬
@@ -291,6 +297,7 @@ export function drawPodium() {
       G.ctx.fill();
       G.ctx.fillStyle = ink(r.color);
       G.ctx.fillText(r.name, x, fy - 81);
+      G.podPos[N] = { x: x, y: fy - 104 };
       G.nthBub = { x: x, y: fy - 106, t: r.age === 'r' ? N + '위 확인. 나쁘지 않음' : '제가 ' + N + '등이에요!' };
     }
   }
@@ -311,4 +318,56 @@ export function drawPodium() {
   if (G.podBub && G.winLine) bubble(G.podBub.x, G.podBub.y, G.winLine);
   if (G.lastBub) bubble(G.lastBub.x, G.lastBub.y, G.lastBub.t);
   if (G.nthBub) bubble(G.nthBub.x, G.nthBub.y, G.nthBub.t);
+  podiumFocusMark();
+}
+// 최종 순위에서 고른 사람 강조(3초): 시상식에 서 있으면 머리 위 화살표, 아니면 가운데 위에 작은 카드
+function podiumFocusMark() {
+  const f = G.podFocus;
+  if (!f || G.pt - f.t > 3) return;
+  const r = G.fin[f.rank - 1];
+  if (!r) return;
+  const a = G.pt - f.t,
+    fade = Math.min(1, a / .2, (3 - a) / .3),
+    p = G.podPos[f.rank],
+    c = G.ctx;
+  c.save();
+  c.globalAlpha = Math.max(0, fade);
+  if (p) {
+    const y = p.y - 14 - Math.abs(Math.sin(a * 6)) * 8;
+    c.fillStyle = '#ffd84a';
+    c.strokeStyle = '#1e2b33';
+    c.lineWidth = 2.5;
+    c.beginPath();
+    c.moveTo(p.x - 11, y - 14);
+    c.lineTo(p.x + 11, y - 14);
+    c.lineTo(p.x, y);
+    c.closePath();
+    c.fill();
+    c.stroke();
+  } else {
+    const w = 210,
+      h = 64,
+      x = G.W / 2 - w / 2,
+      y = 62;
+    c.fillStyle = 'rgba(20,30,40,.85)';
+    rr(x, y, w, h, 12);
+    c.fill();
+    c.strokeStyle = r.color;
+    c.lineWidth = 3;
+    rr(x, y, w, h, 12);
+    c.stroke();
+    c.save();
+    c.translate(x + 34, y + h - 6);
+    c.scale(.62, .62);
+    drawPerson(0, 0, r, { cheer: false, run: false });
+    c.restore();
+    c.fillStyle = '#fff';
+    c.textAlign = 'left';
+    c.font = '18px Jua,sans-serif';
+    c.fillText(f.rank + '위 ' + r.name, x + 66, y + 28);
+    c.font = '14px Jua,sans-serif';
+    c.fillStyle = '#cfd8dd';
+    c.fillText(r.time.toFixed(2) + '초', x + 66, y + 49);
+  }
+  c.restore();
 }

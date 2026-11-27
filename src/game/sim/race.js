@@ -1,10 +1,10 @@
-import { ACC_KEYS, BACK, GT, ITEMS, JT, TRACK, WIN_LINES } from "../constants.js";
+import { ACC_KEYS, BACK, GT, ITEMS, JT, PASS_LINES, TRACK, WIN_LINES } from "../constants.js";
 import { push } from "../engine.js";
 import { useItem } from "./items.js";
 import { robotStep } from "./robot.js";
 import { EV, eventPool, evCrowd, evLines } from "../events.js";
 import { G } from "../state.js";
-import { R } from "../util.js";
+import { R, hsh } from "../util.js";
 export function say(r, t) {
   G.fx.push({
     x: r.x,
@@ -41,6 +41,7 @@ export function setup() {
   G.camX = 0;
   G.clock = 0;
   G.endWait = 0;
+  G.passG = -9;
   G.loseT = -1;
   G.rt = 0;
   G.slowT = 0;
@@ -507,6 +508,16 @@ export function update(dt) {
   G.portals = G.portals.filter(o => o.t > 0);
   G.bolts = G.bolts.filter(o => o.t > 0);
   G.fx = G.fx.filter(f => f.t < 1);
+  // 추월 말풍선: 순위가 오르면 한마디. 같은 사람은 6초, 전체는 1.5초에 한 번만(말풍선이 넘치지 않게)
+  liveRank();
+  for (const r of G.racers) {
+    if (!r.fin && r.pcur && r.cur < r.pcur && G.rt > 3 && G.rt - (r.passT ?? -9) > 6 && G.rt - (G.passG ?? -9) > 1.5 && !r.ev) {
+      const L = PASS_LINES[r.age] || PASS_LINES.a;
+      (G.fx = G.fx.filter(f => !(f.b && f.ri === r.i))).push({ x: r.x, d: r.d, t: 0, s: L[Math.floor(hsh(r.i * 31 + Math.floor(G.rt * 10)) * L.length)], b: 1, ri: r.i });
+      r.passT = G.passG = G.rt;
+    }
+    r.pcur = r.cur;
+  }
   if (G.racers.every(r => r.fin)) {
     G.endWait += dt;
     // 꼴찌 말풍선이 정해진 뒤 2.8초는 보이게: 일찍 정해졌으면 1.3초만 기다리고 바로 시상식으로
