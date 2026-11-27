@@ -1080,6 +1080,8 @@ function drawStoneDino(now, gy) {
         if (dino.x >= TRACK + 48) {
           dino.state = 'finish';
           dino.finishT = 3;
+          // 아직 달리는 주자가 있으면 여유, 모두 들어온 뒤면 힘듦
+          dino.line = G.fin.length < G.n ? '나름 할 만한데?' : '생각보다 힘들다…';
         }
       }
     }
@@ -1117,7 +1119,7 @@ function drawStoneDino(now, gy) {
   c.fillStyle = 'rgba(255,140,120,.5)'; c.beginPath(); c.arc(9, -21, 1.6, 0, 7); c.fill(); c.restore();
 
   if (finished) {
-    if (dino.finishT > 0) dinoBubble(dx, y - bob - 32, '나도 결승선 통과!');
+    if (dino.finishT > 0) dinoBubble(dx, y - bob - 32, dino.line);
   } else if (panting) {
     dinoBubble(dx, y - bob - 32, '헥헥… 잠깐만…');
   } else if (running || turning) {
