@@ -230,7 +230,6 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
             <p>{AGE_DESC[c.age]}</p>
             <p><b className="pro">장점</b> {AGE_PROS[c.age][0]}</p>
             <p><b className="con">패널티</b> {AGE_PROS[c.age][1]}</p>
-            {c.age !== 'r' && <p className="soon">※ 사람 능력 차이는 곧 반영돼요</p>}
           </div>
         </div>
         )}

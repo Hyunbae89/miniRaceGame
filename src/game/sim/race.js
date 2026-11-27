@@ -150,7 +150,7 @@ export function setup() {
       base: R(215, 232),
       mult: 1,
       change: 0,
-      skill: R(.6, .9),
+      skill: R(.6, .9) + (G.cfg[i].age === 'c' ? .1 : 0),
       dd: {},
       jt: -1,
       h: 0,
@@ -249,11 +249,12 @@ export function update(dt) {
         const late = r.x > TRACK - 1000,
           q = Math.random();
         r.mult = q < (late ? .45 : .35) ? R(1.3, 1.7) : q < .7 ? R(.5, .75) : R(.95, 1.15);
-        r.change = R(.6, 1.8);
+        r.change = R(.6, 1.8) * (r.age === 'a' && r.mult > 1.2 ? 1.5 : 1);
       }
       const gap = lead - r.x;
       let m = r.mult + Math.min(gap / 450, 1) * .28 - (gap < 1 ? .08 : 0);
       if (r.age === 'r') m = robotStep(r, dt, gap);
+      if (r.age === 'c' && r.x > TRACK * .7) m *= .95;
       if (r.slow > 0) m *= .55;
       if (r.veh) m *= r.veh.m;
       const mud = r.h < 14 && !(r.veh && r.veh.k === 'jet') && G.muds.some(z => r.x >= z.x0 && r.x <= z.x1);
@@ -263,7 +264,7 @@ export function update(dt) {
       }
       r.inMud = mud;
       if (evm !== null) m = evm;
-      r.speed += (r.base * m - r.speed) * Math.min(1, dt * 4);
+      r.speed += (r.base * m - r.speed) * Math.min(1, dt * (r.age === 'c' ? 6 : r.age === 'e' ? 2.5 : 4));
     }
     r.x += (r.speed + r.kx) * dt;
     r.kx *= Math.pow(.02, dt);
@@ -322,6 +323,11 @@ export function update(dt) {
             if (r.age === 'r' && Math.random() < .25) {
               r.inv = 1.5;
               say(r, '끄떡없음!');
+              break;
+            }
+            if (r.age === 'e' && Math.random() < .3) {
+              r.inv = 1.5;
+              say(r, '어이쿠, 버텼다!');
               break;
             }
             if (t.type === 'water') {

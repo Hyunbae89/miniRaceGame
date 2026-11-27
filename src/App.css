@@ -254,7 +254,6 @@ canvas{display:block;width:100%;height:auto;border-radius:var(--radius);border:1
 .desc p{margin:0}
 .desc .pro{color:var(--ok)}
 .desc .con{color:#e4572e}
-.desc .soon{font-size:11px;opacity:.75}
 
 /* 가이드: 제목 옆 ? 아이콘, 화면 캡처 + 설명을 한 장씩 넘기는 창 */
 .guide-btn{width:26px;height:26px;padding:0;margin-left:6px;vertical-align:middle;border-radius:50%;font-family:var(--font);font-size:15px;font-weight:800;line-height:1;background:var(--panel2);color:var(--accent);border:1.5px solid var(--accent)}
