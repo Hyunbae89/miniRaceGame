@@ -344,6 +344,10 @@ export function createGame(cv, ui) {
       push();
     },
     // N등 원함: 2등 ~ 꼴등 바로 앞까지
+    // 최종 순위에서 고른 사람을 시상식 화면에서 3초간 강조
+    podiumFocus: rank => {
+      if (G.state === 'podium') G.podFocus = { rank, t: G.pt };
+    },
     setWantN: k => {
       G.wantN = Math.max(2, Math.min(G.n - 1, k));
       push();

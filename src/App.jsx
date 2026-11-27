@@ -150,9 +150,9 @@ function Switch({ label, on, onText = '켜짐', offText = '꺼짐', onChange }) 
 }
 const PLACES = [['city', '🏙️ 서울 도심'], ['trad', '🏯 전통 마을'], ['busan', '🌊 부산 바다'], ['hangang', '🌉 한강 공원'], ['stone', '🦕 쥬라기섬']];
 
-function Row({ pos, color, name, right, hl }) {
+function Row({ pos, color, name, right, hl, onPick }) {
   return (
-    <li className={hl} title={hl === 'hl-nth' ? '결과 산출로 고른 등수' : undefined}>
+    <li className={hl} title={hl === 'hl-nth' ? '결과 산출로 고른 등수' : '누르면 시상식에서 이 사람을 보여 줘요'} onClick={onPick} role={onPick ? 'button' : undefined} tabIndex={onPick ? 0 : undefined} onKeyDown={onPick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onPick(); } } : undefined}>
       <span className="pos">{pos}</span>
       <span className="dot" style={{ background: color }} />
       <span>{name}</span>
@@ -329,7 +329,7 @@ function RaceBar({ v, game, onStop, onNew }) {
   );
 }
 
-function Result({ r }) {
+function Result({ r, onPick }) {
   return (
     <section id="result" aria-live="polite">
       <h2>최종 순위</h2>
@@ -342,7 +342,7 @@ function Result({ r }) {
             : r.want === 'nth'
               ? (i === r.wantN - 1 ? 'hl-nth' : undefined)
               : (i < 3 ? `hl-${i + 1}` : undefined);
-          return <Row key={i} {...x} hl={hl} />;
+          return <Row key={i} {...x} hl={hl} onPick={onPick && (() => onPick(i + 1))} />;
         })}
       </ol>
     </section>
@@ -562,7 +562,7 @@ export default function App() {
           </>
         )}
       </div>
-      {v && v.result && <Result r={v.result} />}
+      {v && v.result && <Result r={v.result} onPick={(k) => { game().podiumFocus(k); canvasRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }} />}
       {guide && <Guide onClose={() => setGuide(false)} />}
       {notice && (
         <Notice title="참가자를 먼저 확정해 주세요" goText="최종 결정으로 이동" onClose={() => setNotice(false)} onGo={goConfirm}>
