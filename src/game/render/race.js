@@ -1,5 +1,5 @@
 // 레이스 화면 그리기: 배경·도로·장애물·아이템·캐릭터·지도·실시간 순위·카운트다운, 말풍선.
-import { GT, ITEMS, OFF, TRACK } from "../constants.js";
+import { GT, ITEMS, LOSE_LINES, OFF, TRACK } from "../constants.js";
 import { TH, cityBg, roadPools, stars } from "./background.js";
 import { focusR } from "../camera.js";
 import { EV } from "../events.js";
@@ -11,7 +11,7 @@ import { drawPreview } from "./preview.js";
 import { drawBattery } from "./robot.js";
 import { hx, liveRank } from "../sim/race.js";
 import { G } from "../state.js";
-import { R, ink, rr } from "../util.js";
+import { R, hsh, ink, rr } from "../util.js";
 // 카운트다운 중인지(실제 경기, 또는 리플레이의 음수 시간 구간)와 남은 초
 export function counting() {
   return G.state === 'count' || G.state === 'replay' && G.rp < 0;
@@ -550,7 +550,8 @@ export function drawLabels(list) {
   const placed = [],
     dots = [],
     hit = (q) => placed.some((o) => q.x < o.x + o.w + 2 && o.x < q.x + q.w + 2 && q.y < o.y + o.h + 1 && o.y < q.y + q.h + 1);
-  let bub = null;
+  let bub = null,
+    lose = null;
   G.ctx.globalAlpha = alpha;
   for (const { r, px, py } of list) {
     if (r.fin) {
@@ -562,6 +563,11 @@ export function drawLabels(list) {
       G.ctx.font = '18px Jua,sans-serif';
       G.ctx.fillText(r.rank + '위', px, py - 66);
       if (r.rank === 1 && G.winLine && tn - r.time < 3.5) bub = [px, py - 90];
+      // 꼴찌: 들어오면서 울며 한마디(말은 도착 시각으로 정해 게임 난수를 쓰지 않음)
+      if (G.n > 1 && r.rank === G.n && tn - r.time < 3) {
+        const L = r.age === 'r' ? LOSE_LINES.r : LOSE_LINES.h;
+        lose = [px, py - 90, L[Math.floor(hsh(Math.round(r.time * 100)) * L.length)]];
+      }
     } else {
       G.ctx.font = '14px Jua,sans-serif';
       const tw = Math.max(34, G.ctx.measureText(r.name).width + 14),
@@ -588,6 +594,7 @@ export function drawLabels(list) {
   }
   G.ctx.globalAlpha = 1;
   if (bub) bubble(bub[0], bub[1], G.winLine);
+  if (lose) bubble(lose[0], lose[1], lose[2]);
   G.ctx.textAlign = 'center';
 }
 // 말풍선: (x, y)가 꼬리 끝. 화면 밖으로 나가지 않게 좌우로 맞춤

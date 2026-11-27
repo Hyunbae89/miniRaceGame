@@ -265,6 +265,7 @@ export function createGame(cv, ui) {
     y: 92
   };
   G.heliMX = null;
+  G.heliPick = null;
   G.noHeli = false;
   G.sp = null;
   G.podBub = null;

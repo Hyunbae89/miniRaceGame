@@ -22,7 +22,31 @@ const AGE_PROS = {
 const MODES = [['normal', '일반'], ['item', '아이템전']];
 // 레이스 배속 3단계(빠르게 = 예전 속도)
 const RATES = [[.65, '느리게'], [.8, '보통'], [1, '빠르게']];
-const WANTS = [['first', '1등 원함'], ['nth', 'N등 원함'], ['last', '꼴등 원함']];
+// 결과산출: [1등 | − N등 + | 꼴등]. N등을 누르면 2등부터, −는 2등에서 1등으로, +는 꼴등 바로 앞에서 꼴등으로 넘어감
+function WantPick({ v, game }) {
+  const g = game(), N = Math.min(v.wantN, v.n - 1);
+  const pickNth = () => (v.n < 3 ? g.setWant('last') : (g.setWant('nth'), g.setWantN(2)));
+  const down = () => (N <= 2 ? g.setWant('first') : g.setWantN(N - 1));
+  const up = () => (N >= v.n - 1 ? g.setWant('last') : g.setWantN(N + 1));
+  const btn = (k, t) => (
+    <button type="button" role="radio" aria-checked={v.want === k} className={v.want === k ? 'on' : ''} onClick={() => g.setWant(k)}>{t}</button>
+  );
+  return (
+    <div className="seg want-seg" role="radiogroup" aria-label="결과산출">
+      {btn('first', '1등 원함')}
+      {v.want === 'nth' ? (
+        <span className="nth-on" role="radio" aria-checked="true">
+          <button type="button" className="nth-step" aria-label="한 등수 위로" onClick={down}>−</button>
+          <b aria-live="polite">{N}등 원함</b>
+          <button type="button" className="nth-step" aria-label="한 등수 아래로" onClick={up}>+</button>
+        </span>
+      ) : (
+        <button type="button" role="radio" aria-checked="false" onClick={pickNth}>N등 원함</button>
+      )}
+      {btn('last', '꼴등 원함')}
+    </div>
+  );
+}
 // 장신구 탭: 왼쪽은 장신구 줄(이름 · 종류 알약), 오른쪽 끝은 모든 장신구가 같이 쓰는 색 칸(2열).
 // 장신구를 누르면 그 장신구가 선택되고 색 칸이 그 장신구의 색을 바꿈.
 // k 설정 키, opts 종류([값, 이름]), wear 값 자체가 색인 장신구의 기본색, ck 색 키, pal 색 목록,
@@ -162,14 +186,7 @@ function RulesPanel({ v, game, onStart, confirmed }) {
         </div>
         <div className="field">
           <span className="label">결과산출</span>
-          <Seg label="결과산출" value={v.want} options={WANTS.map(([k, t]) => [k, k === 'nth' && v.want === 'nth' ? Math.min(v.wantN, v.n - 1) + '등 원함' : t])} onChange={(w) => game().setWant(w)} />
-          {v.want === 'nth' && (
-            <div className="nth-pick">
-              <button type="button" className="sq" aria-label="등수 내리기" disabled={v.wantN <= 2} onClick={() => game().setWantN(v.wantN - 1)}>−</button>
-              <span aria-live="polite"><b>{Math.min(v.wantN, v.n - 1)}</b>등을 비춰요</span>
-              <button type="button" className="sq" aria-label="등수 올리기" disabled={v.wantN >= v.n - 1} onClick={() => game().setWantN(v.wantN + 1)}>+</button>
-            </div>
-          )}
+          <WantPick v={v} game={game} />
         </div>
         <div className="field map-field">
           <div className="map-head">
@@ -346,7 +363,7 @@ function StopDialog({ onBack, onReset, onCancel }) {
 // 가이드: 실제 화면 캡처(public/guide)와 설명을 한 장씩. 첫 화면의 각 부분 → 레이스 → 시상식 → 리플레이
 const GUIDE = [
   ['01-count', '참가 인원', ['− / + 버튼으로 2~20명을 고릅니다.', '인원을 바꾸면 참가자 창이 다시 열려요.']],
-  ['02-rules', '경기 설정', ['모드: 일반 / 아이템전(?박스에서 탈것·무기·함정을 얻음)', '결과산출: 시상식 조명을 1등에게 줄지, 꼴등에게 줄지', '맵: 서울 도심 / 전통 마을 / 부산 바다 / 한강 공원 / 쥬라기섬 × 낮 / 밤', '랜덤 이벤트: 켜면 달리다가 좋은 일·나쁜 일이 생겨요', '장애물: 허들·물웅덩이·진흙·스프링 발판을 놓을지', '경기 시작: 참가자를 최종 결정한 뒤에 열려요']],
+  ['02-rules', '경기 설정', ['모드: 일반 / 아이템전(?박스에서 탈것·무기·함정을 얻음)', '결과산출: 시상식 조명을 1등·N등(−/+로 등수 고르기)·꼴등 중 누구에게 줄지', '맵: 서울 도심 / 전통 마을 / 부산 바다 / 한강 공원 / 쥬라기섬 × 낮 / 밤', '랜덤 이벤트: 켜면 달리다가 좋은 일·나쁜 일이 생겨요', '장애물: 허들·물웅덩이·진흙·스프링 발판을 놓을지', '경기 시작: 참가자를 최종 결정한 뒤에 열려요']],
   ['03-roster', '참가자 창 · 기본', ['한 명씩 옷 색·이름·성별·종류(어린이·성인·어르신·로봇)를 정해요.', '오른쪽 설명 칸에서 종류의 특징과 장점·패널티를 볼 수 있어요.', '바꿀 때마다 출발선의 캐릭터가 한마디 해요.', '아래 버튼: 장신구 ▶ → 다음 사람 ▶ 순서로 넘어가요.']],
   ['04-acc', '참가자 창 · 장신구', ['장신구 줄을 누르고 종류를 골라요(없음 · 캡모자 · 비니 …).', '오른쪽 색상 칸은 지금 누른 장신구의 색을 바꿔요. 무지개 점은 다른 색.', '로봇은 눈 빛 · 경고 띠 · 안테나 · 등 · 발 부품을 바꿔요.', '장신구는 모습만 바꾸고 레이스 결과에는 영향이 없어요.']],
   ['05-start', '최종 결정과 시작', ['자리 섞기: 출발 레인 순서를 섞어요.', '최종 결정: 아직 안 본 참가자가 있으면 알려 줘요.', '결정하면 ▶ 시작 버튼이 열리고, 참가자 수정으로 다시 고칠 수 있어요.']],
