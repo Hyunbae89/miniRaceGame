@@ -5,7 +5,7 @@ import { reactPose } from "./reactions.js";
 import { robotBody } from "./robot.js";
 import { drawVeh } from "./vehicles.js";
 import { G } from "../state.js";
-import { R, easeIO, lerp, rr, shade } from "../util.js";
+import { VR, vrand, easeIO, lerp, rr, shade } from "../util.js";
 // 각도는 아래 방향이 0, 앞(+x)이 양수. 정강이 = 허벅지 - 무릎(뒤로 접힘), 아래팔 = 위팔 + 팔꿈치(앞으로 접힘)
 // fk: 관절 두 마디의 끝점 계산(무릎·발 또는 팔꿈치·손)
 export function fk(x, y, a1, l1, a2, l2) {
@@ -255,12 +255,12 @@ export function drawPerson(px, py, r, o) {
     if (robo && o.wx !== undefined) {
       G.shake = Math.max(G.shake, .18);
       for (let k = 0; k < 10; k++) G.dust.push({
-        x: o.wx + R(-8, 8),
+        x: o.wx + VR(-8, 8),
         d: o.wd,
         y: 1,
-        vx: R(-120, 120),
-        vy: R(40, 120),
-        r: R(.8, 1.6),
+        vx: VR(-120, 120),
+        vy: VR(40, 120),
+        r: VR(.8, 1.6),
         a: 1,
         c: k % 2 ? '#ffb020' : '#ffe08a',
         g: 1
@@ -511,7 +511,7 @@ export function drawPerson(px, py, r, o) {
   }
   if (o.cry && !o.sad && f === 'n') f = 'cry';
   if (robo) {
-    if (kind === 'stun') P.rot = (Math.random() - .5) * .05;
+    if (kind === 'stun') P.rot = (vrand() - .5) * .05;
     f = o.stun ? 'reboot' : o.chg > 1.5 ? 'error' : o.chg > 0 ? 'low' : o.ovh > 0 ? 'hot' : o.cheer ? 'happy' : o.sad || f === 'cry' ? 'sad' : o.boost > 0 || f === 'focus' ? 'focus' : 'n';
     if (o.chg > 0 && kind !== 'stun') {
       P = pose([{
@@ -695,13 +695,13 @@ export function drawPerson(px, py, r, o) {
   G.ctx.restore();
   // 흙먼지: 발이 땅을 딛는 순간(허벅지가 뒤로 가기 시작) 월드 좌표에 생성
   // 과열·재부팅 연기
-  if (robo && o.wx !== undefined && (o.ovh > 0 || o.stun) && G.fdt > 0 && Math.random() < G.fdt * 14 && G.dust.length < 300) G.dust.push({
-    x: o.wx + R(-6, 6),
+  if (robo && o.wx !== undefined && (o.ovh > 0 || o.stun) && G.fdt > 0 && vrand() < G.fdt * 14 && G.dust.length < 300) G.dust.push({
+    x: o.wx + VR(-6, 6),
     d: o.wd,
     y: 52 * sc,
-    vx: R(-25, -5),
-    vy: R(25, 45),
-    r: R(2, 3.5),
+    vx: VR(-25, -5),
+    vy: VR(25, 45),
+    r: VR(2, 3.5),
     a: .9,
     c: '#8d99a3',
     g: -1
@@ -713,9 +713,9 @@ export function drawPerson(px, py, r, o) {
         x: o.wx + feet[s][0] * sc,
         d: o.wd,
         y: 0,
-        vx: -R(20, 70),
-        vy: R(10, 35),
-        r: R(1.5, 3),
+        vx: -VR(20, 70),
+        vy: VR(10, 35),
+        r: VR(1.5, 3),
         a: 1
       });
       an.prevCos[s] = cs;

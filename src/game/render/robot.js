@@ -2,7 +2,7 @@ import { ARM1, ARM2, COLORS, HIPS, LEG } from "../constants.js";
 import { antenna, backUnit, hazard, robotFoot } from "./accessories.js";
 import { fk, limb } from "./character.js";
 import { G } from "../state.js";
-import { rr, shade } from "../util.js";
+import { vrand, rr, shade } from "../util.js";
 export function led(f, now, o, eye) {
   const c = f === 'hot' || f === 'sad' ? '#ff6a5a' : f === 'low' || f === 'error' ? '#ffd166' : eye || '#5ff5c8';
   G.ctx.fillStyle = c;
@@ -16,9 +16,9 @@ export function led(f, now, o, eye) {
   };
   if (f === 'reboot') {
     for (let k = 0; k < 4; k++) {
-      if (Math.random() < .6) {
+      if (vrand() < .6) {
         G.ctx.globalAlpha = .5;
-        G.ctx.fillRect(-7, -51 + Math.random() * 10, 14, .8);
+        G.ctx.fillRect(-7, -51 + vrand() * 10, 14, .8);
       }
     }
     G.ctx.globalAlpha = 1;
@@ -121,7 +121,7 @@ export function robotBody(P, r, o, f, now) {
   limb(-1.5, -29, P.arms[0].u, ARM1, P.arms[0].u + P.arms[0].f, ARM2, 4, shade(metal, .35));
   if (r.back) backUnit(r.back, r, sp, o.run, now, joint);
   if (o.boost > 0) {
-    const fl = 9 + Math.random() * 7;
+    const fl = 9 + vrand() * 7;
     G.ctx.fillStyle = '#ff9f1c';
     G.ctx.beginPath();
     G.ctx.moveTo(-8, -28);

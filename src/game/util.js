@@ -1,5 +1,14 @@
 // 공통 도구: 난수, 섞기, 보간, 색 계산, 그리기 보조(둥근 사각형·글자 맞춤).
 import { G } from "./state.js";
+// 연출 전용 난수(먼지·색종이·흔들림 등). 게임 결과용 Math.random(R)과 분리해, 그리는 내용이 바뀌어도 경기 결과가 바뀌지 않게 함
+let vs = 123456789;
+export function vrand() {
+  vs = (Math.imul(vs, 1664525) + 1013904223) >>> 0;
+  return vs / 4294967296;
+}
+export function VR(a, b) {
+  return a + vrand() * (b - a);
+}
 // a 이상 b 미만의 무작위 실수
 export function R(a, b) {
   return a + Math.random() * (b - a);

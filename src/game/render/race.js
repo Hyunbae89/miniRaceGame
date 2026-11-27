@@ -11,7 +11,7 @@ import { drawPreview } from "./preview.js";
 import { drawBattery } from "./robot.js";
 import { hx, liveRank } from "../sim/race.js";
 import { G } from "../state.js";
-import { R, hsh, ink, rr } from "../util.js";
+import { VR, hsh, ink, rr } from "../util.js";
 // 카운트다운 중인지(실제 경기, 또는 리플레이의 음수 시간 구간)와 남은 초
 export function counting() {
   return G.state === 'count' || G.state === 'replay' && G.rp < 0;
@@ -29,7 +29,7 @@ export function draw() {
   if (G.shake > 0) {
     G.shake -= G.fdt;
     G.ctx.save();
-    G.ctx.translate(R(-3, 3) * G.shake * 5, R(-3, 3) * G.shake * 5);
+    G.ctx.translate(VR(-3, 3) * G.shake * 5, VR(-3, 3) * G.shake * 5);
     drawRace();
     G.ctx.restore();
   } else drawRace();
