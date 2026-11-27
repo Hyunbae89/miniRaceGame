@@ -1216,9 +1216,9 @@ function newPlaceBg(th, now, top) {
       for (let wx = x + 5; wx < x + bw - 4; wx += 10) c.fillRect(wx, by - bh + 7, 5, 4);
       if (hsh(i * 21) > .45) {
         const label = ['돼지국밥', '밀면', '편의점'][Math.floor(hsh(i * 25) * 3)], sy = by - bh + 11;
-        c.fillStyle = n ? '#e5a95d' : '#fff'; c.fillRect(x + 3, sy, bw - 6, 11);
-        c.strokeStyle = n ? '#ffe2a6' : '#d65b42'; c.lineWidth = 1; c.strokeRect(x + 3, sy, bw - 6, 11);
-        c.fillStyle = n ? '#26374f' : '#25313b'; c.font = 'bold 7px sans-serif'; c.textAlign = 'center'; c.fillText(label, x + bw / 2, sy + 8);
+        c.fillStyle = n ? '#e5a95d' : '#fff'; c.fillRect(x + 2, sy, bw - 4, 14);
+        c.strokeStyle = n ? '#ffe2a6' : '#d65b42'; c.lineWidth = 1; c.strokeRect(x + 2, sy, bw - 4, 14);
+        c.fillStyle = n ? '#26374f' : '#25313b'; c.font = 'bold 10px sans-serif'; c.textAlign = 'center'; c.fillText(label, x + bw / 2, sy + 11, bw - 6);
       }
     }
     // 갈매기는 멀리서 느리게 날고, 날갯짓 위상은 시간과 위치로 고정한다.
@@ -1344,10 +1344,10 @@ function newPlaceBg(th, now, top) {
     for (let i = Math.floor((off - 90) / 330); i <= Math.ceil((off + G.W + 90) / 330); i++) {
       if (hsh(i * 17 + 2) < .35) continue;
       const x = i * 330 + 150 - off, label = ['돼지국밥', '밀면', '편의점'][Math.abs(i) % 3];
-      c.fillStyle = n ? '#443b38' : '#725c43'; c.fillRect(x - 1, top + 7, 2, 17);
-      c.fillStyle = n ? '#f1c66f' : '#fff'; rr(x - 23, top - 3, 46, 13, 2); c.fill();
-      c.strokeStyle = n ? '#ffe2a6' : '#d65b42'; c.lineWidth = 1; c.strokeRect(x - 23, top - 3, 46, 13);
-      c.fillStyle = '#25313b'; c.font = 'bold 8px sans-serif'; c.textAlign = 'center'; c.fillText(label, x, top + 6);
+      c.fillStyle = n ? '#443b38' : '#725c43'; c.fillRect(x - 1, top + 9, 2, 15);
+      c.fillStyle = n ? '#f1c66f' : '#fff'; rr(x - 31, top - 9, 62, 18, 3); c.fill();
+      c.strokeStyle = n ? '#ffe2a6' : '#d65b42'; c.lineWidth = 1; c.strokeRect(x - 31, top - 9, 62, 18);
+      c.fillStyle = '#25313b'; c.font = 'bold 12px sans-serif'; c.textAlign = 'center'; c.fillText(label, x, top + 4);
     }
   }
   const hands = [];
