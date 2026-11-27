@@ -50,7 +50,12 @@ button.sq{width:48px;height:44px;padding:0;font-size:24px;background:var(--panel
    900px 미만은 두 줄(1줄 모드·결과산출, 2줄 맵), 720px 이하는 한 줄씩 */
 .rules{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px 16px;align-items:start;align-content:start;flex:1}
 .map-field{grid-column:1/-1}
-.map-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.map-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.map-opts{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+/* 이름표가 붙은 작은 선택 묶음: [장애물 | 있음 | 없음] */
+.opt-grp{display:flex;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding-left:10px}
+.opt-l{font-size:13px;font-weight:600;color:var(--muted);padding-right:6px;border-right:1px solid var(--line);margin-right:2px}
+.opt-grp .seg{border:0;background:none}
 .rules .seg.small{width:auto}
 .rules .seg.chips{display:flex;flex-wrap:wrap;gap:8px;background:none;border:0;padding:0}
 .rules .seg.chips button{flex:1 1 130px;padding:9px 10px;border:1px solid var(--line);border-radius:999px;background:var(--panel2);color:var(--ink);font-weight:600;white-space:nowrap}

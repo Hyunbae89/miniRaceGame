@@ -145,10 +145,6 @@ function CountPanel({ v, game }) {
         <span className="label">랜덤 이벤트</span>
         <Switch label="랜덤 이벤트" on={v.events} onChange={(b) => game().setEvents(b)} />
       </div>
-      <div className="count-ev">
-        <span className="label">장애물</span>
-        <Switch label="장애물" on={v.obstacles} onText="있음" offText="없음" onChange={(b) => game().setObstacles(b)} />
-      </div>
     </section>
   );
 }
@@ -171,7 +167,13 @@ function RulesPanel({ v, game, onStart, confirmed }) {
         <div className="field map-field">
           <div className="map-head">
             <span className="label">맵</span>
-            <Seg label="시간대" small value={time} options={[['day', '☀ 낮'], ['night', '☾ 밤']]} onChange={(t) => game().setMap(place + '-' + t)} />
+            <div className="map-opts">
+              {/* 장애물: 나중에 '커스텀'(직접 함정 놓기)이 세 번째 칸으로 들어올 자리 */}
+              <div className="opt-grp"><span className="opt-l" aria-hidden="true">장애물</span>
+                <Seg label="장애물" small value={v.obstacles ? 'on' : 'off'} options={[['on', '있음'], ['off', '없음']]} onChange={(x) => game().setObstacles(x === 'on')} />
+              </div>
+              <Seg label="시간대" small value={time} options={[['day', '☀ 낮'], ['night', '☾ 밤']]} onChange={(t) => game().setMap(place + '-' + t)} />
+            </div>
           </div>
           <Seg label="맵 장소" value={place} className="chips" options={PLACES} onChange={(p) => game().setMap(p + '-' + time)} />
         </div>
