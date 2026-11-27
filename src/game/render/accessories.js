@@ -11,6 +11,8 @@ function poly(pts) {
 // 모자: 머리 회전 안에서 그림(머리 중심 (0,-42), 반지름 8.5, 얼굴은 +x). s = 비니 방울 흔들림
 export function hat(k, col, s) {
   const c = G.ctx;
+  c.save();
+  c.translate(0, -2);
   if (k === 'cap') {
     c.fillStyle = col;
     c.beginPath();
@@ -63,6 +65,7 @@ export function hat(k, col, s) {
     c.fillStyle = 'rgba(255,255,255,.85)';
     c.fillRect(6.1, -51.6, .9, .9);
   }
+  c.restore();
 }
 // 신발: 다리 하나(무릎 kx,ky · 발 ex,ey · 발 각도 a). 뒤쪽 다리는 어둡게
 export function shoe(k, col, kx, ky, ex, ey, a, back) {
