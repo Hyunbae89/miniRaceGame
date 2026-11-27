@@ -340,6 +340,29 @@ export function drawPerson(px, py, r, o) {
       lean: .1
     });
     f = 'cry';
+  } else if (o.win) {
+    kind = 'win';
+    const beat = Math.sin(now * (el ? 5.5 : 6.5)), wave = Math.sin(now * 7.5);
+    if (robo) {
+      P = pose([{ t: .08 * beat, k: .12 }, { t: -.08 * beat, k: .12 }], [
+        { u: -.28 + .38 * beat, f: .35 }, { u: .28 - .38 * beat, f: .35 }
+      ], { lean: .08 * beat, lift: 1.5 * Math.max(0, Math.sin(now * 6.5)), head: .1 * beat });
+    } else if (ch) {
+      const hop = Math.max(0, Math.sin(now * 8));
+      P = pose([{ t: -.18, k: .42 }, { t: .18, k: .42 }], [
+        { u: -2.5 + .12 * wave, f: -.1 }, { u: 2.5 - .12 * wave, f: .1 }
+      ], { lift: hop * 3.2, lean: -.035 * beat, head: .035 * beat });
+    } else if (el) {
+      P = pose([{ t: -.04, k: .09 }, { t: .04, k: .09 }], [
+        { u: -2.25 + .18 * wave, f: .1 }, { u: 2.55 + .12 * wave, f: .12 }
+      ], { lean: -.08 - .025 * beat, lift: .25 * beat, head: -.08 + .035 * beat });
+    } else {
+      const pump = .5 + .5 * Math.sin(now * 4.2);
+      P = pose([{ t: -.035, k: .08 }, { t: .035, k: .08 }], [
+        { u: 1.45, f: -1.08 }, { u: 2.55 + .15 * pump, f: .12 }
+      ], { lean: -.04, head: -.09 * Math.max(0, beat) });
+    }
+    f = 'happy';
   } else if (o.cheer) {
     kind = 'cheer';
     const w = Math.sin(now * 10) * .15;
@@ -538,9 +561,16 @@ export function drawPerson(px, py, r, o) {
     });
   }
   if (o.cry && !o.sad && f === 'n') f = 'cry';
+  if (robo && o.swagger) {
+    const beat = Math.sin(now * 5.5), bounce = Math.max(0, Math.sin(now * 5.5));
+    P.lean += .11 * beat;
+    P.lift += 1.3 * bounce;
+    P.head += .16 * beat;
+    P.arms = P.arms.map((arm, i) => ({ u: arm.u + (i ? -1 : 1) * .24 * beat, f: arm.f + .08 * Math.cos(now * 5.5) }));
+  }
   if (robo) {
     if (kind === 'stun') P.rot = (vrand() - .5) * .05;
-    f = o.stun ? 'reboot' : o.chg > 1.5 ? 'error' : o.chg > 0 ? 'low' : o.ovh > 0 ? 'hot' : o.cheer ? 'happy' : o.sad || f === 'cry' ? 'sad' : o.boost > 0 || f === 'focus' ? 'focus' : 'n';
+    f = o.stun ? 'reboot' : o.chg > 1.5 ? 'error' : o.chg > 0 ? 'low' : o.ovh > 0 ? 'hot' : o.cheer || o.win ? 'happy' : o.sad || f === 'cry' ? 'sad' : o.boost > 0 || f === 'focus' ? 'focus' : 'n';
     if (o.chg > 0 && kind !== 'stun') {
       P = pose([{
         t: -.05,
@@ -712,7 +742,7 @@ export function drawPerson(px, py, r, o) {
     G.ctx.closePath();
     G.ctx.fill();
     if (fe) {
-      const fl = o.run && !seat ? 2 + 2.5 * Math.abs(Math.sin(2 * phi)) + (o.sprint ? 1.5 : 0) : 0;
+      const fl = o.run && !seat ? 2 + 2.5 * Math.abs(Math.sin(2 * phi)) + (o.sprint ? 1.5 : 0) : o.win ? 2 + 1.4 * Math.abs(Math.sin(now * 7.5)) : 0;
       G.ctx.fillStyle = r.color;
       G.ctx.beginPath();
       G.ctx.moveTo(-5.4, -18);
@@ -750,7 +780,13 @@ export function drawPerson(px, py, r, o) {
     G.ctx.restore();
   }
   // 어르신 지팡이(걸어갈 때만): 앞손에서 땅까지
-  if (el && !v && !o.sad && !o.cheer && !(o.ev && evNoCane(o.ev.id, o.ev.q))) {
+  if (el && o.win && !v && r.cane && !(o.ev && evNoCane(o.ev.id, o.ev.q))) {
+    const a = P.lean,
+      hx = hand[0] * Math.cos(a) - (hand[1] + 14) * Math.sin(a),
+      hy = hand[0] * Math.sin(a) + (hand[1] + 14) * Math.cos(a) - 14,
+      sway = Math.sin(now * 7.5) * 2.4;
+    cane(r.cane, r.caneC, hx, hy, hx + 7 + sway, -61 + sway * .45);
+  } else if (el && !v && !o.sad && !o.cheer && !o.win && !(o.ev && evNoCane(o.ev.id, o.ev.q))) {
     const a = P.lean,
       hx = hand[0] * Math.cos(a) - (hand[1] + 14) * Math.sin(a),
       hy = hand[0] * Math.sin(a) + (hand[1] + 14) * Math.cos(a) - 14;

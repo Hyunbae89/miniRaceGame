@@ -176,7 +176,9 @@ export function drawPodium() {
     G.ctx.translate(sl.x, top + off);
     G.ctx.scale(lerp(1.15, 1, sq), lerp(.75, 1, sq));
     drawPerson(0, 0, r, {
-      cheer: a > .7,
+      win: k === 0 && a > .7,
+      swagger: r.age === 'r' && a > .7,
+      cheer: a > .7 && k !== 0,
       run: false
     });
     G.ctx.restore();

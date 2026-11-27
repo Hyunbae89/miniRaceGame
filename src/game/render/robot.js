@@ -72,6 +72,20 @@ export function led(f, now, o, eye) {
     G.ctx.fillRect(2, bl ? -47 : -48.5, 2.2, bl ? .6 : 2.2);
     G.ctx.fillRect(-2, -43.6, 4, .9);
   }
+  if (o.win) {
+    G.ctx.fillStyle = '#ffd166';
+    G.ctx.beginPath();
+    G.ctx.moveTo(-4.2, -50.8);
+    G.ctx.lineTo(-3.6, -52.5);
+    G.ctx.lineTo(-1.2, -50.9);
+    G.ctx.lineTo(0, -52.9);
+    G.ctx.lineTo(1.4, -50.9);
+    G.ctx.lineTo(3.8, -52.5);
+    G.ctx.lineTo(4.2, -50.8);
+    G.ctx.closePath();
+    G.ctx.fill();
+    G.ctx.fillRect(-4.2, -50.4, 8.4, .9);
+  }
   G.ctx.lineCap = 'round';
 }
 export function robotBody(P, r, o, f, now) {
@@ -154,7 +168,7 @@ export function robotBody(P, r, o, f, now) {
   // 머리(환호 때 360도 회전)
   G.ctx.save();
   G.ctx.translate(0, -45);
-  G.ctx.rotate(P.head + (o.cheer ? now * 6 % (Math.PI * 2) : 0));
+  G.ctx.rotate(P.head + (o.cheer || o.win || o.swagger ? now * 6 % (Math.PI * 2) : 0));
   G.ctx.translate(0, 45);
   // 목은 머리와 함께 회전하며 머리 아래와 몸통 위에 살짝 겹친다.
   G.ctx.fillStyle = dark;
