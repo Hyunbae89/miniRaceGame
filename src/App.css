@@ -228,15 +228,20 @@ canvas{display:block;width:100%;height:auto;border-radius:var(--radius);border:1
   .rules .seg.chips button{flex-basis:30%;padding:8px 6px;font-size:13px}
   .count-ev{flex:0 0 100%;flex-direction:row;justify-content:space-between;margin-top:8px;padding-top:8px}
   .top h1{font-size:26px}
+  .tagline{text-wrap:balance;word-break:keep-all}
   .stage-start{font-size:18px;padding:10px 24px}
   /* 휴대폰: 캔버스가 작아(약 360×270px) 참가자 창을 세 줄로 압축 */
-  .roster{left:18%;right:4px;gap:6px;padding:8px;border-radius:10px}
-  .roster-arrows{left:calc(18% - 40px);gap:6px}
+  .roster{left:18%;right:42px;gap:6px;padding:8px;border-radius:10px}
+  .roster-arrows{left:auto;right:4px;gap:6px}
   .roster-arrows button{width:32px;height:32px;font-size:12px}
   .roster-foot .tab-seg button{padding:4px 8px;font-size:12px}
+  /* 기본 탭은 자기 높이만 씀(장신구 탭 높이에 맞추면 빈 공간이 생김). 탭을 바꾸면 창 높이가 조금 바뀜 */
+  .card-row.stack{display:flex}
+  .card-row.stack>.pane.off{display:none}
   .nav-who{display:none}
   .roster-head{gap:6px;flex-wrap:nowrap}
   .roster-head .eyebrow{font-size:11px}
+  .lane{display:none}
   .roster-head .eyebrow strong{font-size:13px}
   .roster-tools{gap:4px}
   .roster-tools button{font-size:11px;padding:3px 7px}
@@ -254,8 +259,10 @@ canvas{display:block;width:100%;height:auto;border-radius:var(--radius);border:1
   .acc-item{gap:2px 4px}
   .palette{padding:4px 6px;gap:3px}
   .pal-title{font-size:10px}
-  .pal-grid{grid-template-columns:repeat(2,15px);grid-template-rows:repeat(5,15px);gap:4px}
-  .dot{width:15px;height:15px}
+  .pal-grid{grid-template-columns:repeat(2,16px);grid-template-rows:repeat(5,16px);gap:4px}
+  /* 누르는 영역은 ::after로 32px(보이는 동그라미는 16px) */
+  .dot{width:16px;height:16px}
+  .dot::after{content:"";position:absolute;inset:-8px}
   .nav{flex:1;font-size:12px;padding:5px 8px}
   .card-main{gap:4px}
   .swatch{width:26px;height:26px}
