@@ -224,7 +224,8 @@ export function drawRace() {
     G.ctx.fill();
     G.ctx.stroke();
   }
-  G.ctx.fillStyle = '#1e2b33';
+  // 밤 맵은 하늘이 어두워 지도 양옆 글자를 밝게
+  G.ctx.fillStyle = TH().night ? '#e6eef2' : '#1e2b33';
   G.ctx.font = '15px Jua,sans-serif';
   G.ctx.textAlign = 'left';
   G.ctx.fillText('지도', 16, my + 19);
