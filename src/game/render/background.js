@@ -1,5 +1,5 @@
 // 배경(맵): 서울 도심 / 전통 마을 × 낮 / 밤. 하늘, 랜드마크, 건물, 인도, 응원 시민, 산책, 밤 조명.
-import { BUSAN_SIGNS, COLORS, GT, HAIR, OFF, SHOPC, SHOPS, SIGNS, SKIN } from "../constants.js";
+import { BUSAN_BANNERS, BUSAN_SIGNS, COLORS, GT, HAIR, OFF, SHOPC, SHOPS, SIGNS, SKIN } from "../constants.js";
 import { G } from "../state.js";
 import { hsh, rr } from "../util.js";
 export function TH() {
@@ -402,13 +402,14 @@ export function spectator(x, y, i, now, trad, night, pose, hold, place) {
 const BANNERS = ['끝까지 달려라!', '모두 완주 화이팅!', '미니 레이스 토너먼트', '오늘의 1등은 누구?'];
 // 현수막: 양 끝을 나무 막대에 묶고, 두 사람이 바깥쪽에 서서 각자 막대를 두 손으로 잡음.
 // 폭은 문구 길이에 맞춰 minSpan~maxSpan(사람 사이 거리), 그래도 넘치면 글자를 줄임
-export function bannerPair(x1, minSpan, maxSpan, y, i, now, trad, night) {
+export function bannerPair(x1, minSpan, maxSpan, y, i, now, trad, night, place) {
   const s = 1.45,
     bob = Math.sin(now * 3 + i) * 1.5,
     top = y - 50 * s + bob,
     h = 16,
     gap = 7 * s,
-    t = BANNERS[Math.floor(hsh(i * 41) * BANNERS.length)];
+    bannerSet = place === 'busan' ? BUSAN_BANNERS : BANNERS,
+    t = bannerSet[Math.floor(hsh(i * 41) * bannerSet.length)];
   let fs = 12;
   G.ctx.font = 'bold ' + fs + 'px Jua,sans-serif';
   const tw = G.ctx.measureText(t).width,
@@ -861,7 +862,7 @@ export function cityBg(th) {
   for (let i = s0; i <= s1; i++) {
     const x = i * SP + hsh(i) * 8 - G.camX + OFF;
     if (hsh(i * 7) > .92 && [1, 2, 3, 4].every((d) => hsh((i - d) * 7) <= .92)) {
-      bannerPair(x, SP * 2, SP * 4, GT - 6, i, now, th.trad, n8);
+      bannerPair(x, SP * 2, SP * 4, GT - 6, i, now, th.trad, n8, th.place);
       i += 4;
       continue;
     }
@@ -927,6 +928,38 @@ function drawLava(c, x, craterY, i, now) {
   c.restore();
 }
 
+const DINO_LINES = ['나도 열심히 해서 참가할 거야!', '으쌰으쌰!', '돌멩이쯤이야!', '기다려, 나도 간다~', '공룡도 달릴 줄 안다구!', '헥헥… 그래도 안 멈춰!'];
+function dinoBubble(x, headY, text) {
+  const c = G.ctx;
+  c.save();
+  c.font = '11px Jua,sans-serif';
+  const w = Math.min(G.W - 8, c.measureText(text).width + 12), h = 19,
+    bx = Math.max(4, Math.min(G.W - w - 4, x - w / 2)),
+    tailX = Math.max(bx + 7, Math.min(bx + w - 7, x)),
+    tailY = Math.max(h + 5, headY - 2);
+  c.fillStyle = 'rgba(255,255,255,.96)';
+  c.strokeStyle = 'rgba(30,43,51,.3)';
+  c.lineWidth = 1;
+  rr(bx, tailY - h, w, h, 6);
+  c.fill();
+  c.stroke();
+  c.beginPath();
+  c.moveTo(tailX - 4, tailY - 1);
+  c.lineTo(tailX, tailY + 5);
+  c.lineTo(tailX + 4, tailY - 1);
+  c.fill();
+  c.strokeStyle = 'rgba(30,43,51,.3)';
+  c.beginPath();
+  c.moveTo(tailX - 4, tailY - 1);
+  c.lineTo(tailX, tailY + 5);
+  c.stroke();
+  c.fillStyle = '#1e2b33';
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  c.fillText(text, bx + w / 2, tailY - h / 2);
+  c.restore();
+}
+
 function stoneMap(th, now, top) {
   const c = G.ctx, n = th.night, gy = GT, cam = G.camX - OFF;
   const tile = (par, gap, fn) => { const o = cam * par, a = Math.floor((o - 200) / gap), b = Math.ceil((o + G.W + 200) / gap); for (let i = a; i <= b; i++) fn(i * gap - o + OFF, i); };
@@ -948,7 +981,7 @@ function stoneMap(th, now, top) {
   c.fillStyle='#c9a26b';c.fillRect(0,gy-6,G.W,G.H-gy+6);c.fillStyle='#b48a55';tile(1,90,(x,i)=>{c.beginPath();c.ellipse(x,gy+8+((i*3)%3)*6,6+3*hsh(i),2,0,0,7);c.fill();});
   tile(1,260,(x)=>{c.fillStyle='#8a7a6a';c.beginPath();c.ellipse(x,gy+1,7,5,0,0,7);c.fill();c.fillStyle='rgba(255,255,255,.25)';c.beginPath();c.ellipse(x-2,gy-1,3,1.6,0,0,7);c.fill();});
   // Lab dinosaur friend and its original 260px jump rhythm and silhouette.
-  {const dx=G.W*.32,u=((cam+dx)%260+260)%260,p=u>=225?(u-225)/70:u<45?(u+35)/70:-1,jh=p>=0?30*Math.sin(Math.PI*p):0,y=gy-jh,run=now*14,b=jh?0:Math.abs(Math.sin(run))*1.2;c.fillStyle='rgba(60,40,20,.22)';c.beginPath();c.ellipse(dx,gy+3,14-jh/5,3,0,0,7);c.fill();c.save();c.translate(dx,y-b);c.fillStyle='#e8913a';for(let k=0;k<4;k++){c.beginPath();c.moveTo(-14+k*6,-19+k*.5);c.lineTo(-11+k*6,-25+k*.5);c.lineTo(-8+k*6,-19+k*.5);c.fill();}c.strokeStyle='#3fae8e';c.lineWidth=5;c.lineCap='round';for(const[lx,ph]of[[-5,0],[4,Math.PI]]){const sw=jh?.5:Math.sin(run+ph);c.beginPath();c.moveTo(lx,-6);c.lineTo(lx+sw*4,0);c.stroke();}c.fillStyle='#3fae8e';c.beginPath();c.moveTo(-12,-12);c.quadraticCurveTo(-26,-12,-30,-4+Math.sin(run)*2);c.quadraticCurveTo(-22,-6,-10,-6);c.fill();c.beginPath();c.ellipse(-2,-12,13,9,0,0,7);c.fill();c.fillStyle='#f4e7c4';c.beginPath();c.ellipse(1,-9,8,5.5,0,0,7);c.fill();c.fillStyle='#3fae8e';c.beginPath();c.ellipse(11,-24,9,7.5,0,0,7);c.fill();c.beginPath();c.ellipse(16,-21,6,4,0,0,7);c.fill();c.strokeStyle='#3fae8e';c.lineWidth=2.4;c.beginPath();c.moveTo(7,-12);c.lineTo(11,-9+(jh?-3:0));c.stroke();c.fillStyle='#fff';c.beginPath();c.arc(12,-26,2.6,0,7);c.fill();c.fillStyle='#10202a';c.beginPath();c.arc(12.8,-26,1.4,0,7);c.fill();c.strokeStyle='#10202a';c.lineWidth=1;c.beginPath();c.arc(16,-21.5,2.6,.1*Math.PI,.8*Math.PI);c.stroke();c.fillStyle='rgba(255,140,120,.5)';c.beginPath();c.arc(9,-21,1.6,0,7);c.fill();c.restore();}
+  {const dx=G.W*.32,u=((cam+dx)%260+260)%260,p=u>=225?(u-225)/70:u<45?(u+35)/70:-1,jh=p>=0?30*Math.sin(Math.PI*p):0,y=gy-jh,run=now*14,b=jh?0:Math.abs(Math.sin(run))*1.2;c.fillStyle='rgba(60,40,20,.22)';c.beginPath();c.ellipse(dx,gy+3,14-jh/5,3,0,0,7);c.fill();c.save();c.translate(dx,y-b);c.fillStyle='#e8913a';for(let k=0;k<4;k++){c.beginPath();c.moveTo(-14+k*6,-19+k*.5);c.lineTo(-11+k*6,-25+k*.5);c.lineTo(-8+k*6,-19+k*.5);c.fill();}c.strokeStyle='#3fae8e';c.lineWidth=5;c.lineCap='round';for(const[lx,ph]of[[-5,0],[4,Math.PI]]){const sw=jh?.5:Math.sin(run+ph);c.beginPath();c.moveTo(lx,-6);c.lineTo(lx+sw*4,0);c.stroke();}c.fillStyle='#3fae8e';c.beginPath();c.moveTo(-12,-12);c.quadraticCurveTo(-26,-12,-30,-4+Math.sin(run)*2);c.quadraticCurveTo(-22,-6,-10,-6);c.fill();c.beginPath();c.ellipse(-2,-12,13,9,0,0,7);c.fill();c.fillStyle='#f4e7c4';c.beginPath();c.ellipse(1,-9,8,5.5,0,0,7);c.fill();c.fillStyle='#3fae8e';c.beginPath();c.ellipse(11,-24,9,7.5,0,0,7);c.fill();c.beginPath();c.ellipse(16,-21,6,4,0,0,7);c.fill();c.strokeStyle='#3fae8e';c.lineWidth=2.4;c.beginPath();c.moveTo(7,-12);c.lineTo(11,-9+(jh?-3:0));c.stroke();c.fillStyle='#fff';c.beginPath();c.arc(12,-26,2.6,0,7);c.fill();c.fillStyle='#10202a';c.beginPath();c.arc(12.8,-26,1.4,0,7);c.fill();c.strokeStyle='#10202a';c.lineWidth=1;c.beginPath();c.arc(16,-21.5,2.6,.1*Math.PI,.8*Math.PI);c.stroke();c.fillStyle='rgba(255,140,120,.5)';c.beginPath();c.arc(9,-21,1.6,0,7);c.fill();c.restore();const cycle=7.2,phase=((now%cycle)+cycle)%cycle;if(phase<2.5)dinoBubble(dx,y-b-32,DINO_LINES[Math.floor(now/cycle)%DINO_LINES.length]);}
   tile(1,300,(x,i)=>{if(hsh(i*4)<.5)return;c.strokeStyle='#f4efe4';c.lineWidth=2.4;c.beginPath();c.moveTo(x-6,gy+10);c.lineTo(x+6,gy+10);c.stroke();c.fillStyle='#f4efe4';for(const side of[-1,1]){c.beginPath();c.arc(x+side*6,gy+8.8,1.6,0,7);c.arc(x+side*6,gy+11.2,1.6,0,7);c.fill();}});
   const hands=[], spacing=72, s0=Math.floor((G.camX-120)/spacing), s1=Math.ceil((G.camX+G.W+120)/spacing);
   for(let i=s0;i<=s1;i++){const x=i*spacing+hsh(i+8)*20-G.camX;if(hsh(i*3)>.25){const h=spectator(x,GT-6,i,now,false,n,undefined,undefined,'stone');if(n&&h)hands.push(h);}}
@@ -961,7 +994,8 @@ function stoneMap(th, now, top) {
 function newPlaceBg(th, now, top) {
   const c = G.ctx, n = th.night, p = th.place, off = G.camX;
   if (p === 'stone') return stoneMap(th, now, top);
-  const sea = top - 28;
+  // 부산은 수평선을 올리고 그 앞에 넓은 육지를 둬, 건물이 바다가 아닌 땅 위에 서게 함
+  const sea = p === 'busan' ? top - 46 : top - 28;
   c.fillStyle = p === 'stone' ? (n ? '#26383b' : '#b7d7b0') : p === 'hangang' ? (n ? '#193d57' : '#5aafd0') : (n ? '#123b56' : '#318bc2');
   c.fillRect(0, sea, G.W, 58);
   if (p === 'busan') {
@@ -975,10 +1009,22 @@ function newPlaceBg(th, now, top) {
       c.fillStyle = n ? '#b7c3cd' : '#d6dde3'; c.fillRect(x - 300, sea - 14, 600, 3);
       for (let k = -8; k <= 8; k++) { c.fillStyle = n ? '#ffd875' : '#fff1bf'; c.fillRect(x + k * 30, sea - 18, 3, 2); }
     }
+    // 모래와 낮은 방파제를 깔아 건물 앞의 바다와 육지를 분명히 나눈다.
+    c.fillStyle = n ? '#665b50' : '#d8c69f';
+    c.fillRect(0, top - 30, G.W, 60);
+    c.fillStyle = n ? '#8b8173' : '#eee0bd';
+    c.fillRect(0, top - 30, G.W, 4);
+    c.fillStyle = n ? '#373f45' : '#8b7658';
+    c.fillRect(0, top - 26, G.W, 2);
+    c.fillStyle = n ? 'rgba(225,205,165,.28)' : 'rgba(255,255,255,.45)';
+    for (let i = Math.floor((off - 80) / 54); i <= Math.ceil((off + G.W + 80) / 54); i++) {
+      const x = i * 54 - off;
+      c.fillRect(x, top + 5 + hsh(i * 7) * 14, 13 + hsh(i * 11) * 15, 2);
+    }
     // 낮은 건물은 드문 간격으로만 나타나 부산 해안선을 열어 둔다.
     for (let i = Math.floor((off * .19 - 100) / 190); i <= Math.ceil((off * .19 + G.W + 100) / 190); i++) {
       if (hsh(i * 9 + 4) < .42) continue;
-      const x = i * 190 + 90 - off * .19, bh = 22 + hsh(i * 13) * 25, bw = 42 + hsh(i * 17) * 22, by = top - 8;
+      const x = i * 190 + 90 - off * .19, bh = 22 + hsh(i * 13) * 25, bw = 42 + hsh(i * 17) * 22, by = top - 24;
       c.fillStyle = n ? '#314657' : '#9bb8c7'; c.fillRect(x, by - bh, bw, bh);
       c.fillStyle = n ? 'rgba(255,218,140,.65)' : 'rgba(255,255,255,.7)';
       for (let wx = x + 5; wx < x + bw - 4; wx += 10) c.fillRect(wx, by - bh + 7, 5, 4);
@@ -1009,8 +1055,21 @@ function newPlaceBg(th, now, top) {
         if (hsh(i * 9 + seed) < .2) continue;
         const x = i * step - off * par, bw = 42 + hsh(i * 3 + seed) * 26, bh = minH + hsh(i * 7 + seed) * (maxH - minH);
         c.fillStyle = col; c.fillRect(x, top - 18 - bh, bw, bh);
-        c.fillStyle = n ? 'rgba(255,220,140,.65)' : 'rgba(255,255,255,.58)';
-        for (let wy = top - 12 - bh; wy < top - 22; wy += 12) for (let wx = x + 6; wx < x + bw - 5; wx += 12) if (hsh(i * 31 + wy + wx) > .5) c.fillRect(wx, wy, 5, 5);
+        let floor = 0;
+        for (let wy = top - 12 - bh; wy < top - 22; wy += 12, floor++) {
+          let column = 0;
+          for (let wx = x + 6; wx < x + bw - 5; wx += 12, column++) {
+            if (!n) c.fillStyle = '#dbe1dc';
+            else {
+              const floorLight = hsh(i * 101 + floor * 17 + seed),
+                columnLight = hsh(i * 43 + column * 31 + seed),
+                windowLight = hsh(i * 31 + floor * 1.7 + column * .37 + seed),
+                lit = floorLight * .45 + columnLight * .35 + windowLight * .2 > .56;
+              c.fillStyle = lit ? '#ffd17a' : '#34404d';
+            }
+            c.fillRect(wx, wy, 5, 5);
+          }
+        }
       }
     }
     const hill = 330 - off * .1;
