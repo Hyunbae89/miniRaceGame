@@ -153,7 +153,8 @@ function hangangNamsanLandmark(x, base, night) {
     c.strokeStyle = night ? '#b9c3bf' : '#d8ded4'; c.lineWidth = 1.2;
     c.beginPath(); c.moveTo(x + dx, base - 78); c.lineTo(x + dx, base - 107); c.moveTo(x + dx - 3, base - 98); c.lineTo(x + dx + 3, base - 98); c.stroke();
   }
-  namsanTower(x, base - 126, .53, night);
+  // 언덕 중앙 정상은 곡선의 제어점 기준 약 109px 위에 있다.
+  namsanTower(x, base - 109, .53, night);
 }
 // 서울 랜드마크: 남산(N서울타워), 롯데월드타워, 63빌딩 — 시차 공간에서 700 간격으로 번갈아 등장
 export function landmarks(par, base, night, phase) {
@@ -1306,18 +1307,18 @@ function newPlaceBg(th, now, top) {
         c.beginPath(); c.moveTo(x + k, y - 16); c.lineTo(x + k + 19, y); c.moveTo(x + k + 19, y - 16); c.lineTo(x + k, y); c.stroke();
       }
     }
-    // 강물 앞쪽의 회색 교량은 일정 간격 V형 교각과 한 줄 조명으로 그린다.
-    c.fillStyle = n ? '#8393a0' : '#c8d0d2'; c.fillRect(0, top + 1, G.W, 4);
-    c.fillStyle = n ? '#dce0dc' : '#edf0ed'; c.fillRect(0, top, G.W, 2);
+    // 회색 데크는 붉은 트러스 바로 밑에 놓고, 교각은 강물 안에서 끝낸다.
+    c.fillStyle = n ? '#8393a0' : '#c8d0d2'; c.fillRect(0, top - 27, G.W, 4);
+    c.fillStyle = n ? '#dce0dc' : '#edf0ed'; c.fillRect(0, top - 28, G.W, 2);
     const pierStep = 150, pierOff = off * .28;
     for (let i = Math.floor((pierOff - 30) / pierStep); i <= Math.ceil((pierOff + G.W + 30) / pierStep); i++) {
       const x = i * pierStep - pierOff + 70;
       c.strokeStyle = n ? '#aeb9bd' : '#9aa8ad'; c.lineWidth = 3;
-      c.beginPath(); c.moveTo(x - 14, top + 28); c.lineTo(x, top + 5); c.lineTo(x + 14, top + 28); c.stroke();
-      c.fillStyle = n ? '#bfc8c9' : '#84939a'; c.fillRect(x - 17, top + 27, 34, 3);
-      if (n) { c.fillStyle = '#ffd77e'; c.fillRect(x - 2, top + 3, 4, 2); }
+      c.beginPath(); c.moveTo(x - 14, top - 26); c.lineTo(x, top + 12); c.lineTo(x + 14, top - 26); c.stroke();
+      c.fillStyle = n ? '#bfc8c9' : '#84939a'; c.fillRect(x - 3, top + 10, 6, 3);
+      if (n) { c.fillStyle = '#ffd77e'; c.fillRect(x - 2, top - 30, 4, 2); }
     }
-    if (n) for (let x = 18; x < G.W; x += 42) { c.fillStyle = '#ffe19a'; c.fillRect(x, top - 3, 3, 2); }
+    if (n) for (let x = 18; x < G.W; x += 42) { c.fillStyle = '#ffe19a'; c.fillRect(x, top - 31, 3, 2); }
     // 오리배는 다리 아래 물 위를 천천히 오간다.
     for (let i = Math.floor((off * .24 - 80) / 300); i <= Math.ceil((off * .24 + G.W + 80) / 300); i++) {
       const x = i * 300 + 120 - off * .24 + now * 5 % 300, y = top + 18 + hsh(i * 7) * 5;
