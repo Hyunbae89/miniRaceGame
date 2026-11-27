@@ -214,14 +214,15 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
   const i = Math.min(editing, v.n - 1), c = v.cfg[i];
   const shuffled = v.lanes.some((s, k) => s !== k);
   const [tab, setTab] = useState('base');
-  // 다음: 기본 탭 → 장신구 탭 → 다음 사람 기본 탭. 이전: 장신구 탭 → 기본 탭, 기본 탭 → 이전 사람 기본 탭
-  const go = (d) => {
-    if (d > 0 && tab === 'base') setTab('acc');
-    else if (d < 0 && tab === 'acc') setTab('base');
-    else if (i + d >= 0 && i + d < v.n) { setEditing(i + d); setTab('base'); }
-  };
+  // 이전·다음 사람으로 바로 이동(보던 탭은 그대로). 기본·장신구는 아래 줄 가운데에서 고름
+  const go = (d) => { if (i + d >= 0 && i + d < v.n) setEditing(i + d); };
   const touchX = useRef(null);
   return (
+    <>
+    <div className="roster-arrows">
+      <button type="button" aria-label="이전 참가자" title="이전 참가자" disabled={i === 0} onClick={() => go(-1)}>▲</button>
+      <button type="button" aria-label="다음 참가자" title="다음 참가자" disabled={i === v.n - 1} onClick={() => go(1)}>▼</button>
+    </div>
     <section className="roster" aria-labelledby="roster-h"
       onTouchStart={(e) => { touchX.current = e.touches[0].clientX; }}
       onTouchEnd={(e) => { const dx = e.changedTouches[0].clientX - touchX.current; if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1); }}>
@@ -233,11 +234,6 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
           {shuffled && <button type="button" className="ghost" onClick={() => game().resetLanes()}>원래 자리</button>}
           <button type="button" ref={confirmRef} className="confirm pulse" onClick={onConfirm}>최종 결정</button>
         </div>
-      </div>
-      <div className="tabs" role="tablist" aria-label="편집 항목">
-        {[['base', '기본'], ['acc', '장신구']].map(([k, t]) => (
-          <button type="button" key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{t}</button>
-        ))}
       </div>
       <div className="card-row">
         {tab === 'acc' ? (
@@ -272,10 +268,16 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
       </div>
       <div className="roster-foot">
         <p className="status pc-only">{tab === 'acc' ? '장신구를 누르면 오른쪽 색 칸에서 그 장신구의 색을 골라요.' : '어떤 종류를 골라도 이길 확률은 비슷해요.'}</p>
-        <button type="button" className="nav" disabled={i === 0 && tab === 'base'} onClick={() => go(-1)}>{tab === 'acc' ? '◀ 기본' : '◀ 이전 사람'}</button>
-        <button type="button" className="nav" disabled={i === v.n - 1 && tab === 'acc'} onClick={() => go(1)}>{tab === 'base' ? '장신구 ▶' : '다음 사람 ▶'}</button>
+        <button type="button" className="nav" disabled={i === 0} onClick={() => go(-1)}>◀ 이전<span className="nav-who"> 사람</span></button>
+        <div className="seg tab-seg" role="tablist" aria-label="편집 항목">
+          {[['base', '기본'], ['acc', '장신구']].map(([k, t]) => (
+            <button type="button" key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{t}</button>
+          ))}
+        </div>
+        <button type="button" className="nav" disabled={i === v.n - 1} onClick={() => go(1)}>다음<span className="nav-who"> 사람</span> ▶</button>
       </div>
     </section>
+    </>
   );
 }
 
@@ -549,9 +551,9 @@ export default function App() {
         </Notice>
       )}
       {unseenNotice && (
-        <Notice title="아직 확인하지 않은 참가자가 있어요" closeText="그대로 결정" goText="확인하러 가기"
-          onClose={() => setUnseenNotice(false)} onAlt={confirmNow}
-          onGo={() => { setUnseenNotice(false); setEditing(unseen[0]); }}>
+        <Notice title="아직 확인하지 않은 참가자가 있어요" closeText="계속 편집" goText="그대로 결정"
+          onClose={() => setUnseenNotice(false)} onAlt={() => { setUnseenNotice(false); setEditing(unseen[0]); }}
+          onGo={confirmNow}>
           {unseen.map((k) => k + 1).join(', ')}번 참가자를 아직 보지 않았어요. 이름·종류를 바꾸지 않고 그대로 결정할까요?
         </Notice>
       )}
