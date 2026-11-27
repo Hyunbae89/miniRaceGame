@@ -91,12 +91,16 @@ button.sq{width:48px;height:44px;padding:0;font-size:24px;background:var(--panel
 .roster-tools button{font-size:13px;padding:6px 12px}
 .lane{font-size:12px;color:var(--muted)}
 .card-row{display:flex;align-items:center;gap:10px}
-.nav{flex:none;font-size:14px;padding:8px 16px;background:var(--panel2);color:var(--ink);border:1px solid var(--line)}
-.card{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;min-height:84px}
-/* 기본 / 장신구 탭 */
+.card-row.stack{display:grid}
+.card-row.stack>.pane{grid-area:1/1;min-width:0;display:flex;align-items:center}
+.card-row.stack>.pane>*{flex:1;min-width:0}
+.card-row.stack>.pane.off{visibility:hidden}
 .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line)}
 .tabs button{background:transparent;color:var(--muted);border-radius:8px 8px 0 0;padding:6px 16px;font-size:14px;border-bottom:2px solid transparent;margin-bottom:-1px}
 .tabs button.on{color:var(--accent);border-bottom-color:var(--accent)}
+.nav{flex:none;font-size:14px;padding:8px 16px;background:var(--panel2);color:var(--ink);border:1px solid var(--line)}
+.card{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;min-height:84px}
+/* 기본 / 장신구 탭 */
 /* 장신구 탭: 왼쪽 장신구 줄 + 오른쪽 끝 공용 색 칸(2열). 누른 장신구가 강조되고 색 칸이 그 장신구 색을 바꿈 */
 .card.acc{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:start}
 .acc-rows{display:flex;flex-direction:column;gap:6px;min-width:0}
@@ -139,6 +143,12 @@ button.sq{width:48px;height:44px;padding:0;font-size:24px;background:var(--panel
 .name{flex:1;min-width:0;font:inherit;font-size:16px;font-weight:600;padding:7px 10px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
 .name:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 .roster-foot{display:flex;align-items:center;gap:8px}
+.roster-foot .tab-seg{flex:none}
+.roster-foot .tab-seg button{padding:6px 14px}
+/* 참가자 창 바깥 왼쪽: 이전·다음 참가자 화살표 */
+.roster-arrows{position:absolute;left:calc(20% - 52px);top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:10px;z-index:2}
+.roster-arrows button{width:40px;height:40px;padding:0;border-radius:50%;font-size:15px;background:color-mix(in srgb,var(--panel) 92%,transparent);color:var(--accent);border:1px solid var(--line);box-shadow:0 4px 12px rgba(10,18,24,.2)}
+.roster-arrows button:disabled{opacity:.35}
 .status{flex:1;margin:0;color:var(--muted);font-size:14px}
 .confirm{font-size:14px;padding:6px 16px}
 .confirm.pulse{animation:pulse 1.8s ease-in-out infinite}
@@ -201,6 +211,7 @@ canvas{display:block;width:100%;height:auto;border-radius:var(--radius);border:1
 /* 태블릿 세로(721~900px): 캔버스가 낮아 참가자 창을 넓히고 여백·안내 문구를 줄여 캔버스 안에 들어가게 */
 @media (min-width:721px) and (max-width:900px){
   .roster{left:12%;right:1.5%;gap:7px;padding:10px 12px}
+  .roster-arrows{left:calc(12% - 46px)}
   .roster .status{display:none}
   .roster-foot{justify-content:flex-end}
   .acc-row{gap:5px 8px}
@@ -220,16 +231,20 @@ canvas{display:block;width:100%;height:auto;border-radius:var(--radius);border:1
   .stage-start{font-size:18px;padding:10px 24px}
   /* 휴대폰: 캔버스가 작아(약 360×270px) 참가자 창을 세 줄로 압축 */
   .roster{left:18%;right:4px;gap:6px;padding:8px;border-radius:10px}
+  .roster-arrows{left:calc(18% - 40px);gap:6px}
+  .roster-arrows button{width:32px;height:32px;font-size:12px}
+  .roster-foot .tab-seg button{padding:4px 8px;font-size:12px}
+  .nav-who{display:none}
   .roster-head{gap:6px;flex-wrap:nowrap}
   .roster-head .eyebrow{font-size:11px}
   .roster-head .eyebrow strong{font-size:13px}
   .roster-tools{gap:4px}
   .roster-tools button{font-size:11px;padding:3px 7px}
   .card-row{gap:4px}
+  .tabs button{font-size:12px;padding:2px 10px}
   .card{min-height:30px}
   .card.base{display:flex}
   .card.base .name{flex:1;width:auto}
-  .tabs button{font-size:12px;padding:2px 10px}
   /* 휴대폰 장신구 탭: 작게, 넘치면 창 안에서 스크롤 */
   .card.acc{gap:6px;max-height:122px;overflow-y:auto}
   .acc-rows{gap:3px}
@@ -278,6 +293,12 @@ canvas{display:block;width:100%;height:auto;border-radius:var(--radius);border:1
 
 /* 설명 칸: 한 줄 설명 + 장점·패널티 + (사람) 반영 예정 안내 */
 .desc p{margin:0}
+.desc .desc-t{color:var(--ink);font-weight:600;padding-bottom:6px;margin-bottom:4px;border-bottom:1px dashed var(--line)}
+/* 장점·패널티·능력: 이름표 칸을 같은 폭으로 세워 세로 정렬 */
+.desc dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:0}
+.desc dt{font-weight:700}
+.desc dd{margin:0}
+.desc .num{color:var(--accent)}
 .desc .pro{color:var(--ok)}
 .desc .con{color:#e4572e}
 
