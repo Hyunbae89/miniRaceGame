@@ -72,6 +72,20 @@ export function led(f, now, o, eye) {
     G.ctx.fillRect(2, bl ? -47 : -48.5, 2.2, bl ? .6 : 2.2);
     G.ctx.fillRect(-2, -43.6, 4, .9);
   }
+  if (o.win) {
+    G.ctx.fillStyle = '#ffd166';
+    G.ctx.beginPath();
+    G.ctx.moveTo(-4.2, -50.8);
+    G.ctx.lineTo(-3.6, -52.5);
+    G.ctx.lineTo(-1.2, -50.9);
+    G.ctx.lineTo(0, -52.9);
+    G.ctx.lineTo(1.4, -50.9);
+    G.ctx.lineTo(3.8, -52.5);
+    G.ctx.lineTo(4.2, -50.8);
+    G.ctx.closePath();
+    G.ctx.fill();
+    G.ctx.fillRect(-4.2, -50.4, 8.4, .9);
+  }
   G.ctx.lineCap = 'round';
 }
 export function robotBody(P, r, o, f, now) {
@@ -151,10 +165,19 @@ export function robotBody(P, r, o, f, now) {
     rr(-8, -34, 16, 21, 3);
     G.ctx.fill();
   }
+  // 목과 목 장식은 몸에 붙어 머리가 회전해도 움직이지 않는다.
+  G.ctx.fillStyle = dark;
+  rr(-2.8, -41.5, 5.6, 8.5, 2);
+  G.ctx.fill();
+  G.ctx.fillStyle = '#c5cdd2';
+  G.ctx.fillRect(-.7, -40.5, 1, 5.2);
+  G.ctx.fillStyle = joint;
+  G.ctx.fillRect(-2.2, -34.5, 4.4, 1.2);
+  if (r.neck) hazard(r.neckC, sp, o.run ? 1 : 0);
   // 머리(환호 때 360도 회전)
   G.ctx.save();
   G.ctx.translate(0, -45);
-  G.ctx.rotate(P.head + (o.cheer ? now * 6 % (Math.PI * 2) : 0));
+  G.ctx.rotate(P.head + (o.cheer || o.win || o.swagger ? now * 6 % (Math.PI * 2) : 0));
   G.ctx.translate(0, 45);
   if (r.ant) antenna(r.ant, r.antC, Math.max(-6, Math.min(6, sp * 8 - (o.run ? 2.5 : 0))), now, joint);else {
     G.ctx.strokeStyle = joint;
@@ -176,7 +199,6 @@ export function robotBody(P, r, o, f, now) {
   G.ctx.fill();
   led(f, now, o, r.eye);
   G.ctx.restore();
-  if (r.neck) hazard(r.neckC, sp, o.run ? 1 : 0);
   const hand = limb(1.5, -29, P.arms[1].u, ARM1, P.arms[1].u + P.arms[1].f, ARM2, 4, metal);
   G.ctx.fillStyle = joint;
   G.ctx.beginPath();
