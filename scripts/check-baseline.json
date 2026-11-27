@@ -5,53 +5,53 @@
     "names": "제임스,제인,메카 알렉스,에이미,오스카,소피아,샘,루시,제이크,안젤라,루크,루비"
   },
   "일반·8명·서울 낮(로봇 2)": {
-    "hash": "a8c29669",
-    "calls": 15684833,
+    "hash": "93997b7a",
+    "calls": 15666433,
     "sec": 61,
     "winner": "루시",
-    "sim": "97d55c8c"
+    "sim": "182a2cff"
   },
   "아이템·20명·서울 밤(꼴등 원함)": {
-    "hash": "c365f323",
-    "calls": 22026526,
+    "hash": "763caaa0",
+    "calls": 21954019,
     "sec": 58,
     "winner": "메카 샘",
-    "sim": "4c1d8d86"
+    "sim": "fd292775"
   },
   "일반·3명·전통 낮(꼴찌 로봇)": {
-    "hash": "a7fff05",
-    "calls": 12367200,
-    "sec": 55,
+    "hash": "d404fc29",
+    "calls": 12016653,
+    "sec": 53,
     "winner": "제인",
-    "sim": "ba9310fc"
+    "sim": "7e2c001c"
   },
   "아이템·5명·전통 밤": {
-    "hash": "7b4011be",
-    "calls": 16034130,
-    "sec": 53,
+    "hash": "9f86a1f0",
+    "calls": 15514885,
+    "sec": 51,
     "winner": "오스카",
-    "sim": "d28a22e1"
+    "sim": "43c83cbc"
   },
   "경기 중단(일시정지·참가자 수정·완전 초기화)": {
-    "hash": "25d889cc",
+    "hash": "4b9b66bb",
     "calls": 4454102,
     "pausedState": "run",
     "names": "다니엘,제인,해리,루나"
   },
   "MP4 녹화 범위(카운트다운 ~ 시상식 조명 끝 +2초)": {
-    "hash": "21f02d0d",
-    "calls": 24389746,
-    "sec": 60,
+    "hash": "490f2aa0",
+    "calls": 23713811,
+    "sec": 58,
     "winner": "제인",
-    "sim": "65ded36c",
-    "recSec": 71
+    "sim": "e81dc547",
+    "recSec": 69
   },
   "카메라 직접 조작(누르기·끌기·놓기)": {
-    "hash": "7221afaf",
-    "calls": 14316304,
-    "sec": 56,
+    "hash": "da313fd5",
+    "calls": 13947690,
+    "sec": 54,
     "winner": "제인",
-    "sim": "60e43cab",
+    "sim": "d1a44e9c",
     "during": true,
     "after": false
   }

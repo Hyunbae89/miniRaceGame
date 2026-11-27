@@ -41,6 +41,7 @@ export function setup() {
   G.camX = 0;
   G.clock = 0;
   G.endWait = 0;
+  G.loseT = -1;
   G.rt = 0;
   G.slowT = 0;
   G.banner = null;
@@ -391,6 +392,8 @@ export function update(dt) {
     if (r.x >= TRACK) {
       r.fin = true;
       G.fin.push(r);
+      // 꼴찌가 정해진 순간(남은 사람이 1명)부터 우는 말풍선이 보이므로 그때부터 시간을 잼
+      if (G.fin.length === G.n - 1) G.loseT = 0;
       r.rank = G.fin.length;
       r.time = G.rt;
       r.pull = null;
@@ -494,6 +497,7 @@ export function update(dt) {
       }
     }
   }
+  if (G.loseT >= 0) G.loseT += dt;
   for (const sp of G.springs) if (sp.t > 0) sp.t -= dt;
   for (const t of G.traps) if (t.u) for (const u of t.u) if (u.down && u.ft < 1) u.ft = Math.min(1, u.ft + dt * 4);
   // 말풍선(b: 주자, cr: 관중)은 약 1.8초, 떠오르는 글자는 1초
@@ -505,8 +509,8 @@ export function update(dt) {
   G.fx = G.fx.filter(f => f.t < 1);
   if (G.racers.every(r => r.fin)) {
     G.endWait += dt;
-    // 꼴찌의 한마디(말풍선)를 읽을 시간을 두고 시상식으로
-    if (G.endWait > 2.8) finish();
+    // 꼴찌 말풍선이 정해진 뒤 2.8초는 보이게: 일찍 정해졌으면 1.3초만 기다리고 바로 시상식으로
+    if (G.endWait > 1.3 && G.loseT > 2.8) finish();
   }
 }
 export function liveRank() {
