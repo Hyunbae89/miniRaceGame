@@ -3,15 +3,15 @@ import { COLORS } from "../constants.js";
 import { drawPerson } from "./character.js";
 import { bubble } from "./race.js";
 import { G } from "../state.js";
-import { R, fitText, ink, rr, backOut, bounceOut, lerp } from "../util.js";
+import { VR, fitText, ink, rr, backOut, bounceOut, lerp } from "../util.js";
 export function podiumStep(dt) {
   if (G.pt > 2.9) for (let k = 0; k < 3; k++) G.conf.push({
-    x: R(0, G.W),
+    x: VR(0, G.W),
     y: -10,
-    vx: R(-40, 40),
-    vy: R(90, 170),
-    c: COLORS[Math.floor(R(0, 8))],
-    a: R(0, 6)
+    vx: VR(-40, 40),
+    vy: VR(90, 170),
+    c: COLORS[Math.floor(VR(0, 8))],
+    a: VR(0, 6)
   });
   for (const c of G.conf) {
     c.x += c.vx * dt;

@@ -5,7 +5,7 @@ import { reactPose } from "./reactions.js";
 import { robotBody } from "./robot.js";
 import { drawVeh } from "./vehicles.js";
 import { G } from "../state.js";
-import { R, easeIO, lerp, rr, shade } from "../util.js";
+import { VR, vrand, easeIO, lerp, rr, shade } from "../util.js";
 // 각도는 아래 방향이 0, 앞(+x)이 양수. 정강이 = 허벅지 - 무릎(뒤로 접힘), 아래팔 = 위팔 + 팔꿈치(앞으로 접힘)
 // fk: 관절 두 마디의 끝점 계산(무릎·발 또는 팔꿈치·손)
 export function fk(x, y, a1, l1, a2, l2) {
@@ -23,6 +23,34 @@ export function limb(x, y, a1, l1, a2, l2, w, col) {
   G.ctx.lineTo(p[0], p[1]);
   G.ctx.lineTo(p[2], p[3]);
   G.ctx.stroke();
+  return [p[2], p[3]];
+}
+function humanLimb(x, y, a1, l1, a2, l2, w1, w2, w3, col) {
+  const c = G.ctx,
+    p = fk(x, y, a1, l1, a2, l2),
+    segment = (ax, ay, bx, by, wa, wb) => {
+      const dx = bx - ax,
+        dy = by - ay,
+        n = Math.hypot(dx, dy) || 1,
+        nx = -dy / n,
+        ny = dx / n;
+      c.beginPath();
+      c.moveTo(ax + nx * wa / 2, ay + ny * wa / 2);
+      c.lineTo(bx + nx * wb / 2, by + ny * wb / 2);
+      c.lineTo(bx - nx * wb / 2, by - ny * wb / 2);
+      c.lineTo(ax - nx * wa / 2, ay - ny * wa / 2);
+      c.closePath();
+      c.fill();
+    };
+  c.fillStyle = col;
+  segment(x, y, p[0], p[1], w1, w2);
+  segment(p[0], p[1], p[2], p[3], w2, w3);
+  c.beginPath();
+  c.arc(p[0], p[1], w2 / 2, 0, 7);
+  c.fill();
+  c.beginPath();
+  c.arc(p[2], p[3], w3 * .48, 0, 7);
+  c.fill();
   return [p[2], p[3]];
 }
 export function footY(lg, s) {
@@ -96,33 +124,33 @@ export function face(f, tilt, an, i) {
     now = performance.now() / 1000,
     blink = fp.eo > .5 && fp.x < .5 && (now + i * .77) % 3.3 < .12 ? .1 : 1;
   G.ctx.save();
-  G.ctx.translate(0, -34);
+  G.ctx.translate(0, -36);
   G.ctx.rotate(tilt);
-  G.ctx.translate(0, 34);
+  G.ctx.translate(0, 36);
   G.ctx.strokeStyle = '#1e2b33';
   G.ctx.fillStyle = '#1e2b33';
   G.ctx.lineWidth = 1.6;
   for (const ex of [3, 7.5]) {
     G.ctx.beginPath();
     if (fp.x > .5) {
-      G.ctx.moveTo(ex - 1.5, -42.5);
-      G.ctx.lineTo(ex + 1.5, -39.5);
-      G.ctx.moveTo(ex + 1.5, -42.5);
-      G.ctx.lineTo(ex - 1.5, -39.5);
+      G.ctx.moveTo(ex - 1.5, -44.5);
+      G.ctx.lineTo(ex + 1.5, -41.5);
+      G.ctx.moveTo(ex + 1.5, -44.5);
+      G.ctx.lineTo(ex - 1.5, -41.5);
       G.ctx.stroke();
     } else if (fp.eo < .35) {
-      if (fp.ec > 0) G.ctx.arc(ex - .5, -41, 1.6, Math.PI, 0);else {
-        G.ctx.moveTo(ex - 2, -42);
-        G.ctx.lineTo(ex + 1, -41);
+      if (fp.ec > 0) G.ctx.arc(ex - .5, -43, 1.6, Math.PI, 0);else {
+        G.ctx.moveTo(ex - 2, -44);
+        G.ctx.lineTo(ex + 1, -43);
       }
       G.ctx.stroke();
     } else {
-      G.ctx.ellipse(ex, -41, 1.4, Math.max(.25, 1.4 * fp.eo * blink), 0, 0, 7);
+      G.ctx.ellipse(ex, -43, 1.4, Math.max(.25, 1.4 * fp.eo * blink), 0, 0, 7);
       G.ctx.fill();
     }
   }
   // 입: 곡선(+웃음/-찡그림), 벌리면 아래쪽을 한 번 더 그려 채움
-  const my = -37,
+  const my = -39,
     cy = my + fp.mc * 2.6;
   G.ctx.beginPath();
   G.ctx.moveTo(2.4, my);
@@ -137,7 +165,7 @@ export function face(f, tilt, an, i) {
     for (let k = 0; k < 2; k++) {
       const u = (performance.now() / 320 + k * .5) % 1;
       G.ctx.beginPath();
-      G.ctx.arc(3 + k * 4.5, -40 + u * 14, 1.8, 0, 7);
+      G.ctx.arc(3 + k * 4.5, -42 + u * 14, 1.8, 0, 7);
       G.ctx.fill();
     }
   }
@@ -147,8 +175,8 @@ export function face(f, tilt, an, i) {
 function scarf(an, r, spd, lv, dt) {
   const n = 8,
     seg = 3,
-    ax = -5,
-    ay = -33;
+    ax = -3.5,
+    ay = -34.5;
   if (!an.scarf) an.scarf = Array.from({
     length: n
   }, (_, i) => ({
@@ -192,14 +220,14 @@ function scarf(an, r, spd, lv, dt) {
   G.ctx.strokeStyle = r.scarf;
   G.ctx.lineCap = 'round';
   G.ctx.lineJoin = 'round';
-  G.ctx.lineWidth = 2.6;
+  G.ctx.lineWidth = 2.2;
   G.ctx.beginPath();
   G.ctx.moveTo(ch[0].x, ch[0].y);
   for (let i = 1; i < n; i++) G.ctx.lineTo(ch[i].x, ch[i].y);
   G.ctx.stroke();
-  G.ctx.lineWidth = 3;
+  G.ctx.lineWidth = 2.2;
   G.ctx.beginPath();
-  G.ctx.ellipse(0, -33.5, 6.5, 1.8, 0, 0, 7);
+  G.ctx.ellipse(0, -34.5, 4.8, 1.4, 0, 0, 7);
   G.ctx.stroke();
 }
 // o: ph(걸음 위상), run, stun, cry, sad, cheer, veh, t, ready(카운트다운), h(점프 높이), act('push'|'pull'), actT, sprint, wx/wd(월드 좌표: 먼지용)
@@ -255,12 +283,12 @@ export function drawPerson(px, py, r, o) {
     if (robo && o.wx !== undefined) {
       G.shake = Math.max(G.shake, .18);
       for (let k = 0; k < 10; k++) G.dust.push({
-        x: o.wx + R(-8, 8),
+        x: o.wx + VR(-8, 8),
         d: o.wd,
         y: 1,
-        vx: R(-120, 120),
-        vy: R(40, 120),
-        r: R(.8, 1.6),
+        vx: VR(-120, 120),
+        vy: VR(40, 120),
+        r: VR(.8, 1.6),
         a: 1,
         c: k % 2 ? '#ffb020' : '#ffe08a',
         g: 1
@@ -511,7 +539,7 @@ export function drawPerson(px, py, r, o) {
   }
   if (o.cry && !o.sad && f === 'n') f = 'cry';
   if (robo) {
-    if (kind === 'stun') P.rot = (Math.random() - .5) * .05;
+    if (kind === 'stun') P.rot = (vrand() - .5) * .05;
     f = o.stun ? 'reboot' : o.chg > 1.5 ? 'error' : o.chg > 0 ? 'low' : o.ovh > 0 ? 'hot' : o.cheer ? 'happy' : o.sad || f === 'cry' ? 'sad' : o.boost > 0 || f === 'focus' ? 'focus' : 'n';
     if (o.chg > 0 && kind !== 'stun') {
       P = pose([{
@@ -615,7 +643,7 @@ export function drawPerson(px, py, r, o) {
     // 다리: 뒤쪽은 한 톤 어둡게
     for (let s = 0; s < 2; s++) {
       const lg = P.legs[s],
-        e = limb(HIPS[s], -14, lg.t, LEG, lg.t - lg.k, LEG, 4.5, s ? '#2c3e50' : shade('#34495e', .35));
+        e = humanLimb(HIPS[s], -14, lg.t, LEG, lg.t - lg.k, LEG, 5.4, 3.7, 2.4, s ? '#2c3e50' : shade('#34495e', .35));
       G.ctx.fillStyle = s ? '#1e2b33' : '#1b2730';
       G.ctx.beginPath();
       G.ctx.ellipse(e[0] + 1.6, e[1], 4.5, 2, (lg.t - lg.k) * -.35, 0, 7);
@@ -630,7 +658,11 @@ export function drawPerson(px, py, r, o) {
     G.ctx.translate(0, -14);
     G.ctx.rotate(P.lean);
     G.ctx.translate(0, 14);
-    limb(-1.5, -29, P.arms[0].u, ARM1, P.arms[0].u + P.arms[0].f, ARM2, 3.5, shade(skin, .22));
+    const rearShoulder = [-5.2, -30.2];
+    const rearHand = humanLimb(rearShoulder[0], rearShoulder[1], P.arms[0].u, ARM1, P.arms[0].u + P.arms[0].f, ARM2, 4.2, 3.1, 2.3, shade(skin, .22));
+    G.ctx.beginPath();
+    G.ctx.ellipse(rearHand[0] + .35, rearHand[1], 1.8, 1.45, P.arms[0].u + P.arms[0].f, 0, 7);
+    G.ctx.fill();
     if (hasBag) {
       G.ctx.save();
       G.ctx.translate(-8, -27 + an.bag);
@@ -644,44 +676,77 @@ export function drawPerson(px, py, r, o) {
     }
     if (fe) {
       G.ctx.save();
-      G.ctx.translate(-8, -45);
+      G.ctx.translate(-8, -47);
       G.ctx.rotate(an.hair);
       G.ctx.fillStyle = hair;
       rr(-4, 0, 8, 20, 3);
       G.ctx.fill();
       G.ctx.restore();
     }
+    G.ctx.fillStyle = shade(skin, .12);
+    rr(-2.3, -37, 4.6, 7, 2.2);
+    G.ctx.fill();
     G.ctx.fillStyle = r.color;
-    rr(-7, -33, 14, 19, 5);
+    G.ctx.beginPath();
+    G.ctx.ellipse(-5.2, -30.2, 1.8, 2.5, 0, 0, 7);
+    G.ctx.fill();
+    G.ctx.fillStyle = r.color;
+    const waist = ch ? 5.7 : el ? 5.1 : 4.8;
+    G.ctx.beginPath();
+    G.ctx.moveTo(-6.2, -32.5);
+    G.ctx.bezierCurveTo(-6.8, -29, -6.1, -25, -waist, -21.5);
+    G.ctx.bezierCurveTo(ch ? -6.1 : -5.7, -18.8, -6.2, -16, -6.2, -14.2);
+    G.ctx.quadraticCurveTo(-3.1, -12.7, 0, -13.4);
+    G.ctx.quadraticCurveTo(3.2, -12.7, 5.8, -14.2);
+    G.ctx.bezierCurveTo(5.7, -17, 5.3, -19.1, waist, -21.5);
+    G.ctx.bezierCurveTo(6.8, -25, 6.8, -29, 7.2, -32.5);
+    G.ctx.quadraticCurveTo(.5, -34, -6.2, -32.5);
+    G.ctx.closePath();
+    G.ctx.fill();
+    G.ctx.fillStyle = '#34495e';
+    G.ctx.beginPath();
+    G.ctx.moveTo(-5.8, -16.1);
+    G.ctx.quadraticCurveTo(0, -14.5, 5.7, -16.1);
+    G.ctx.lineTo(5.8, -13.7);
+    G.ctx.quadraticCurveTo(0, -12.6, -5.8, -13.7);
+    G.ctx.closePath();
     G.ctx.fill();
     if (fe) {
       const fl = o.run && !seat ? 2 + 2.5 * Math.abs(Math.sin(2 * phi)) + (o.sprint ? 1.5 : 0) : 0;
+      G.ctx.fillStyle = r.color;
       G.ctx.beginPath();
-      G.ctx.moveTo(-7, -17);
-      G.ctx.lineTo(7, -17);
+      G.ctx.moveTo(-5.4, -18);
+      G.ctx.quadraticCurveTo(0, -17.2, 5.5, -18);
       G.ctx.lineTo(11 + fl * .6, -7 + fl * .15);
-      G.ctx.lineTo(-11 - fl * 1.4, -7 - fl * .5);
+      G.ctx.quadraticCurveTo(0, -5.9 - fl * .1, -11 - fl * 1.4, -7 - fl * .5);
       G.ctx.closePath();
       G.ctx.fill();
     }
     G.ctx.save();
-    G.ctx.translate(0, -34);
+    G.ctx.translate(0, -36);
     G.ctx.rotate(P.head);
-    G.ctx.translate(0, 34);
+    G.ctx.translate(0, 36);
     G.ctx.fillStyle = skin;
     G.ctx.beginPath();
-    G.ctx.arc(0, -42, 8.5, 0, 7);
+    G.ctx.arc(0, -44, 8.5, 0, 7);
     G.ctx.fill();
     G.ctx.fillStyle = hair;
     G.ctx.beginPath();
-    G.ctx.arc(0, -43, 9, Math.PI * 1.02, Math.PI * 1.98);
+    G.ctx.arc(0, -45, 9, Math.PI * 1.02, Math.PI * 1.98);
     G.ctx.fill();
-    G.ctx.fillRect(-9, -44, 5, 5);
+    G.ctx.fillRect(-9, -46, 5, 5);
     if (r.hat) hat(r.hat, r.hatC, Math.max(-4, Math.min(4, an.bag * 6)));
     G.ctx.restore();
     face(f, P.head, an, r.i);
     if (hasScarf) scarf(an, r, spd, lv, sdt);
-    hand = limb(1.5, -29, P.arms[1].u, ARM1, P.arms[1].u + P.arms[1].f, ARM2, 3.5, skin);
+    G.ctx.fillStyle = r.color;
+    G.ctx.beginPath();
+    G.ctx.arc(5, -30, 2.9, 0, 7);
+    G.ctx.fill();
+    hand = humanLimb(5, -30, P.arms[1].u, ARM1, P.arms[1].u + P.arms[1].f, ARM2, 4.2, 3.1, 2.3, skin);
+    G.ctx.beginPath();
+    G.ctx.ellipse(hand[0] + .35, hand[1], 1.9, 1.55, P.arms[1].u + P.arms[1].f, 0, 7);
+    G.ctx.fill();
     G.ctx.restore();
   }
   // 어르신 지팡이(걸어갈 때만): 앞손에서 땅까지
@@ -695,13 +760,13 @@ export function drawPerson(px, py, r, o) {
   G.ctx.restore();
   // 흙먼지: 발이 땅을 딛는 순간(허벅지가 뒤로 가기 시작) 월드 좌표에 생성
   // 과열·재부팅 연기
-  if (robo && o.wx !== undefined && (o.ovh > 0 || o.stun) && G.fdt > 0 && Math.random() < G.fdt * 14 && G.dust.length < 300) G.dust.push({
-    x: o.wx + R(-6, 6),
+  if (robo && o.wx !== undefined && (o.ovh > 0 || o.stun) && G.fdt > 0 && vrand() < G.fdt * 14 && G.dust.length < 300) G.dust.push({
+    x: o.wx + VR(-6, 6),
     d: o.wd,
     y: 52 * sc,
-    vx: R(-25, -5),
-    vy: R(25, 45),
-    r: R(2, 3.5),
+    vx: VR(-25, -5),
+    vy: VR(25, 45),
+    r: VR(2, 3.5),
     a: .9,
     c: '#8d99a3',
     g: -1
@@ -713,9 +778,9 @@ export function drawPerson(px, py, r, o) {
         x: o.wx + feet[s][0] * sc,
         d: o.wd,
         y: 0,
-        vx: -R(20, 70),
-        vy: R(10, 35),
-        r: R(1.5, 3),
+        vx: -VR(20, 70),
+        vy: VR(10, 35),
+        r: VR(1.5, 3),
         a: 1
       });
       an.prevCos[s] = cs;
