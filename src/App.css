@@ -91,6 +91,13 @@ button.sq{width:48px;height:44px;padding:0;font-size:24px;background:var(--panel
 .roster-tools button{font-size:13px;padding:6px 12px}
 .lane{font-size:12px;color:var(--muted)}
 .card-row{display:flex;align-items:center;gap:10px}
+.card-row.stack{display:grid}
+.card-row.stack>.pane{grid-area:1/1;min-width:0;display:flex;align-items:center}
+.card-row.stack>.pane>*{flex:1;min-width:0}
+.card-row.stack>.pane.off{visibility:hidden}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line)}
+.tabs button{background:transparent;color:var(--muted);border-radius:8px 8px 0 0;padding:6px 16px;font-size:14px;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button.on{color:var(--accent);border-bottom-color:var(--accent)}
 .nav{flex:none;font-size:14px;padding:8px 16px;background:var(--panel2);color:var(--ink);border:1px solid var(--line)}
 .card{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;min-height:84px}
 /* 기본 / 장신구 탭 */
@@ -234,6 +241,7 @@ canvas{display:block;width:100%;height:auto;border-radius:var(--radius);border:1
   .roster-tools{gap:4px}
   .roster-tools button{font-size:11px;padding:3px 7px}
   .card-row{gap:4px}
+  .tabs button{font-size:12px;padding:2px 10px}
   .card{min-height:30px}
   .card.base{display:flex}
   .card.base .name{flex:1;width:auto}
@@ -285,6 +293,12 @@ canvas{display:block;width:100%;height:auto;border-radius:var(--radius);border:1
 
 /* 설명 칸: 한 줄 설명 + 장점·패널티 + (사람) 반영 예정 안내 */
 .desc p{margin:0}
+.desc .desc-t{color:var(--ink);font-weight:600;padding-bottom:6px;margin-bottom:4px;border-bottom:1px dashed var(--line)}
+/* 장점·패널티·능력: 이름표 칸을 같은 폭으로 세워 세로 정렬 */
+.desc dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:0}
+.desc dt{font-weight:700}
+.desc dd{margin:0}
+.desc .num{color:var(--accent)}
 .desc .pro{color:var(--ok)}
 .desc .con{color:#e4572e}
 

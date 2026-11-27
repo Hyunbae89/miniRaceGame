@@ -19,6 +19,13 @@ const AGE_PROS = {
   e: ['잘 안 넘어져요', '가속이 느려요'],
   r: ['부스터, 밀치기에 강해요', '과열·방전되면 멈춰요'],
 };
+// 설명 칸 셋째 줄: 실제 경기 계산에 쓰는 수치를 짧게(sim/race.js·robot.js 기준)
+const AGE_STATS = {
+  c: '점프 성공 +10% · 가속 1.5배 · 후반 0.95배',
+  a: '빨라진 구간이 1.5배 오래',
+  e: '넘어짐 30% 버팀 · 가속 0.6배',
+  r: '부스터 1.75배 · 밀치는 힘 1.5배',
+};
 const MODES = [['normal', '일반'], ['item', '아이템전']];
 // 레이스 배속 3단계(빠르게 = 예전 속도)
 const RATES = [[.65, '느리게'], [.8, '보통'], [1, '빠르게']];
@@ -235,10 +242,17 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
           <button type="button" ref={confirmRef} className="confirm pulse" onClick={onConfirm}>최종 결정</button>
         </div>
       </div>
-      <div className="card-row">
-        {tab === 'acc' ? (
+      <div className="tabs" role="tablist" aria-label="편집 항목">
+        {[['base', '기본'], ['acc', '장신구']].map(([k, t]) => (
+          <button type="button" key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{t}</button>
+        ))}
+      </div>
+      {/* 두 탭을 같은 칸에 겹쳐 두고 안 보이는 쪽만 숨겨, 탭을 바꿔도 창 높이가 그대로 */}
+      <div className="card-row stack">
+        <div className={'pane' + (tab === 'acc' ? '' : ' off')} aria-hidden={tab !== 'acc'}>
           <AccTab c={c} n={i + 1} set={(p) => { game().setCfg(i, p); game().react(i, 'acc'); }} />
-        ) : (
+        </div>
+        <div className={'pane' + (tab === 'base' ? '' : ' off')} aria-hidden={tab !== 'base'}>
         <div className="card base" role="tabpanel">
           <div className="card-main">
             <input type="color" className="swatch" value={c.color} aria-label={`${i + 1}번 옷 색`} onChange={(e) => game().setCfg(i, { color: e.target.value })} />
@@ -259,12 +273,15 @@ function Roster({ v, game, editing, setEditing, onConfirm, confirmRef }) {
             <Seg small label={`${i + 1}번 종류`} value={c.age} options={AGES} onChange={(a) => { game().setCfg(i, { age: a }); game().react(i, 'mood', true); }} />
           </div>
           <div className="pc-only desc">
-            <p>{AGE_DESC[c.age]}</p>
-            <p><b className="pro">장점</b> {AGE_PROS[c.age][0]}</p>
-            <p><b className="con">패널티</b> {AGE_PROS[c.age][1]}</p>
+            <p className="desc-t">{AGE_DESC[c.age]}</p>
+            <dl>
+              <dt className="pro">장점</dt><dd>{AGE_PROS[c.age][0]}</dd>
+              <dt className="con">패널티</dt><dd>{AGE_PROS[c.age][1]}</dd>
+              <dt className="num">능력</dt><dd>{AGE_STATS[c.age]}</dd>
+            </dl>
           </div>
         </div>
-        )}
+        </div>
       </div>
       <div className="roster-foot">
         <p className="status pc-only">{tab === 'acc' ? '장신구를 누르면 오른쪽 색 칸에서 그 장신구의 색을 골라요.' : '어떤 종류를 골라도 이길 확률은 비슷해요.'}</p>
