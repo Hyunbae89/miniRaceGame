@@ -109,6 +109,16 @@ function Seg({ label, value, options, onChange, disabled, small, className = '' 
   );
 }
 
+// 켬/끔 스위치(상태를 글자로도 보여 줌)
+function Switch({ label, on, onText = '켜짐', offText = '꺼짐', onChange }) {
+  return (
+    <button type="button" className={'sw' + (on ? ' on' : '')} role="switch" aria-checked={on} aria-label={label} onClick={() => onChange(!on)}>
+      <span className="sw-track" aria-hidden="true"><span className="sw-dot" /></span>{on ? onText : offText}
+    </button>
+  );
+}
+const PLACES = [['city', '🏙️ 서울 도심'], ['trad', '🏯 전통 마을'], ['busan', '🌊 부산 바다'], ['hangang', '🌉 한강 공원'], ['stone', '🦕 쥬라기섬']];
+
 function Row({ pos, color, name, right, hl }) {
   return (
     <li className={hl}>
@@ -131,6 +141,14 @@ function CountPanel({ v, game }) {
         <button type="button" className="sq" aria-label="인원 늘리기" disabled={v.n >= 20} onClick={() => game().setN(v.n + 1)}>+</button>
       </div>
       <p className="note">2~20명</p>
+      <div className="count-ev">
+        <span className="label">랜덤 이벤트</span>
+        <Switch label="랜덤 이벤트" on={v.events} onChange={(b) => game().setEvents(b)} />
+      </div>
+      <div className="count-ev">
+        <span className="label">장애물</span>
+        <Switch label="장애물" on={v.obstacles} onText="있음" offText="없음" onChange={(b) => game().setObstacles(b)} />
+      </div>
     </section>
   );
 }
@@ -150,20 +168,12 @@ function RulesPanel({ v, game, onStart, confirmed }) {
           <span className="label">결과산출</span>
           <Seg label="결과산출" value={v.want} options={WANTS} onChange={(w) => game().setWant(w)} />
         </div>
-        <div className="field">
-          <span className="label">맵</span>
-          <div className="map-pick">
-            <Seg label="맵 장소" value={place} className="map-locations" options={[['city', '서울 도심'], ['trad', '전통 마을'], ['busan', '부산 바다'], ['hangang', '한강 공원'], ['stone', '원시시대']]} onChange={(p) => game().setMap(p + '-' + time)} />
-            <Seg label="시간대" value={time} options={[['day', '☀ 낮'], ['night', '☾ 밤']]} onChange={(t) => game().setMap(place + '-' + t)} />
+        <div className="field map-field">
+          <div className="map-head">
+            <span className="label">맵</span>
+            <Seg label="시간대" small value={time} options={[['day', '☀ 낮'], ['night', '☾ 밤']]} onChange={(t) => game().setMap(place + '-' + t)} />
           </div>
-        </div>
-        <div className="field">
-          <span className="label">랜덤 이벤트</span>
-          <Seg label="랜덤 이벤트" value={v.events ? 'on' : 'off'} options={[['on', '켜기'], ['off', '끄기']]} onChange={(x) => game().setEvents(x === 'on')} />
-        </div>
-        <div className="field">
-          <span className="label">장애물</span>
-          <Seg label="장애물" value={v.obstacles ? 'on' : 'off'} options={[['on', '있음'], ['off', '없음']]} onChange={(x) => game().setObstacles(x === 'on')} />
+          <Seg label="맵 장소" value={place} className="chips" options={PLACES} onChange={(p) => game().setMap(p + '-' + time)} />
         </div>
       </div>
       <button type="button" className={'start-big' + (confirmed ? '' : ' locked')} onClick={onStart}>
@@ -326,7 +336,7 @@ function StopDialog({ onBack, onReset, onCancel }) {
 // 가이드: 실제 화면 캡처(public/guide)와 설명을 한 장씩. 첫 화면의 각 부분 → 레이스 → 시상식 → 리플레이
 const GUIDE = [
   ['01-count', '참가 인원', ['− / + 버튼으로 2~20명을 고릅니다.', '인원을 바꾸면 참가자 창이 다시 열려요.']],
-  ['02-rules', '경기 설정', ['모드: 일반 / 아이템전(?박스에서 탈것·무기·함정을 얻음)', '결과산출: 시상식 조명을 1등에게 줄지, 꼴등에게 줄지', '맵: 서울 도심 / 전통 마을 / 부산 바다 / 한강 공원 / 원시시대 × 낮 / 밤', '랜덤 이벤트: 켜면 달리다가 좋은 일·나쁜 일이 생겨요', '장애물: 허들·물웅덩이·진흙·스프링 발판을 놓을지', '경기 시작: 참가자를 최종 결정한 뒤에 열려요']],
+  ['02-rules', '경기 설정', ['모드: 일반 / 아이템전(?박스에서 탈것·무기·함정을 얻음)', '결과산출: 시상식 조명을 1등에게 줄지, 꼴등에게 줄지', '맵: 서울 도심 / 전통 마을 / 부산 바다 / 한강 공원 / 쥬라기섬 × 낮 / 밤', '랜덤 이벤트: 켜면 달리다가 좋은 일·나쁜 일이 생겨요', '장애물: 허들·물웅덩이·진흙·스프링 발판을 놓을지', '경기 시작: 참가자를 최종 결정한 뒤에 열려요']],
   ['03-roster', '참가자 창 · 기본', ['한 명씩 옷 색·이름·성별·종류(어린이·성인·어르신·로봇)를 정해요.', '오른쪽 설명 칸에서 종류의 특징과 장점·패널티를 볼 수 있어요.', '바꿀 때마다 출발선의 캐릭터가 한마디 해요.', '아래 버튼: 장신구 ▶ → 다음 사람 ▶ 순서로 넘어가요.']],
   ['04-acc', '참가자 창 · 장신구', ['장신구 줄을 누르고 종류를 골라요(없음 · 캡모자 · 비니 …).', '오른쪽 색상 칸은 지금 누른 장신구의 색을 바꿔요. 무지개 점은 다른 색.', '로봇은 눈 빛 · 경고 띠 · 안테나 · 등 · 발 부품을 바꿔요.', '장신구는 모습만 바꾸고 레이스 결과에는 영향이 없어요.']],
   ['05-start', '최종 결정과 시작', ['자리 섞기: 출발 레인 순서를 섞어요.', '최종 결정: 아직 안 본 참가자가 있으면 알려 줘요.', '결정하면 ▶ 시작 버튼이 열리고, 참가자 수정으로 다시 고칠 수 있어요.']],
