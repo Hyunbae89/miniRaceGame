@@ -2,7 +2,7 @@
 //
 //   npm run check            시나리오를 돌려 오류·NaN을 검사하고, 저장된 기준(스냅숏)과 그리기 기록을 비교
 //   npm run check -- --update   현재 결과를 새 기준으로 저장(그림이나 동작을 일부러 바꾼 뒤에 사용)
-//   npm run check -- --balance  로봇·사람 평균 순위 측정(시간이 걸림)
+//   npm run check -- --balance  어린이·성인·어르신·로봇 평균 순위 측정(시간이 걸림)
 //
 // 원리: Math.random과 시간을 고정한 채 가짜 캔버스로 게임을 돌리면서, 캔버스에 내린 모든 명령과
 // 설정값을 순서대로 해시로 기록한다. 리팩터링처럼 동작이 바뀌면 안 되는 작업 전후에 해시가 같으면
@@ -153,18 +153,19 @@ const scenarios = {
 };
 
 if (args.includes('--balance')) {
-  // 로봇 4명 + 사람 4명, 모드별 40판 평균 순위(중간값 4.5)
+  // 어린이·성인·어르신·로봇 2명씩(레인 섞임), 모드별 40판 종류별 평균 순위(중간값 4.5)
+  const AG = ['c', 'a', 'e', 'r'], NM = { c: '어린이', a: '성인', e: '어르신', r: '로봇' };
   for (const mode of ['normal', 'item']) {
-    let sr = 0, sh = 0, nr = 0, nh = 0;
+    const sum = { c: 0, a: 0, e: 0, r: 0 };
     for (let k = 0; k < 40; k++) {
       seed = 1000 + k; T = 0; let v;
       const g = createGame(makeCanvas(), { onChange: (x) => { v = x; } });
-      g.setN(8); for (let i = 0; i < 8; i += 2) g.setCfg(i, { age: 'r' }); g.setMode(mode); g.start();
+      g.setN(8); for (let i = 0; i < 8; i++) g.setCfg(i, { age: AG[(i + k) % 4] }); g.setMode(mode); g.start();
       let s = 0; while (v.state !== 'podium' && s < 60 * 240) { step(); s++; }
-      v.result.rank.forEach((x, i) => { const robot = v.cfg.findIndex((c) => c.name === x.name) % 2 === 0; if (robot) { sr += i + 1; nr++; } else { sh += i + 1; nh++; } });
+      v.result.rank.forEach((x, i) => { sum[AG[(v.cfg.findIndex((c) => c.name === x.name) + k) % 4]] += i + 1; });
       g.destroy();
     }
-    console.log(`${mode === 'normal' ? '일반' : '아이템전'}: 로봇 평균 ${(sr / nr).toFixed(2)}위, 사람 평균 ${(sh / nh).toFixed(2)}위`);
+    console.log(`${mode === 'normal' ? '일반' : '아이템전'}: ` + AG.map((a) => `${NM[a]} ${(sum[a] / 80).toFixed(2)}위`).join(', '));
   }
   process.exit(0);
 }
