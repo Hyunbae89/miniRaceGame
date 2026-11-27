@@ -1,11 +1,27 @@
-// 취재 헬기: 레이스 중에는 카메라가 따라가는 캐릭터를, 시작 전에는 마우스 x좌표를 따라 움직인다.
+// 취재 헬기: 레이스 중에는 화면에 보이는 참가자를 4초마다 바꿔 가며 비추고(1등 한마디 동안은 1등), 시작 전에는 마우스 x좌표를 따라 움직인다.
 import { focusR } from "../camera.js";
 import { GT, OFF } from "../constants.js";
 import { TH } from "./background.js";
 import { G } from "../state.js";
+import { hsh } from "../util.js";
+// 비출 사람: 4초 구간마다 화면 안의 참가자 중 하나(구간 번호로 정해 게임 난수를 쓰지 않음). 구간 중 화면 밖으로 나가면 다시 고름
+function heliTarget() {
+  const f = focusR();
+  if (G.state !== 'run' && G.state !== 'replay' || !f || f.fin) return f;
+  const tn = G.state === 'replay' ? G.rp : G.rt,
+    k = Math.floor(tn / 4),
+    seen = (r) => { const px = r.x - G.camX + OFF; return px > 60 && px < G.W - 60; },
+    cur = G.racers[G.heliPick?.i];
+  if (G.heliPick && G.heliPick.k === k && cur && seen(cur)) return cur;
+  const vis = G.racers.filter(seen);
+  if (!vis.length) return f;
+  const r = vis[Math.floor(hsh(k * 13 + 5) * vis.length)];
+  G.heliPick = { k, i: G.racers.indexOf(r) };
+  return r;
+}
 // 헬기: 시작 전에는 캔버스 위 마우스 x를 따라감(캔버스 밖으로 나가면 마지막 위치에서 제자리 비행)
 export function drawHeli() {
-  const f = G.state === 'idle' ? null : focusR(),
+  const f = G.state === 'idle' ? null : heliTarget(),
     now = performance.now() / 1000,
     panel = 144 + 30,
     night = TH().night;

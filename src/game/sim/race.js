@@ -505,7 +505,8 @@ export function update(dt) {
   G.fx = G.fx.filter(f => f.t < 1);
   if (G.racers.every(r => r.fin)) {
     G.endWait += dt;
-    if (G.endWait > 1.3) finish();
+    // 꼴찌의 한마디(말풍선)를 읽을 시간을 두고 시상식으로
+    if (G.endWait > 2.8) finish();
   }
 }
 export function liveRank() {
