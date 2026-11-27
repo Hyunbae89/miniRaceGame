@@ -432,6 +432,14 @@ export function drawRace() {
     rr(x0, y0, w, rows.length * rh + 10, 8);
     G.ctx.fill();
     G.ctx.font = '13px Jua,sans-serif';
+    // 순위가 바뀐 줄은 1초간 초록(오름)·빨강(내림)으로 반짝이고 ▲▼ 표시(그리기 전용 상태)
+    const tn = G.state === 'replay' ? G.rp : G.rt,
+      prev = G.rkPrev || (G.rkPrev = {}),
+      fx = G.rkFx || (G.rkFx = {});
+    lr.forEach((r, k) => {
+      if (prev[r.i] !== undefined && prev[r.i] !== k && tn > 1) fx[r.i] = { t: tn, up: k < prev[r.i] };
+      prev[r.i] = k;
+    });
     rows.forEach((e, k) => {
       const y = y0 + 5 + rh * k + 13;
       if (!e) {
@@ -441,6 +449,15 @@ export function drawRace() {
         return;
       }
       const [r, i] = e;
+      const fl = fx[r.i], fa = fl ? 1 - (tn - fl.t) : 0;
+      if (fa > 0 && fa <= 1) {
+        G.ctx.fillStyle = fl.up ? 'rgba(46,204,113,' + .35 * fa + ')' : 'rgba(231,76,60,' + .3 * fa + ')';
+        rr(x0 + 4, y - 13, w - 8, rh - 1, 5);
+        G.ctx.fill();
+        G.ctx.textAlign = 'right';
+        G.ctx.fillStyle = fl.up ? '#16895a' : '#c0392b';
+        G.ctx.fillText(fl.up ? '▲' : '▼', x0 + w - (r.fin ? 22 : 8), y);
+      }
       G.ctx.textAlign = 'right';
       G.ctx.fillStyle = '#5d6e78';
       G.ctx.fillText(String(i + 1), x0 + 22, y);
@@ -583,6 +600,8 @@ export function drawLabels(list) {
       G.ctx.fillStyle = ink(r.color);
       G.ctx.fillText(r.name, px, py - 66);
       if (r.age === 'r') drawBattery(px + tw / 2 + 3, py - 79, r);
+      // 지금 1등(아직 도착 전): 이름표 위 작은 왕관
+      if (r.cur === 1 && (G.state === 'run' || G.state === 'replay')) crown(px, py - 84);
     }
   }
   for (const [px, py, c] of dots) {
@@ -623,4 +642,26 @@ export function bubble(x, y, t) {
   G.ctx.fillStyle = '#1e2b33';
   G.ctx.textAlign = 'center';
   G.ctx.fillText(t, bx + w / 2, y - 9);
+}
+// 작은 왕관(이름표 위): 세 갈래 금색 + 보석 점
+function crown(x, y) {
+  const c = G.ctx;
+  c.fillStyle = '#f4c430';
+  c.strokeStyle = '#8a6d1f';
+  c.lineWidth = 1.2;
+  c.beginPath();
+  c.moveTo(x - 9, y);
+  c.lineTo(x - 9, y - 7);
+  c.lineTo(x - 4.5, y - 3);
+  c.lineTo(x, y - 9);
+  c.lineTo(x + 4.5, y - 3);
+  c.lineTo(x + 9, y - 7);
+  c.lineTo(x + 9, y);
+  c.closePath();
+  c.fill();
+  c.stroke();
+  c.fillStyle = '#e4572e';
+  c.beginPath();
+  c.arc(x, y - 3, 1.4, 0, 7);
+  c.fill();
 }

@@ -117,6 +117,9 @@ export function applyFrame(f) {
   G.banner = f.bn;
 }
 export function startReplay() {
+  // 순위 반짝임(그리기 전용)은 리플레이 처음부터 다시 셈
+  G.rkPrev = {};
+  G.rkFx = {};
   G.bk = {
     racers: G.racers,
     fin: G.fin,
