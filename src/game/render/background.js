@@ -1321,8 +1321,9 @@ function newPlaceBg(th, now, top) {
       if (n) { c.fillStyle = '#ffd77e'; c.fillRect(x - 2, top - 30, 4, 2); }
     }
     if (n) for (let x = 18; x < G.W; x += 42) { c.fillStyle = '#ffe19a'; c.fillRect(x, top - 31, 3, 2); }
-    // 오리배는 V자 교각 사이의 물길을 따라 천천히 떠간다.
+    // 오리배는 V자 교각 사이의 물길을 따라 천천히 떠간다. 칸마다 hsh로 띄엄띄엄(약 45%)만 띄운다.
     for (let i = Math.floor((pierOff - 100) / pierStep); i <= Math.ceil((pierOff + G.W + 100) / pierStep); i++) {
+      if (hsh(i * 13 + 5) < .55) continue;
       const phase = ((now * 2 + hsh(i * 7) * 90) % 90), drift = phase < 45 ? phase : 90 - phase,
         x = i * pierStep - pierOff + 145 - 5 + drift - 22, y = top - 12 + hsh(i * 11) * 4;
       c.fillStyle = n ? '#e6e2d5' : '#fff'; c.beginPath(); c.ellipse(x, y, 12, 4, 0, 0, 7); c.fill();
