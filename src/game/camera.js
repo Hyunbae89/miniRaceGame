@@ -1,8 +1,12 @@
 import { OFF, TRACK } from "./constants.js";
 import { push } from "./engine.js";
 import { G } from "./state.js";
-// 카메라·헬기가 따라가는 캐릭터: 아직 도착하지 않은 선두. 모두 도착했으면 마지막 도착자
+// 카메라·헬기가 따라가는 캐릭터: 아직 도착하지 않은 선두. 모두 도착했으면 마지막 도착자.
+// 단, 1등이 들어와 한마디 하는 동안(말풍선 3.5초)은 1등을 비춤
 export function focusR() {
+  const tn = G.state === 'replay' ? G.rp : G.rt,
+    w = G.winLine && G.racers.find((r) => r.fin && r.rank === 1);
+  if (w && tn - w.time < 3.5) return w;
   let f = null;
   for (const r of G.racers) if (!r.fin && (!f || r.x > f.x)) f = r;
   return f || G.fin[G.fin.length - 1] || null;
