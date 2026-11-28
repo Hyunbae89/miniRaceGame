@@ -382,3 +382,9 @@ scripts/
 
 1. 저장소 Settings → Pages에서 Source를 "GitHub Actions"로 둡니다.
 2. `master`에 push하면 `.github/workflows/deploy.yml`이 자동으로 빌드하고 배포합니다.
+
+## 저작권
+
+© 2026 Hyunbae Jeon. All rights reserved.
+
+이 저장소의 코드·그림·문구는 작성자의 허락 없이 복제, 수정, 배포하거나 상업적으로 이용할 수 없습니다. 게임은 GitHub Pages 링크에서 누구나 자유롭게 플레이하고 링크를 공유해도 됩니다.
